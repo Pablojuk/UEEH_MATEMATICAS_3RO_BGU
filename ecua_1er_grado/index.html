@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ecuaciones de Primer Grado | 3ro BGU</title>
+  <style>
+    :root{
+      --bg:#f6f7ff;
+      --ink:#16213e;
+      --muted:#5d6684;
+      --primary:#6c63ff;
+      --secondary:#00b8a9;
+      --accent:#ffb703;
+      --danger:#ef476f;
+      --ok:#06d6a0;
+      --card:#ffffff;
+      --line:#e8eafd;
+      --shadow:0 18px 50px rgba(31,43,108,.13);
+      --radius:24px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(108,99,255,.25), transparent 34%),
+        radial-gradient(circle at 80% 8%, rgba(0,184,169,.18), transparent 30%),
+        linear-gradient(135deg,#f6f7ff 0%,#eef7ff 100%);
+      min-height:100vh;
+    }
+    .wrap{width:min(1180px,92vw); margin:auto;}
+    header.hero{
+      padding:34px 0 18px;
+    }
+    .hero-card{
+      position:relative;
+      overflow:hidden;
+      border-radius:32px;
+      background:linear-gradient(135deg,#24145f,#6446ff 55%,#00b8a9);
+      color:white;
+      padding:34px;
+      box-shadow:var(--shadow);
+    }
+    .hero-card:after{
+      content:"";
+      position:absolute;
+      width:330px;height:330px;border-radius:50%;
+      right:-90px;top:-120px;
+      background:rgba(255,255,255,.14);
+    }
+    .badge{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:9px 14px;border-radius:999px;
+      background:rgba(255,255,255,.18);
+      border:1px solid rgba(255,255,255,.22);
+      font-weight:700;font-size:.88rem;
+    }
+    h1{font-size:clamp(2.1rem,5vw,4.6rem);line-height:1;margin:18px 0 12px;letter-spacing:-.06em}
+    .hero-card p{font-size:1.08rem;max-width:790px;line-height:1.65;margin:0 0 20px;color:#eef2ff}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+    .btn{
+      border:0; border-radius:16px; padding:13px 18px;
+      cursor:pointer; font-weight:800; font-size:.95rem;
+      color:white; background:var(--primary);
+      box-shadow:0 10px 24px rgba(108,99,255,.25);
+      transition:.18s transform,.18s filter,.18s box-shadow;
+    }
+    .btn:hover{transform:translateY(-2px);filter:saturate(1.1)}
+    .btn.alt{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);box-shadow:none}
+    .btn.good{background:var(--secondary);box-shadow:0 10px 24px rgba(0,184,169,.22)}
+    .btn.warn{background:var(--accent);color:#231942;box-shadow:0 10px 24px rgba(255,183,3,.22)}
+    .btn.danger{background:var(--danger)}
+    .btn.small{padding:9px 12px;border-radius:13px;font-size:.84rem;box-shadow:none}
+    .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+    nav.sticky{
+      position:sticky;top:0;z-index:10;
+      backdrop-filter:blur(16px);
+      background:rgba(246,247,255,.82);
+      border-bottom:1px solid rgba(232,234,253,.9);
+    }
+    .nav-inner{display:flex;gap:8px;overflow:auto;padding:11px 0}
+    .pill{
+      white-space:nowrap;
+      border:1px solid var(--line);
+      background:white;
+      color:var(--ink);
+      padding:10px 14px;border-radius:999px;
+      font-weight:800;cursor:pointer;
+    }
+    .pill.active{background:var(--primary);color:white;border-color:var(--primary)}
+    section{padding:26px 0}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+    .card{
+      background:rgba(255,255,255,.88);
+      border:1px solid rgba(232,234,253,.9);
+      border-radius:var(--radius);
+      padding:22px;
+      box-shadow:var(--shadow);
+    }
+    .col-4{grid-column:span 4}.col-5{grid-column:span 5}.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
+    h2{font-size:clamp(1.55rem,3vw,2.25rem);margin:0 0 14px;letter-spacing:-.035em}
+    h3{margin:0 0 10px;font-size:1.15rem}
+    p,li{line-height:1.62;color:var(--muted)}
+    .tag{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:12px;background:#f0f2ff;color:#3c3a88;font-weight:800;font-size:.82rem;margin:3px}
+    .math{
+      display:inline-block;
+      font-family:"Cambria Math","Times New Roman",serif;
+      font-size:1.12em;
+      color:#111827;
+      background:#f8f9ff;
+      border:1px solid #e7e9ff;
+      border-radius:12px;
+      padding:5px 9px;
+      margin:2px 0;
+    }
+    .step{display:flex;gap:12px;margin:12px 0;align-items:flex-start}
+    .step b{
+      min-width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,var(--primary),#8f7cff);
+      color:white;display:grid;place-items:center;
+    }
+    .formula-board{
+      background:#121937;color:white;border-radius:24px;padding:22px;position:relative;overflow:hidden;
+    }
+    .formula-board .math{background:rgba(255,255,255,.11);color:white;border-color:rgba(255,255,255,.18)}
+    .progress-box{height:14px;background:#e7e9ff;border-radius:999px;overflow:hidden;margin:14px 0}
+    .progress-bar{height:100%;width:0;background:linear-gradient(90deg,var(--secondary),var(--primary));border-radius:999px;transition:.35s width}
+    .student-form{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+    label{font-weight:800;color:#313755;font-size:.9rem}
+    input,select,textarea{
+      width:100%;padding:13px 14px;border:1px solid #dfe3ff;border-radius:15px;background:white;color:var(--ink);font-size:1rem;outline:none;
+    }
+    input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(108,99,255,.12)}
+    .activity-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+    .exercise{
+      border:1px solid #e6e9ff;border-radius:22px;padding:17px;margin:12px 0;background:#fff;
+    }
+    .exercise-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+    .question{font-weight:900;font-size:1.18rem;color:#111827}
+    .answer-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:13px}
+    .feedback{margin-top:10px;font-weight:800;min-height:24px}
+    .ok{color:var(--ok)}.bad{color:var(--danger)}.soft{color:var(--muted)}
+    .result{
+      display:none;margin-top:18px;padding:18px;border-radius:22px;border:1px solid #dfe3ff;background:linear-gradient(135deg,#ffffff,#f7f8ff);
+    }
+    .result.show{display:block}
+    .score-big{font-size:clamp(2rem,6vw,4rem);font-weight:950;letter-spacing:-.06em;margin:0;color:var(--primary)}
+    .room{
+      border:2px dashed #cdd3ff;background:linear-gradient(135deg,#ffffff,#f9fbff);border-radius:24px;padding:18px;margin:13px 0;
+    }
+    .locked{opacity:.45;filter:grayscale(.2)}
+    .mini-map{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    .node{width:38px;height:38px;border-radius:14px;display:grid;place-items:center;background:#edf0ff;font-weight:950;color:#4a4e85}
+    .node.done{background:var(--ok);color:white}.node.active{background:var(--accent);color:#221}
+    .dua-list{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .dua{border-radius:20px;padding:17px;border:1px solid #e8eafd;background:white}
+    .dua:nth-child(1){border-top:6px solid #2ecc71}.dua:nth-child(2){border-top:6px solid #9b5de5}.dua:nth-child(3){border-top:6px solid #00bbf9}
+    .table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:18px;background:white}
+    .table th,.table td{padding:12px;border-bottom:1px solid #edf0ff;text-align:left;color:#4a526f}
+    .table th{background:#f2f4ff;color:#20284f;font-weight:900}
+    footer{padding:28px 0 50px;color:#68708e;text-align:center}
+    .toast{position:fixed;right:18px;bottom:18px;background:#111827;color:white;padding:14px 16px;border-radius:16px;box-shadow:var(--shadow);display:none;z-index:30;max-width:320px}
+    .toast.show{display:block;animation:pop .22s ease-out}
+    @keyframes pop{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+    @media(max-width:860px){
+      .col-4,.col-5,.col-6,.col-7,.col-8{grid-column:span 12}
+      .hero-card{padding:24px;border-radius:24px}
+      .student-form{grid-template-columns:1fr}
+      .answer-row{grid-template-columns:1fr}
+      .dua-list{grid-template-columns:1fr}
+      .card{padding:18px}
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-card">
+        <span class="badge">🎯 3ro BGU · Matemática · 90 minutos</span>
+        <h1>Ecuaciones de Primer Grado</h1>
+        <p>Una experiencia interactiva para comprender, practicar y resolver ecuaciones lineales con pasos claros, retroalimentación inmediata, escape room y recuperación automática.</p>
+        <div class="hero-actions">
+          <a class="btn alt" href="#presentacion">Ver explicación</a>
+          <a class="btn good" href="#actividades">Resolver actividades</a>
+          <a class="btn warn" href="#deber">Ir al deber</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="sticky">
+    <div class="wrap nav-inner">
+      <button class="pill active" onclick="go('#presentacion', this)">Presentación</button>
+      <button class="pill" onclick="go('#datos', this)">Datos del estudiante</button>
+      <button class="pill" onclick="go('#actividades', this)">Práctica y juego</button>
+      <button class="pill" onclick="go('#deber', this)">Deber</button>
+      <button class="pill" onclick="go('#cierre', this)">Cierre</button>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <section id="presentacion">
+      <div class="grid">
+        <article class="card col-7">
+          <span class="tag">💡 Objetivo de aprendizaje</span>
+          <h2>Resolver ecuaciones de primer grado y despejar la incógnita con seguridad.</h2>
+          <p>Al finalizar, podrás reconocer qué operación conviene aplicar, mantener el equilibrio de la igualdad y verificar si la respuesta tiene sentido.</p>
+          <div class="step"><b>1</b><p><strong>Leer la ecuación:</strong> identifica dónde está la incógnita y si hay paréntesis o fracciones.</p></div>
+          <div class="step"><b>2</b><p><strong>Ordenar:</strong> elimina paréntesis, reduce términos semejantes y, si hay fracciones, multiplica por un denominador común.</p></div>
+          <div class="step"><b>3</b><p><strong>Despejar:</strong> deja la incógnita en un lado y los números en el otro, aplicando la operación inversa.</p></div>
+          <div class="step"><b>4</b><p><strong>Comprobar:</strong> sustituye el valor obtenido en la ecuación original.</p></div>
+        </article>
+        <aside class="card col-5 formula-board">
+          <span class="badge">⚖️ Idea clave</span>
+          <h2>La igualdad es una balanza</h2>
+          <p style="color:#dbe4ff">Lo que haces en un lado, debes hacerlo también en el otro. Así no se rompe el equilibrio.</p>
+          <p><span class="math">2(x + 3) = 8</span></p>
+          <p style="color:#dbe4ff">Si dividimos ambos lados entre 2:</p>
+          <p><span class="math">x + 3 = 4</span></p>
+          <p style="color:#dbe4ff">Si restamos 3 en ambos lados:</p>
+          <p><span class="math">x = 1</span></p>
+        </aside>
+      </div>
+    </section>
+
+    <section>
+      <div class="grid">
+        <article class="card col-6">
+          <span class="tag">🧭 Ejemplo guiado 1</span>
+          <h2><span class="math">4(2 - x) = x + 3</span></h2>
+          <div class="step"><b>1</b><p>Distribuimos el 4: <span class="math">8 - 4x = x + 3</span>.</p></div>
+          <div class="step"><b>2</b><p>Pasamos las x a un lado: <span class="math">8 = 5x + 3</span>.</p></div>
+          <div class="step"><b>3</b><p>Restamos 3: <span class="math">5 = 5x</span>.</p></div>
+          <div class="step"><b>4</b><p>Dividimos entre 5: <span class="math">x = 1</span>.</p></div>
+        </article>
+        <article class="card col-6">
+          <span class="tag">🧭 Ejemplo guiado 2</span>
+          <h2><span class="math">(x - 2) / (x + 3) = 2</span></h2>
+          <div class="step"><b>1</b><p>Multiplicamos por <span class="math">x + 3</span> porque está dividiendo.</p></div>
+          <div class="step"><b>2</b><p>Queda <span class="math">x - 2 = 2(x + 3)</span>.</p></div>
+          <div class="step"><b>3</b><p>Distribuimos: <span class="math">x - 2 = 2x + 6</span>.</p></div>
+          <div class="step"><b>4</b><p>Despejamos: <span class="math">x = -8</span>. Además, <span class="math">x ≠ -3</span>, por lo tanto la solución es válida.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="grid">
+        <article class="card col-8">
+          <span class="tag">🚫 Errores frecuentes</span>
+          <table class="table">
+            <thead><tr><th>Error</th><th>Cómo evitarlo</th></tr></thead>
+            <tbody>
+              <tr><td>Olvidar distribuir el signo negativo o un número antes del paréntesis.</td><td>Antes de despejar, revisa cada paréntesis y multiplica término por término.</td></tr>
+              <tr><td>Pasar términos cambiando signos sin entender la operación.</td><td>Piensa en hacer la operación inversa a ambos lados de la igualdad.</td></tr>
+              <tr><td>Multiplicar solo una parte cuando hay fracciones.</td><td>Multiplica todos los términos por el denominador común.</td></tr>
+              <tr><td>No revisar restricciones en denominadores.</td><td>Si aparece una fracción con x abajo, verifica que el denominador no sea cero.</td></tr>
+            </tbody>
+          </table>
+        </article>
+        <article class="card col-4">
+          <span class="tag">🏅 Meta de logro</span>
+          <h2>Escala</h2>
+          <p><strong>9 a 10:</strong> Destacado</p>
+          <p><strong>7 a 8.99:</strong> Alcanzado</p>
+          <p><strong>4 a 6.99:</strong> En desarrollo</p>
+          <p><strong>0 a 3.99:</strong> Inicial</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="datos">
+      <div class="card">
+        <span class="tag">📝 Datos obligatorios</span>
+        <h2>Registro del estudiante</h2>
+        <p>Completa tus datos antes de enviar una práctica, el escape room o el deber. El sistema guarda solo el resumen final, no tus respuestas individuales.</p>
+        <div class="student-form">
+          <div><label for="nombre">Nombre y apellido</label><input id="nombre" type="text" placeholder="Ejemplo: Ana Pérez" /></div>
+          <div><label for="curso">Curso</label><input id="curso" type="text" value="3ro BGU" /></div>
+          <div><label for="paralelo">Paralelo</label><input id="paralelo" type="text" placeholder="A, B, C..." /></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="actividades">
+      <div class="card">
+        <span class="tag">🎮 Zona interactiva</span>
+        <h2>Práctica en clase y Escape Room</h2>
+        <p>Cada ejercicio vale 10 puntos. Escribe solo el valor de x. También puedes escribir respuestas como <strong>x=3</strong>, <strong>25/3</strong> o <strong>sin solución</strong>.</p>
+        <div class="activity-tabs">
+          <button class="btn small" onclick="selectActivity('practica')">Práctica en clase</button>
+          <button class="btn small good" onclick="selectActivity('escape')">Escape room</button>
+          <button class="btn small warn" onclick="selectActivity('deber')">Deber</button>
+        </div>
+        <div class="progress-box"><div class="progress-bar" id="activityProgress"></div></div>
+        <div id="activityArea"></div>
+        <div id="resultBox" class="result"></div>
+        <div id="recoveryBox" class="result"></div>
+      </div>
+    </section>
+
+    <section id="deber">
+      <div class="grid">
+        <article class="card col-7">
+          <span class="tag">📚 Deber obligatorio</span>
+          <h2>16 ejercicios de ecuaciones de primer grado</h2>
+          <p><strong>Fecha límite:</strong> del 12 de mayo al 19 de mayo de 2026.</p>
+          <p>Para resolver el deber, entra a la zona interactiva y selecciona el botón <strong>Deber</strong>. Al finalizar, el sistema calculará la nota, el nivel y la observación.</p>
+          <button class="btn warn" onclick="selectActivity('deber'); document.querySelector('#actividades').scrollIntoView({behavior:'smooth'});">Resolver deber ahora</button>
+        </article>
+        <article class="card col-5">
+          <span class="tag">🛟 Recuperación automática</span>
+          <h2>Oportunidad de mejora</h2>
+          <p>Si tu nota inicial es menor que 7/10, se habilita una nueva tanda de ejercicios. La nota definitiva será el promedio entre la nota inicial y la recuperación.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="card">
+        <span class="tag">🌈 DUA aplicado</span>
+        <h2>Aprender de diferentes formas</h2>
+        <div class="dua-list">
+          <div class="dua"><h3>Compromiso</h3><p>Reto inicial, puntos, niveles, insignias, escape room y mensajes de logro.</p></div>
+          <div class="dua"><h3>Representación</h3><p>Tarjetas visuales, pasos guiados, analogía de la balanza y ejemplos resueltos.</p></div>
+          <div class="dua"><h3>Acción y expresión</h3><p>Respuestas numéricas, verificación inmediata, recuperación y evidencia automática.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="cierre">
+      <div class="grid">
+        <article class="card col-6">
+          <span class="tag">🧠 Reflexión final</span>
+          <h2>Ticket de salida</h2>
+          <p>Responde mentalmente: ¿qué paso te ayuda más cuando una ecuación tiene fracciones?, ¿por qué no debemos olvidar comprobar la respuesta?</p>
+        </article>
+        <article class="card col-6">
+          <span class="tag">✅ Evidencia</span>
+          <h2>Resultado guardado</h2>
+          <p>Cuando completes una actividad, el resultado se envía a Google Sheets con nombre, curso, paralelo, promedio, nivel y observación automática.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <form
+    id="formEnvio"
+    action="https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec"
+    method="GET"
+    target="iframeOculto"
+  >
+    <input type="hidden" name="hoja" id="sendHoja" />
+    <input type="hidden" name="nombre" id="sendNombre" />
+    <input type="hidden" name="curso" id="sendCurso" />
+    <input type="hidden" name="paralelo" id="sendParalelo" />
+    <input type="hidden" name="tema" id="sendTema" />
+    <input type="hidden" name="tipoActividad" id="sendTipoActividad" />
+    <input type="hidden" name="numeroEjercicios" id="sendNumeroEjercicios" />
+    <input type="hidden" name="puntajeInicial" id="sendPuntajeInicial" />
+    <input type="hidden" name="promedioInicial" id="sendPromedioInicial" />
+    <input type="hidden" name="recuperacionHabilitada" id="sendRecuperacionHabilitada" />
+    <input type="hidden" name="promedioRecuperacion" id="sendPromedioRecuperacion" />
+    <input type="hidden" name="notaFinal" id="sendNotaFinal" />
+    <input type="hidden" name="porcentajeFinal" id="sendPorcentajeFinal" />
+    <input type="hidden" name="nivel" id="sendNivel" />
+    <input type="hidden" name="estado" id="sendEstado" />
+    <input type="hidden" name="fechaLimite" id="sendFechaLimite" />
+    <input type="hidden" name="observacion" id="sendObservacion" />
+  </form>
+  <iframe name="iframeOculto" id="iframeOculto" style="display:none;"></iframe>
+
+  <div class="toast" id="toast"></div>
+  <footer>Recurso interactivo de Matemática · Tercero de BGU · Ecuaciones de primer grado</footer>
+
+  <script>
+    const CONFIG = {
+      hoja: "ECUA 1ER GRADO",
+      tema: "Ecuaciones de Primer grado",
+      fechaDeber: "Del 12 de mayo al 19 de mayo de 2026"
+    };
+
+    const activities = {
+      practica: {
+        title: "Práctica en clase: 3 ejercicios guiados",
+        tipo: "Práctica en clase",
+        fecha: "Clase presencial de 90 minutos",
+        intro: "Resuelve tres ecuaciones tomadas del banco inicial. Recomendación: primero elimina paréntesis o fracciones y luego despeja.",
+        exercises: [
+          {q:"2(x + 3) = 8", a:1, tip:"Divide entre 2 y luego resta 3."},
+          {q:"(x - 2) / (x + 3) = 2", a:-8, tip:"Multiplica por x + 3 y recuerda que x no puede ser -3."},
+          {q:"(3x - 16) / x = 5 / 3", a:4, tip:"Multiplica en cruz: 3(3x - 16) = 5x."}
+        ]
+      },
+      escape: {
+        title: "Escape Room: La puerta de las ecuaciones",
+        tipo: "Escape room gamificado",
+        fecha: "Actividad de refuerzo en clase o casa",
+        intro: "Supera 4 puertas. Cada respuesta correcta desbloquea la siguiente sala. Si fallas, revisa la pista y vuelve a intentarlo.",
+        escape:true,
+        exercises: [
+          {q:"x - (x - 3) / 3 = 1", a:0, tip:"Multiplica todo por 3."},
+          {q:"x + (x - 3) / 5 = 2x + 5", a:-7, tip:"Multiplica todo por 5 y reúne las x."},
+          {q:"2(x - 1) / 3 = x", a:-2, tip:"Multiplica por 3 y despeja."},
+          {q:"2(x + 3) / 3 = (x + 8) / 9", a:-2, tip:"Multiplica por 9."}
+        ]
+      },
+      deber: {
+        title: "Deber: 16 ejercicios para casa",
+        tipo: "Deber obligatorio",
+        fecha: CONFIG.fechaDeber,
+        intro: "Resuelve los 16 ejercicios. El sistema calificará automáticamente y guardará el resumen final en Google Sheets.",
+        exercises: [
+          {q:"(x - 1) / 2 + (x + 1) / 4 = 2", a:3, tip:"Usa denominador común 4."},
+          {q:"(2x - 1) / 3 + (x + 3) / 5 = 2", a:2, tip:"Multiplica todo por 15."},
+          {q:"(x + 2) / 6 - x / 2 = 3", a:-8, tip:"Multiplica todo por 6."},
+          {q:"1 + (x + 1) / 3 = x / 4", a:-16, tip:"Multiplica todo por 12."},
+          {q:"x / 2 + (x + 1) / 7 = x - 2", a:6, tip:"Multiplica todo por 14."},
+          {q:"(2x + 4) / 3 = (5x - 1) / 2", a:1, tip:"Multiplica en cruz."},
+          {q:"(3x + 2) / 4 - (x + 4) / 6 = 1", a:2, tip:"Multiplica todo por 12."},
+          {q:"x / 2 - (6 - x) / 4 = x + 1", a:-10, tip:"Cuida el signo antes del paréntesis."},
+          {q:"(3x - 8) / 6 - (x - 3) / 2 = 0", a:"NO_SOLUTION", tip:"Al simplificar queda una contradicción."},
+          {q:"x / 3 + x / 2 = 5 - x / 6", a:5, tip:"Multiplica todo por 6."},
+          {q:"(3x + 8) / 3 = (2x - 1) / 6", a:-17/4, tip:"Multiplica todo por 6."},
+          {q:"-2x + 10 = (2 / 3)x + 2", a:3, tip:"Multiplica por 3 o trabaja con fracciones."},
+          {q:"(x - 1) / 2 - (x - 4) / 3 = 1", a:1, tip:"Multiplica todo por 6."},
+          {q:"(2x + 3) / 4 = (x + 1) / 2 + 3", a:"NO_SOLUTION", tip:"Al simplificar se elimina x y aparece una contradicción."},
+          {q:"(x + 8) / (6 - x) = 13", a:5, tip:"Multiplica por 6 - x y verifica que x no sea 6."},
+          {q:"(5x - 9) / 4 - (3x + 5) / 4 = 2 / 3", a:25/3, tip:"Resta las fracciones con igual denominador."}
+        ]
+      }
+    };
+
+    const recoveryExercises = [
+      {q:"x + 5 = 12", a:7, tip:"Resta 5 en ambos lados."},
+      {q:"3x - 6 = 9", a:5, tip:"Suma 6 y divide entre 3."},
+      {q:"(x - 2) / 3 = 4", a:14, tip:"Multiplica por 3 y suma 2."},
+      {q:"2(x + 1) = 10", a:4, tip:"Divide entre 2 y resta 1."},
+      {q:"x / 5 + 2 = 4", a:10, tip:"Resta 2 y multiplica por 5."}
+    ];
+
+    let current = "practica";
+    let lastInitial = null;
+    let sent = {};
+
+    function go(id, btn){
+      document.querySelector(id).scrollIntoView({behavior:'smooth'});
+      document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+    }
+
+    function showToast(msg){
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'), 3600);
+    }
+
+    function selectActivity(key){
+      current = key;
+      lastInitial = null;
+      document.getElementById('resultBox').className = 'result';
+      document.getElementById('recoveryBox').className = 'result';
+      renderActivity();
+    }
+
+    function renderActivity(){
+      const act = activities[current];
+      const area = document.getElementById('activityArea');
+      let html = `<h2>${act.title}</h2><p>${act.intro}</p>`;
+      if(act.escape){
+        html += `<div class="mini-map" id="mapNodes">${act.exercises.map((_,i)=>`<div class="node ${i===0?'active':''}" id="node-${i}">${i+1}</div>`).join('')}</div>`;
+      }
+      act.exercises.forEach((ex,i)=>{
+        const locked = act.escape && i>0;
+        html += `<div class="${act.escape?'room':'exercise'} ${locked?'locked':''}" id="box-${i}">
+          <div class="exercise-head">
+            <div><span class="tag">Ejercicio ${i+1}</span><div class="question"><span class="math">${ex.q}</span></div></div>
+            <button class="btn small" onclick="showTip('${current}',${i})">Pista</button>
+          </div>
+          <div class="answer-row">
+            <input id="ans-${i}" ${locked?'disabled':''} placeholder="Escribe la respuesta. Ejemplo: x=3" oninput="updateProgress()" />
+            <button class="btn small good" ${locked?'disabled':''} onclick="checkOne(${i})">Verificar</button>
+          </div>
+          <div class="feedback" id="fb-${i}"></div>
+        </div>`;
+      });
+      html += `<button class="btn" onclick="gradeCurrent()">Calificar actividad</button>`;
+      area.innerHTML = html;
+      updateProgress();
+    }
+
+    function showTip(key,i){
+      const ex = activities[key].exercises[i];
+      showToast(`Pista ${i+1}: ${ex.tip}`);
+    }
+
+    function cleanAnswer(value){
+      return String(value || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s+/g,'')
+        .replace('x=','')
+        .replace(',', '.');
+    }
+
+    function isNoSolution(value){
+      const s = cleanAnswer(value);
+      return s.includes('sinsolucion') || s.includes('notienesolucion') || s.includes('nosolucion') || s.includes('ninguna') || s.includes('noexiste') || s.includes('∄') || s.includes('vacio') || s.includes('imposible');
+    }
+
+    function parseNumeric(value){
+      let s = cleanAnswer(value);
+      if(!s) return NaN;
+      if(s.includes('/')){
+        const parts = s.split('/');
+        if(parts.length===2){
+          const a = Number(parts[0]);
+          const b = Number(parts[1]);
+          if(Number.isFinite(a) && Number.isFinite(b) && b !== 0) return a/b;
+        }
+        return NaN;
+      }
+      return Number(s);
+    }
+
+    function isCorrect(value, expected){
+      if(expected === 'NO_SOLUTION') return isNoSolution(value);
+      const n = parseNumeric(value);
+      return Number.isFinite(n) && Math.abs(n - expected) < 0.00001;
+    }
+
+    function correctText(expected){
+      if(expected === 'NO_SOLUTION') return 'sin solución';
+      const map = {
+        [String(-17/4)]:'-17/4',
+        [String(25/3)]:'25/3'
+      };
+      return map[String(expected)] || String(expected);
+    }
+
+    function checkOne(i){
+      const act = activities[current];
+      const ex = act.exercises[i];
+      const val = document.getElementById(`ans-${i}`).value;
+      const fb = document.getElementById(`fb-${i}`);
+      if(isCorrect(val, ex.a)){
+        fb.innerHTML = '✅ Correcto. Puerta superada.';
+        fb.className = 'feedback ok';
+        if(act.escape) unlockNext(i);
+      }else{
+        fb.innerHTML = `🔎 Revisa el procedimiento. ${ex.tip}`;
+        fb.className = 'feedback bad';
+      }
+      updateProgress();
+    }
+
+    function unlockNext(i){
+      const next = i + 1;
+      const node = document.getElementById(`node-${i}`);
+      if(node){node.className = 'node done';}
+      if(next < activities[current].exercises.length){
+        const box = document.getElementById(`box-${next}`);
+        const input = document.getElementById(`ans-${next}`);
+        const btn = box.querySelector('button.good');
+        box.classList.remove('locked');
+        input.disabled = false;
+        btn.disabled = false;
+        const nextNode = document.getElementById(`node-${next}`);
+        if(nextNode) nextNode.className = 'node active';
+      }
+    }
+
+    function updateProgress(){
+      const act = activities[current];
+      const total = act.exercises.length;
+      let filled = 0;
+      act.exercises.forEach((_,i)=>{
+        const el = document.getElementById(`ans-${i}`);
+        if(el && el.value.trim()) filled++;
+      });
+      document.getElementById('activityProgress').style.width = `${Math.round((filled/total)*100)}%`;
+    }
+
+    function requireStudentData(){
+      const nombre = document.getElementById('nombre').value.trim();
+      const curso = document.getElementById('curso').value.trim();
+      const paralelo = document.getElementById('paralelo').value.trim();
+      if(!nombre || !curso || !paralelo){
+        showToast('Completa nombre, curso y paralelo antes de enviar la calificación.');
+        document.getElementById('datos').scrollIntoView({behavior:'smooth'});
+        return false;
+      }
+      return true;
+    }
+
+    function gradeList(exercises, prefix){
+      let total = 0;
+      exercises.forEach((ex,i)=>{
+        const val = document.getElementById(`${prefix}-${i}`).value;
+        if(isCorrect(val, ex.a)) total += 10;
+      });
+      return total / exercises.length;
+    }
+
+    function gradeCurrent(){
+      if(!requireStudentData()) return;
+      const act = activities[current];
+      const avg = gradeList(act.exercises, 'ans');
+      const points = avg * act.exercises.length;
+      const level = getLevel(avg);
+      lastInitial = {avg, points, act};
+      const rb = document.getElementById('resultBox');
+      rb.className = 'result show';
+      rb.innerHTML = `<span class="tag">Resultado inicial</span>
+        <p class="score-big">${avg.toFixed(2)}/10</p>
+        <p><strong>Nivel:</strong> ${level.nivel}</p>
+        <p>${level.obs}</p>`;
+      if(avg < 7){
+        rb.innerHTML += `<p class="bad"><strong>Recuperación habilitada:</strong> debes resolver una nueva tanda para mejorar tu nota definitiva.</p>`;
+        renderRecovery();
+      }else{
+        rb.innerHTML += `<p class="ok"><strong>Actividad aprobada:</strong> no necesitas recuperación. Se enviará el resumen a Google Sheets.</p>`;
+        sendFinal(false, 0, avg);
+      }
+    }
+
+    function renderRecovery(){
+      const box = document.getElementById('recoveryBox');
+      box.className = 'result show';
+      let html = `<span class="tag">🛟 Recuperación automática</span><h2>Nueva oportunidad</h2><p>Resuelve estos ejercicios. La nota final será el promedio entre tu nota inicial y esta recuperación.</p>`;
+      recoveryExercises.forEach((ex,i)=>{
+        html += `<div class="exercise">
+          <div class="exercise-head"><div><span class="tag">Recuperación ${i+1}</span><div class="question"><span class="math">${ex.q}</span></div></div><button class="btn small" onclick="showRecoveryTip(${i})">Pista</button></div>
+          <div class="answer-row"><input id="rec-${i}" placeholder="Escribe la respuesta" /><button class="btn small good" onclick="checkRecoveryOne(${i})">Verificar</button></div>
+          <div class="feedback" id="recfb-${i}"></div>
+        </div>`;
+      });
+      html += `<button class="btn good" onclick="gradeRecovery()">Calificar recuperación y enviar</button>`;
+      box.innerHTML = html;
+    }
+
+    function showRecoveryTip(i){ showToast(`Pista recuperación ${i+1}: ${recoveryExercises[i].tip}`); }
+
+    function checkRecoveryOne(i){
+      const ex = recoveryExercises[i];
+      const val = document.getElementById(`rec-${i}`).value;
+      const fb = document.getElementById(`recfb-${i}`);
+      if(isCorrect(val, ex.a)){
+        fb.innerHTML = '✅ Correcto.'; fb.className = 'feedback ok';
+      }else{
+        fb.innerHTML = `🔎 Intenta de nuevo. ${ex.tip}`; fb.className = 'feedback bad';
+      }
+    }
+
+    function gradeRecovery(){
+      if(!lastInitial) return;
+      const recAvg = gradeList(recoveryExercises, 'rec');
+      const finalAvg = (lastInitial.avg + recAvg) / 2;
+      const level = getLevel(finalAvg);
+      const box = document.getElementById('recoveryBox');
+      box.innerHTML += `<div class="result show"><span class="tag">Nota definitiva</span><p class="score-big">${finalAvg.toFixed(2)}/10</p><p><strong>Recuperación:</strong> ${recAvg.toFixed(2)}/10</p><p><strong>Nivel final:</strong> ${level.nivel}</p><p>${level.obs}</p></div>`;
+      sendFinal(true, recAvg, finalAvg);
+    }
+
+    function getLevel(score){
+      if(score >= 9) return {nivel:'Destacado', estado:'Aprobado', obs:'Domina el procedimiento y puede explicar el porqué de los pasos.'};
+      if(score >= 7) return {nivel:'Alcanzado', estado:'Aprobado', obs:'Resuelve ecuaciones de primer grado con seguridad. Debe seguir practicando para ganar rapidez.'};
+      if(score >= 4) return {nivel:'En desarrollo', estado:'Requiere refuerzo', obs:'Reconoce partes del procedimiento, pero necesita reforzar despeje, signos y fracciones.'};
+      return {nivel:'Inicial', estado:'Requiere acompañamiento', obs:'Necesita apoyo guiado para comprender la igualdad como balanza y aplicar operaciones inversas.'};
+    }
+
+    function sendFinal(recuperacion, recAvg, finalAvg){
+      const act = activities[current];
+      const key = `${current}-${document.getElementById('nombre').value.trim().toLowerCase()}`;
+      if(sent[key]){
+        showToast('Este resultado ya fue enviado durante esta sesión.');
+        return;
+      }
+      const level = getLevel(finalAvg);
+      const initial = lastInitial || {avg:finalAvg, points:finalAvg * act.exercises.length};
+      const data = {
+        hoja: CONFIG.hoja,
+        nombre: document.getElementById('nombre').value.trim(),
+        curso: document.getElementById('curso').value.trim(),
+        paralelo: document.getElementById('paralelo').value.trim(),
+        tema: CONFIG.tema,
+        tipoActividad: act.tipo,
+        numeroEjercicios: act.exercises.length,
+        puntajeInicial: initial.points.toFixed(2),
+        promedioInicial: initial.avg.toFixed(2),
+        recuperacionHabilitada: recuperacion ? 'Sí' : 'No',
+        promedioRecuperacion: recuperacion ? recAvg.toFixed(2) : 'No aplica',
+        notaFinal: finalAvg.toFixed(2),
+        porcentajeFinal: `${(finalAvg*10).toFixed(0)}%`,
+        nivel: level.nivel,
+        estado: level.estado,
+        fechaLimite: act.fecha,
+        observacion: level.obs
+      };
+      Object.entries(data).forEach(([k,v])=>{
+        const el = document.getElementById('send' + k.charAt(0).toUpperCase() + k.slice(1));
+        if(el) el.value = v;
+      });
+      document.getElementById('formEnvio').submit();
+      sent[key] = true;
+      showToast('✅ Resultado enviado a Google Sheets.');
+    }
+
+    renderActivity();
+  </script>
+</body>
+</html>
