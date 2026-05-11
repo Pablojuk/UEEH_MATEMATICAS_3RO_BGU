@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deber interactivo | Ecuaciones de primer grado</title>
+  <style>
+    :root{
+      --bg:#07111f;
+      --panel:#0d1b2f;
+      --panel-2:#132846;
+      --card:#ffffff;
+      --ink:#102033;
+      --muted:#6b7890;
+      --accent:#44d7b6;
+      --accent-2:#7c5cff;
+      --gold:#ffd166;
+      --danger:#ff6b6b;
+      --ok:#2ecc71;
+      --warn:#f39c12;
+      --soft:#eef5ff;
+      --shadow:0 24px 55px rgba(5,13,28,.22);
+      --radius:26px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(68,215,182,.18), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(124,92,255,.22), transparent 38%),
+        linear-gradient(135deg,#07111f,#101d35 55%,#06101e);
+      color:var(--ink);
+    }
+    .app{
+      display:grid;
+      grid-template-columns:320px minmax(0,1fr);
+      min-height:100vh;
+      gap:22px;
+      padding:22px;
+    }
+    aside{
+      position:sticky;
+      top:22px;
+      height:calc(100vh - 44px);
+      overflow:auto;
+      border-radius:32px;
+      background:
+        linear-gradient(155deg,rgba(18,38,71,.98),rgba(19,28,54,.92)),
+        radial-gradient(circle at 20% 5%,rgba(68,215,182,.3),transparent 25%);
+      color:white;
+      padding:20px;
+      box-shadow:var(--shadow);
+      border:1px solid rgba(255,255,255,.14);
+    }
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-bottom:16px;
+    }
+    .logo{
+      width:54px;height:54px;border-radius:18px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      box-shadow:0 12px 25px rgba(68,215,182,.2);
+      font-size:28px;
+    }
+    h1,h2,h3,p{margin-top:0}
+    .brand h1{font-size:20px;line-height:1.1;margin:0}
+    .brand small{color:#b7c6dd}
+    .glass{
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:22px;
+      padding:14px;
+      backdrop-filter:blur(10px);
+      margin:12px 0;
+    }
+    .meta{display:grid;gap:8px;font-size:13px;color:#dce9ff}
+    .meta span{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed rgba(255,255,255,.12);padding-bottom:7px}
+    label{font-size:12px;font-weight:700;color:#314863;display:block;margin:8px 0 5px}
+    aside label{color:#d7e7ff}
+    input, select, textarea{
+      width:100%;
+      border:1px solid #dbe6f5;
+      border-radius:14px;
+      padding:12px 13px;
+      outline:none;
+      font-size:15px;
+      background:#fff;
+      color:#1a2a3d;
+    }
+    aside input, aside select{background:rgba(255,255,255,.94)}
+    input:focus, select:focus, textarea:focus{border-color:var(--accent-2); box-shadow:0 0 0 4px rgba(124,92,255,.12)}
+    .progress-wrap{height:12px;background:rgba(255,255,255,.16);border-radius:999px;overflow:hidden;margin:10px 0 8px}
+    .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--gold));transition:.35s}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    .stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:10px}
+    .stat small{color:#b7c6dd;display:block;font-size:11px}
+    .stat strong{font-size:18px;color:white}
+    .nav{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+    button{
+      border:0;
+      border-radius:16px;
+      padding:12px 14px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.18s transform,.18s box-shadow,.18s opacity;
+      background:#edf3ff;
+      color:#102033;
+      min-height:44px;
+    }
+    button:hover{transform:translateY(-1px);box-shadow:0 10px 18px rgba(6,15,30,.12)}
+    button:disabled{opacity:.48;cursor:not-allowed;transform:none;box-shadow:none}
+    .primary{background:linear-gradient(135deg,var(--accent),#5eead4);color:#06201a}
+    .purple{background:linear-gradient(135deg,var(--accent-2),#b197fc);color:white}
+    .danger{background:#ffe8e8;color:#8b1a1a}
+    .dark{background:#14213d;color:white}
+    .ghost{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:white}
+    .mini-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+    .mini-grid button{padding:8px 0;min-height:36px;border-radius:12px;font-size:12px;background:rgba(255,255,255,.12);color:white;border:1px solid rgba(255,255,255,.18)}
+    .mini-grid button.done{background:rgba(68,215,182,.24);border-color:rgba(68,215,182,.55)}
+    .mini-grid button.active{background:var(--gold);color:#2b2100}
+    main{min-width:0;display:flex;align-items:center;justify-content:center;padding:10px 6px}
+    .stage{width:min(1040px,100%);}
+    .slide{
+      background:rgba(255,255,255,.96);
+      border:1px solid rgba(255,255,255,.75);
+      border-radius:34px;
+      box-shadow:var(--shadow);
+      padding:28px;
+      min-height:calc(100vh - 64px);
+      overflow:hidden;
+      position:relative;
+    }
+    .slide:before{
+      content:"";position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(circle at 88% 6%,rgba(124,92,255,.12),transparent 28%),radial-gradient(circle at 5% 94%,rgba(68,215,182,.14),transparent 30%);
+    }
+    .slide > *{position:relative}
+    .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:center;min-height:72vh}
+    .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .chip{display:inline-flex;align-items:center;gap:6px;background:#eef4ff;border:1px solid #dce8ff;color:#29405f;border-radius:999px;padding:8px 11px;font-weight:800;font-size:13px}
+    .hero h2{font-size:clamp(34px,5vw,58px);line-height:.98;margin-bottom:14px;color:#0a1730}
+    .lead{font-size:18px;color:#52627a;line-height:1.55}
+    .space-card{background:linear-gradient(145deg,#0c1b33,#182b52);color:white;border-radius:30px;padding:26px;min-height:320px;display:grid;place-items:center;text-align:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+    .space-card .planet{font-size:82px;filter:drop-shadow(0 12px 18px rgba(0,0,0,.25))}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+    .exercise-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .exercise-title h2{font-size:28px;margin-bottom:4px;color:#0b1932}
+    .tag{border-radius:999px;background:#f3edff;color:#5b39c9;padding:8px 12px;font-weight:900;font-size:13px}
+    .equation{
+      background:linear-gradient(135deg,#f8fbff,#eef4ff);
+      border:1px solid #dfeafe;
+      border-radius:22px;
+      padding:18px;
+      margin:14px 0;
+      font-size:21px;
+      overflow-x:auto;
+      color:#102033;
+    }
+    .question-card{background:white;border:1px solid #e8eef8;border-radius:24px;padding:20px;margin-top:15px;box-shadow:0 10px 22px rgba(16,32,51,.06);color:#20324a}
+    .options{display:grid;gap:10px;margin-top:12px}
+    .option{display:flex;align-items:center;gap:10px;background:#f8fbff;border:1px solid #e5edf8;border-radius:16px;padding:12px;cursor:pointer;color:#20324a}
+    .option span, .option .math-inline{color:#20324a;font-weight:700}
+    .option input{width:auto}
+    .footer-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px}
+    .feedback{margin-top:15px;border-radius:18px;padding:14px;line-height:1.45;background:#f3f6fb;border:1px solid #e5edf8;color:#30435c}
+    .feedback.ok{background:#eafff4;border-color:#bff0d6;color:#146c43}
+    .feedback.bad{background:#fff0f0;border-color:#ffd0d0;color:#8b1a1a}
+    .feedback.warn{background:#fff8e6;border-color:#ffe2a1;color:#805600}
+    .attempts{font-weight:900;color:#52627a}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .small-note{font-size:13px;color:#6b7890;line-height:1.45}
+    .blank-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:14px}
+    .work-steps{display:grid;gap:14px;margin-top:8px}
+    .work-line{background:linear-gradient(135deg,#f8fbff,#f2f7ff);border:1px solid #dce8ff;border-radius:22px;padding:14px 16px}
+    .work-line small{display:block;color:#63758d;font-weight:800;margin-bottom:8px}
+    .work-line .equation-flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#17314f;font-size:17px}
+    .math-inline{color:#17314f;font-weight:700}
+    .inline-blank{width:160px;max-width:100%;padding:12px 14px;border:1.5px solid #c8d9f2;border-radius:16px;background:#fff;color:#102033;font-size:16px;box-shadow:inset 0 1px 2px rgba(16,32,51,.04)}
+    .inline-blank:focus{border-color:var(--accent-2);box-shadow:0 0 0 4px rgba(124,92,255,.12)}
+    .match-text{background:#f8fbff;border:1px solid #e5edf8;border-radius:16px;padding:12px;color:#20324a;font-weight:700}
+
+    .step-list{display:grid;gap:10px;margin-top:14px}
+    .step-item{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;background:#f8fbff;border:1px solid #e5edf8;border-radius:18px;padding:10px;touch-action:manipulation}
+    .step-item[draggable="true"]{cursor:grab}
+    .step-index{width:28px;height:28px;display:grid;place-items:center;border-radius:10px;background:#e9f1ff;font-weight:900;color:#365070}
+    .step-tools{display:flex;gap:6px}.step-tools button{min-height:32px;padding:6px 9px;border-radius:10px}
+    .match-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px;align-items:center;margin-top:12px}
+    .match-row{display:contents}.match-text{background:#f8fbff;border:1px solid #e5edf8;border-radius:16px;padding:12px}
+    .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:18px 0}
+    .summary-card{background:#f8fbff;border:1px solid #e5edf8;border-radius:22px;padding:18px}
+    .summary-card small{display:block;color:#6b7890;font-weight:800}.summary-card strong{font-size:28px;color:#0b1932}
+    .status-banner{border-radius:22px;padding:16px;margin:14px 0;background:#eef4ff;border:1px solid #dce8ff;color:#29405f;line-height:1.45}
+    .locked-overlay{background:#f5f7fb;border:1px dashed #ccd8ea;border-radius:16px;padding:12px;color:#52627a;font-weight:700;margin-top:12px}
+    .sr-only{position:absolute;left:-9999px}
+    form, iframe{display:none}
+    @media(max-width:900px){
+      .app{grid-template-columns:1fr;padding:12px;gap:12px}
+      aside{position:relative;top:0;height:auto;border-radius:24px;max-height:none}
+      .nav{grid-template-columns:repeat(4,1fr)}
+      .nav button{font-size:12px;padding:10px 5px}
+      main{padding:0}.slide{min-height:auto;border-radius:24px;padding:20px}.hero{grid-template-columns:1fr;min-height:auto}.space-card{min-height:220px}
+      .mini-grid{grid-template-columns:repeat(10,1fr)}
+      .two-col,.match-grid{grid-template-columns:1fr}.match-row{display:grid;gap:6px}
+    }
+    @media(max-width:560px){
+      .brand h1{font-size:17px}.logo{width:46px;height:46px}.stats{grid-template-columns:1fr 1fr}.hero h2{font-size:34px}.lead{font-size:16px}
+      .slide{padding:16px}.exercise-title h2{font-size:23px}.equation{font-size:18px;padding:14px}.footer-actions button{width:100%}
+      .mini-grid{grid-template-columns:repeat(5,1fr)}.step-item{grid-template-columns:auto 1fr;}.step-tools{grid-column:1 / -1}.nav{grid-template-columns:1fr 1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="appRoot">
+    <aside>
+      <div class="brand">
+        <div class="logo">🚀</div>
+        <div>
+          <h1>Misión Álgebra</h1>
+          <small>Deber interactivo</small>
+        </div>
+      </div>
+
+      <div class="glass meta">
+        <span><b>Tema</b><em>Ecuaciones de primer grado</em></span>
+        <span><b>Curso</b><em>Tercero BGU</em></span>
+        <span><b>Límite</b><em>19 de mayo de 2026</em></span>
+      </div>
+
+      <div class="glass" id="studentBox">
+        <label for="nombre">Nombre del estudiante</label>
+        <input id="nombre" placeholder="Escribe tu nombre completo" autocomplete="name" oninput="persistStudent()" />
+        <label for="curso">Curso</label>
+        <input id="curso" value="Tercero de BGU" oninput="persistStudent()" />
+        <label for="paralelo">Paralelo</label>
+        <input id="paralelo" placeholder="Ejemplo: A" oninput="persistStudent()" />
+      </div>
+
+      <div class="glass">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+          <strong>🛰️ Progreso</strong><span id="progressText">0/20</span>
+        </div>
+        <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="stats">
+          <div class="stat"><small>Nota inicial</small><strong id="sideInitial">0.00</strong></div>
+          <div class="stat"><small>Nota final</small><strong id="sideFinal">0.00</strong></div>
+          <div class="stat"><small>Nivel</small><strong id="sideLevel">Inicial</strong></div>
+          <div class="stat"><small>Estado</small><strong id="sideState">En curso</strong></div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <button class="ghost" onclick="goHome()">🏠 Inicio</button>
+        <button class="ghost" onclick="goExercises()">🧩 Ejercicios</button>
+        <button class="ghost" onclick="goRecovery()">🛠️ Recuperación</button>
+        <button class="ghost" onclick="goSummary()">📊 Resumen</button>
+      </div>
+
+      <div class="glass">
+        <strong>🌌 Retos</strong>
+        <div class="mini-grid" id="exerciseNav"></div>
+      </div>
+      <div class="glass">
+        <span class="chip">⭐ 3 intentos</span>
+        <span class="chip">📱 Celular</span>
+        <span class="chip">🧠 Feedback</span>
+      </div>
+    </aside>
+
+    <main>
+      <div class="stage" id="mainContent"></div>
+    </main>
+  </div>
+
+  <form id="formEnvio" action="https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec" method="GET" target="iframeOculto">
+    <input type="hidden" name="hoja" id="sendHoja" />
+    <input type="hidden" name="nombre" id="sendNombre" />
+    <input type="hidden" name="curso" id="sendCurso" />
+    <input type="hidden" name="paralelo" id="sendParalelo" />
+    <input type="hidden" name="tema" id="sendTema" />
+    <input type="hidden" name="tipoActividad" id="sendTipoActividad" />
+    <input type="hidden" name="numeroEjercicios" id="sendNumeroEjercicios" />
+    <input type="hidden" name="puntajeInicial" id="sendPuntajeInicial" />
+    <input type="hidden" name="promedioInicial" id="sendPromedioInicial" />
+    <input type="hidden" name="recuperacionHabilitada" id="sendRecuperacionHabilitada" />
+    <input type="hidden" name="promedioRecuperacion" id="sendPromedioRecuperacion" />
+    <input type="hidden" name="notaFinal" id="sendNotaFinal" />
+    <input type="hidden" name="porcentajeFinal" id="sendPorcentajeFinal" />
+    <input type="hidden" name="nivel" id="sendNivel" />
+    <input type="hidden" name="estado" id="sendEstado" />
+    <input type="hidden" name="fechaLimite" id="sendFechaLimite" />
+    <input type="hidden" name="observacion" id="sendObservacion" />
+  </form>
+  <iframe name="iframeOculto" id="iframeOculto" style="display:none;"></iframe>
+
+  <script>
+    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec';
+    const SHEET_NAME = 'Ecua_1erG_deber';
+    const TOPIC = 'Ecuaciones de primer grado';
+    const DEADLINE = '19 de mayo de 2026';
+    const STORAGE_PREFIX = 'sent_Ecua_1erG_deber_';
+    const STUDENT_KEY = 'student_Ecua_1erG_deber';
+    const SUMMARY_PREFIX = 'summary_Ecua_1erG_deber_';
+
+    const exercises = [
+      {id:1,type:'direct',kind:'Respuesta directa',title:'Despeje con fracciones',latex:'\\(\\frac{x-1}{2}+\\frac{x+1}{4}=2\\)',prompt:'Escribe el valor de x.',value:3,explain:'Al multiplicar por 4: 2(x-1)+(x+1)=8. Luego 3x-1=8, por eso x=3.',hint:'Busca el mínimo común múltiplo de 2 y 4.'},
+      {id:2,type:'mc',kind:'Opción múltiple',title:'Elige la solución correcta',latex:'\\(\\frac{2x-1}{3}+\\frac{x+3}{5}=2\\)',prompt:'Selecciona la respuesta correcta.',correct:'b',options:[['a','\\(x=1\\)'],['b','\\(x=2\\)'],['c','\\(x=5\\)'],['d','\\(x=-2\\)']],explain:'Multiplicando por 15: 5(2x-1)+3(x+3)=30. Entonces 13x+4=30 y x=2.',hint:'El MCM de 3 y 5 es 15.'},
+      {id:3,type:'incomplete',kind:'Completar procedimiento',title:'Completa el camino algebraico',latex:'\\(\\frac{x+2}{6}-\\frac{x}{2}=3\\)',prompt:'Completa los espacios del procedimiento.',fields:[['a','Paso 1','3'],['b','Paso 2','-2'],['c','Paso 3','-2'],['d','Paso 4','-8']],fillLayout:[{fid:'a',label:'Paso 1',pre:'Después de multiplicar por 6: \\(x+2-\\)',post:'\\(x=18\\)'},{fid:'b',label:'Paso 2',pre:'Al reducir términos: \\(',post:'\\(x+2=18\\)'},{fid:'c',label:'Paso 3',pre:'Restando 2 en ambos lados: \\(',post:'\\(x=16\\)'},{fid:'d',label:'Paso 4',pre:'Dividiendo para \\(-2\\): \\(x=\\)',post:''}],explain:'Multiplicar por 6 elimina denominadores: x+2-3x=18. Así -2x=16 y x=-8.',hint:'Recuerda que x/2 multiplicado por 6 se convierte en 3x.'},
+      {id:4,type:'tf',kind:'Verdadero o falso',title:'Analiza una respuesta',latex:'\\(1+\\frac{x+1}{3}=\\frac{x}{4}\\)',prompt:'La solución de la ecuación es \\(x=-16\\).',correct:true,explain:'Multiplicando por 12: 12+4(x+1)=3x. Entonces 16+4x=3x y x=-16.',hint:'El MCM de 3 y 4 es 12.'},
+      {id:5,type:'matching',kind:'Emparejamiento',title:'Relaciona cada paso',latex:'\\(\\frac{x}{2}+\\frac{x+1}{7}=x-2\\)',prompt:'Relaciona cada descripción con su resultado correcto.',pairs:[['m1','Multiplicar por 14','7x+2x+2=14x-28'],['m2','Reducir términos','9x+2=14x-28'],['m3','Aislar términos con x','30=5x'],['m4','Solución','x=6']],options:['7x+2x+2=14x-28','9x+2=14x-28','30=5x','x=6'],explain:'El MCM es 14. Al ordenar se obtiene 30=5x, por eso x=6.',hint:'Primero elimina denominadores con 14.'},
+      {id:6,type:'order',kind:'Ordenar pasos',title:'Ordena el procedimiento',latex:'\\(\\frac{2x+4}{3}=\\frac{5x-1}{2}\\)',prompt:'Ordena los pasos hasta llegar a la solución.',steps:[['s1','Multiplicar por 6: \\(2(2x+4)=3(5x-1)\\)'],['s2','Distribuir: \\(4x+8=15x-3\\)'],['s3','Aislar: \\(11=11x\\)'],['s4','Concluir: \\(x=1\\)']],explain:'El orden correcto elimina denominadores, distribuye, agrupa términos y despeja x=1.',hint:'Primero se elimina el 3 y el 2 multiplicando por 6.'},
+      {id:7,type:'detective',kind:'Detective de errores',title:'Encuentra el error',latex:'\\(\\frac{3x+2}{4}-\\frac{x+4}{6}=1\\)',prompt:'Observa el procedimiento: 1) \\(3(3x+2)-2(x+4)=12\\). 2) \\(9x+6-2x+8=12\\). 3) \\(7x+14=12\\). 4) \\(x=-\\frac{2}{7}\\). ¿Dónde está el error?',correctStep:'2',correctReason:'signo',explain:'El error está en el paso 2: -2(x+4) debe ser -2x-8, no -2x+8. Con el signo correcto se obtiene x=2.',hint:'Fíjate qué ocurre al distribuir un signo negativo.'},
+      {id:8,type:'direct',kind:'Respuesta directa',title:'Despeje con signos',latex:'\\(\\frac{x}{2}-\\frac{6-x}{4}=x+1\\)',prompt:'Escribe el valor de x.',value:-10,explain:'Multiplicando por 4: 2x-(6-x)=4x+4. Entonces 3x-6=4x+4 y x=-10.',hint:'Ten cuidado con el signo antes del paréntesis.'},
+      {id:9,type:'classification',kind:'Clasificación',title:'Reconoce el tipo de resultado',latex:'\\(\\frac{3x-8}{6}-\\frac{x-3}{2}=0\\)',prompt:'Clasifica cada afirmación del análisis.',items:[['c1','Al eliminar denominadores se llega a una contradicción.','Contradicción'],['c2','La ecuación tiene solución real.','Falso'],['c3','Tipo de resultado final.','Sin solución']],categories:['Contradicción','Falso','Sin solución','Identidad'],explain:'Multiplicando por 6: 3x-8-3(x-3)=0. Esto da 1=0, una contradicción. No existe solución.',hint:'Si todos los términos con x se cancelan, revisa si queda una igualdad verdadera o falsa.'},
+      {id:10,type:'verification',kind:'Completar comprobación',title:'Verifica la solución',latex:'\\(\\frac{x}{3}+\\frac{x}{2}=5-\\frac{x}{6}\\)',prompt:'Completa la comprobación para \\(x=5\\).',fields:[['v1','Lado izquierdo','25'],['v2','Lado derecho','25'],['v3','Conclusión','5']],fillLayout:[{fid:'v1',label:'Lado izquierdo',pre:'\\(\\frac{5}{3}+\\frac{5}{2}=\\frac{',post:'}{6}\\)'},{fid:'v2',label:'Lado derecho',pre:'\\(5-\\frac{5}{6}=\\frac{',post:'}{6}\\)'},{fid:'v3',label:'Conclusión',pre:'Como ambos lados son iguales, \\(x=',post:'\\)'}],explain:'Con x=5, ambos lados valen 25/6. La solución queda comprobada.',hint:'Convierte a sextos.'},
+      {id:11,type:'mc',kind:'Opción múltiple',title:'Solución fraccionaria',latex:'\\(\\frac{3x+8}{3}=\\frac{2x-1}{6}\\)',prompt:'Selecciona la solución correcta.',correct:'c',options:[['a','\\(x=\\frac{17}{4}\\)'],['b','\\(x=-4\\)'],['c','\\(x=-\\frac{17}{4}\\)'],['d','\\(x=3\\)']],explain:'Multiplicando por 6: 2(3x+8)=2x-1. Luego 6x+16=2x-1, 4x=-17 y x=-17/4.',hint:'El MCM de 3 y 6 es 6.'},
+      {id:12,type:'common',kind:'Selección de error común',title:'Evita el error frecuente',latex:'\\(-2x+10=\\frac{2}{3}x+2\\)',prompt:'¿Cuál es el error más común que puede cambiar el resultado de esta ecuación?',correct:'signo',options:[['den','Multiplicar toda la ecuación por 3 para quitar el denominador.'],['signo','Trasladar términos sin cambiar correctamente los signos.'],['comp','Comprobar la solución al final.'],['orden','Escribir primero los términos con x.']],explain:'El error común es cambiar mal los signos al trasladar términos. El procedimiento correcto da x=3.',hint:'Cuando un término pasa al otro lado, cambia de signo.'},
+      {id:13,type:'direct',kind:'Respuesta directa',title:'Respuesta directa con fracciones',latex:'\\(\\frac{x-1}{2}-\\frac{x-4}{3}=1\\)',prompt:'Escribe el valor de x.',value:1,explain:'Multiplicando por 6: 3(x-1)-2(x-4)=6. Así 3x-3-2x+8=6, entonces x+5=6 y x=1.',hint:'El signo menos afecta a todo el segundo paréntesis.'},
+      {id:14,type:'tf',kind:'Verdadero o falso',title:'Ecuación sin solución',latex:'\\(\\frac{2x+3}{4}=\\frac{x+1}{2}+3\\)',prompt:'La ecuación tiene una solución única.',correct:false,explain:'Multiplicando por 4: 2x+3=2x+2+12. Queda 3=14, una contradicción. No existe solución.',hint:'Mira si los términos con x se cancelan.'},
+      {id:15,type:'direct',kind:'Respuesta directa',title:'Ecuación racional simple',latex:'\\(\\frac{x+8}{6-x}=13\\)',prompt:'Escribe el valor de x. Recuerda la restricción \\(x\\neq 6\\).',value:5,explain:'x+8=13(6-x). Entonces x+8=78-13x, 14x=70 y x=5. Cumple x≠6.',hint:'Multiplica por 6-x y revisa que el denominador no sea cero.'},
+      {id:16,type:'incomplete',kind:'Completar procedimiento',title:'Completa y despeja',latex:'\\(\\frac{5x-9}{4}-\\frac{3x+5}{4}=\\frac{2}{3}\\)',prompt:'Completa los espacios.',fields:[['p1','Paso 1','2'],['p2','Paso 2','8'],['p3','Paso 3','50'],['p4','Paso 4','25/3']],fillLayout:[{fid:'p1',label:'Paso 1',pre:'Al unir fracciones: \\(\\frac{',post:'x-14}{4}=\\frac{2}{3}\\)'},{fid:'p2',label:'Paso 2',pre:'Multiplicando por 12: \\(3(2x-14)=',post:'\\)'},{fid:'p3',label:'Paso 3',pre:'De \\(6x-42=8\\) se obtiene \\(6x=',post:'\\)'},{fid:'p4',label:'Paso 4',pre:'Solución final: \\(x=',post:'\\)'}],explain:'Como tienen el mismo denominador, se restan numeradores: 2x-14. Después x=25/3.',hint:'Resta: (5x-9)-(3x+5).'},
+      {id:17,type:'matching',kind:'Emparejamiento',title:'Relaciona simplificaciones',latex:'\\(\\frac{2x+1}{12}+\\frac{2(1-2x)}{24}=\\frac{x}{18}\\)',prompt:'Relaciona cada parte del procedimiento.',pairs:[['r1','Segundo término simplificado','(1-2x)/12'],['r2','Suma del lado izquierdo','1/6'],['r3','Ecuación reducida','1/6=x/18'],['r4','Solución','x=3']],options:['(1-2x)/12','1/6','1/6=x/18','x=3'],explain:'El segundo término equivale a (1-2x)/12. Al sumar queda 1/6=x/18 y por eso x=3.',hint:'Observa que 2(1-2x)/24 se puede dividir para 2.'},
+      {id:18,type:'order',kind:'Ordenar pasos',title:'Ordena con restricción',latex:'\\(\\frac{x-2}{3-x}=-\\frac{5}{4}\\)',prompt:'Ordena los pasos correctos.',steps:[['o1','Multiplicar en cruz: \\(4(x-2)=-5(3-x)\\)'],['o2','Distribuir: \\(4x-8=-15+5x\\)'],['o3','Aislar: \\(7=x\\)'],['o4','Verificar restricción: \\(x\\neq3\\), entonces \\(x=7\\) es válido.']],explain:'El orden correcto lleva a x=7 y no viola la restricción x≠3.',hint:'Primero multiplica en cruz.'},
+      {id:19,type:'mc',kind:'Opción múltiple',title:'Ecuación con paréntesis',latex:'\\(\\frac{3(x+1)}{2}+\\frac{2(x+6)}{5}=2\\)',prompt:'Selecciona la respuesta correcta.',correct:'a',options:[['a','\\(x=-1\\)'],['b','\\(x=1\\)'],['c','\\(x=-5\\)'],['d','\\(x=2\\)']],explain:'Multiplicando por 10: 15(x+1)+4(x+6)=20. Entonces 19x+39=20 y x=-1.',hint:'El MCM de 2 y 5 es 10.'},
+      {id:20,type:'direct',kind:'Respuesta directa',title:'Reto final',latex:'\\(x-\\frac{2(x+1)}{3}=1-\\frac{3x-2}{4}\\)',prompt:'Escribe el valor de x.',value:2,explain:'Multiplicando por 12: 12x-8(x+1)=12-3(3x-2). Luego 4x-8=18-9x, 13x=26 y x=2.',hint:'Usa MCM 12 y distribuye con cuidado.'}
+    ];
+
+    const recoveryExercises = [
+      {id:'R1',type:'direct',kind:'Recuperación directa',title:'Recupera despejando',latex:'\\(\\frac{x+2}{3}=5\\)',prompt:'Escribe el valor de x.',value:13,explain:'x+2=15, entonces x=13.',hint:'Multiplica por 3.'},
+      {id:'R2',type:'mc',kind:'Recuperación opción múltiple',title:'Elige la respuesta',latex:'\\(2x-4=10\\)',prompt:'Selecciona la respuesta correcta.',correct:'b',options:[['a','\\(x=5\\)'],['b','\\(x=7\\)'],['c','\\(x=3\\)'],['d','\\(x=-7\\)']],explain:'2x=14, por eso x=7.',hint:'Primero suma 4 a ambos lados.'},
+      {id:'R3',type:'tf',kind:'Recuperación V/F',title:'Comprueba una afirmación',latex:'\\(\\frac{x-1}{2}=3\\)',prompt:'La solución es \\(x=7\\).',correct:true,explain:'x-1=6, entonces x=7.',hint:'Multiplica por 2.'},
+      {id:'R4',type:'incomplete',kind:'Recuperación procedimiento',title:'Completa el procedimiento',latex:'\\(\\frac{x+3}{4}=2\\)',prompt:'Completa los espacios.',fields:[['a','Paso 1','8'],['b','Paso 2','5']],fillLayout:[{fid:'a',label:'Paso 1',pre:'Multiplicando por 4: \\(x+3=',post:'\\)'},{fid:'b',label:'Paso 2',pre:'Restando 3: \\(x=',post:'\\)'}],explain:'x+3=8, entonces x=5.',hint:'Multiplica por 4.'},
+      {id:'R5',type:'order',kind:'Recuperación ordenamiento',title:'Ordena el camino',latex:'\\(\\frac{3x+6}{3}=5\\)',prompt:'Ordena los pasos.',steps:[['a','Multiplicar por 3: \\(3x+6=15\\)'],['b','Restar 6: \\(3x=9\\)'],['c','Dividir para 3: \\(x=3\\)']],explain:'El procedimiento correcto da x=3.',hint:'El denominador es 3.'},
+      {id:'R6',type:'matching',kind:'Recuperación emparejamiento',title:'Relaciona ecuaciones y soluciones',latex:'\\(\\text{Relaciona cada ecuación simple con su solución}\\)',prompt:'Empareja correctamente.',pairs:[['a','\\(x+4=9\\)','x=5'],['b','\\(2x=8\\)','x=4'],['c','\\(\\frac{x}{3}=2\\)','x=6']],options:['x=5','x=4','x=6'],explain:'Cada ecuación se resuelve aplicando la operación inversa.',hint:'Usa operaciones inversas.'}
+    ];
+
+    let app = {section:'home', current:0, recCurrent:0, sent:false, savedSummary:null};
+    let states = {main:[], recovery:[]};
+    let dragPayload = null;
+    let mathLoaded = false;
+
+    function shuffle(arr){
+      const a=[...arr];
+      for(let i=a.length-1;i>0;i--){const j=Math.floor((i+1)*0.37)% (i+1); [a[i],a[j]]=[a[j],a[i]];}
+      return a;
+    }
+    function makeStates(list){
+      return list.map(ex=>({attempts:0,score:null,best:null,locked:false,feedback:'',feedbackType:'',order:ex.type==='order'?shuffle(ex.steps.map(s=>s[0])):null}));
+    }
+    function bootApp(){
+      states.main = makeStates(exercises);
+      states.recovery = makeStates(recoveryExercises);
+      loadStudent();
+      app.sent = detectAlreadySent();
+      app.savedSummary = loadSavedSummary();
+      if(app.sent) lockAll();
+      renderAll();
+      loadMathJaxSafe();
+    }
+    document.addEventListener('DOMContentLoaded', bootApp);
+    setTimeout(()=>{ if(!document.getElementById('mainContent').innerHTML.trim()) bootApp(); }, 500);
+
+    function loadStudent(){
+      try{
+        const saved=JSON.parse(localStorage.getItem(STUDENT_KEY)||'{}');
+        if(saved.nombre) document.getElementById('nombre').value=saved.nombre;
+        if(saved.curso) document.getElementById('curso').value=saved.curso;
+        if(saved.paralelo) document.getElementById('paralelo').value=saved.paralelo;
+      }catch(e){}
+    }
+    function persistStudent(){
+      const data={nombre:val('nombre'),curso:val('curso'),paralelo:val('paralelo')};
+      localStorage.setItem(STUDENT_KEY,JSON.stringify(data));
+      app.sent=detectAlreadySent();
+      renderSidebar();
+    }
+    function studentKey(){
+      const n=clean(val('nombre')||'sin_nombre');
+      const p=clean(val('paralelo')||'sin_paralelo');
+      return STORAGE_PREFIX+n+'_'+p;
+    }
+    function detectAlreadySent(){ return localStorage.getItem(studentKey())==='1'; }
+    function summaryKey(){ return SUMMARY_PREFIX+clean(val('nombre')||'sin_nombre')+'_'+clean(val('paralelo')||'sin_paralelo'); }
+    function loadSavedSummary(){ try{return JSON.parse(localStorage.getItem(summaryKey())||'null');}catch(e){return null;} }
+    function val(id){ const el=document.getElementById(id); return el?el.value.trim():''; }
+
+    function renderAll(){
+      renderSidebar();
+      if(app.section==='home') renderHome();
+      if(app.section==='exercise') renderExercise('main',app.current);
+      if(app.section==='recovery') renderRecoveryGate();
+      if(app.section==='summary') renderSummary();
+      queueMath();
+    }
+    function renderSidebar(){
+      const completed=states.main.filter(s=>s.score!==null).length;
+      const pct=Math.round(completed/exercises.length*100);
+      document.getElementById('progressText').textContent=`${completed}/${exercises.length}`;
+      document.getElementById('progressBar').style.width=pct+'%';
+      const initial=app.savedSummary?Number(app.savedSummary.promedioInicial):calcAverage(states.main,exercises.length);
+      const final=app.savedSummary?Number(app.savedSummary.notaFinal):calcFinal().final;
+      document.getElementById('sideInitial').textContent=fmt(initial);
+      document.getElementById('sideFinal').textContent=fmt(final);
+      document.getElementById('sideLevel').textContent=level(final);
+      document.getElementById('sideState').textContent=app.sent?'Enviado':'En curso';
+      document.getElementById('exerciseNav').innerHTML = exercises.map((ex,i)=>`<button class="${states.main[i].score!==null?'done':''} ${app.section==='exercise'&&app.current===i?'active':''}" onclick="goExercise(${i})">${i+1}</button>`).join('');
+      const disabled=app.sent;
+      ['nombre','curso','paralelo'].forEach(id=>{const el=document.getElementById(id); if(el) el.disabled=disabled;});
+    }
+    function renderHome(){
+      document.getElementById('mainContent').innerHTML=`
+      <section class="slide">
+        <div class="hero">
+          <div>
+            <div class="badge-row">
+              <span class="chip">🚀 Misión espacial</span><span class="chip">📘 Matemática</span><span class="chip">⏱️ 3 intentos</span>
+            </div>
+            <h2>Deber interactivo de ecuaciones de primer grado</h2>
+            <p class="lead">Bienvenido a la misión. Resuelve 20 retos algebraicos, recibe retroalimentación inmediata y envía solo tu resumen final a Google Sheets.</p>
+            <div class="status-banner"><b>Instrucción:</b> escribe tus datos en el panel izquierdo, inicia el deber y avanza reto por reto. Si tu nota inicial es menor a 7, se activará una recuperación automática.</div>
+            <div class="footer-actions">
+              <button class="primary" onclick="goExercises()">Iniciar deber</button>
+              <button onclick="goSummary()">Ver resumen</button>
+            </div>
+          </div>
+          <div class="space-card">
+            <div><div class="planet">🪐</div><h3>Estación Álgebra</h3><p>Tu objetivo es despejar la incógnita y completar la misión.</p></div>
+          </div>
+        </div>
+      </section>`;
+    }
+    function goHome(){ app.section='home'; renderAll(); }
+    function goExercises(){ app.section='exercise'; renderAll(); }
+    function goExercise(i){ app.section='exercise'; app.current=Math.max(0,Math.min(exercises.length-1,i)); renderAll(); }
+    function nextExercise(){ app.current=Math.min(exercises.length-1,app.current+1); renderAll(); }
+    function prevExercise(){ app.current=Math.max(0,app.current-1); renderAll(); }
+    function goRecovery(){ app.section='recovery'; renderAll(); }
+    function goSummary(){ app.section='summary'; renderAll(); }
+
+    function renderExercise(scope,idx){
+      const list=scope==='main'?exercises:recoveryExercises;
+      const ex=list[idx], st=getState(scope,idx);
+      const total=list.length;
+      document.getElementById('mainContent').innerHTML=`
+        <section class="slide">
+          <div class="toolbar">
+            <button onclick="${scope==='main'?'prevExercise()':'prevRecovery()'}" ${idx===0?'disabled':''}>← Anterior</button>
+            <span class="chip">${scope==='main'?'Reto':'Recuperación'} ${idx+1} de ${total}</span>
+            <button onclick="${scope==='main'?'nextExercise()':'nextRecovery()'}" ${idx===total-1?'disabled':''}>Siguiente →</button>
+          </div>
+          <div class="exercise-title">
+            <div><h2>${ex.title}</h2><p class="small-note">${ex.prompt}</p></div>
+            <span class="tag">${ex.kind}</span>
+          </div>
+          <div class="equation">${ex.latex}</div>
+          <div class="question-card">${renderQuestion(ex,st,scope,idx)}</div>
+          ${renderFeedback(st)}
+          <div class="footer-actions">
+            <button onclick="showHint('${scope}',${idx})">💡 Ver pista</button>
+            <span class="attempts">Intentos restantes: ${Math.max(0,3-st.attempts)}</span>
+            <button class="primary" onclick="checkExercise('${scope}',${idx})" ${st.locked||app.sent?'disabled':''}>Comprobar</button>
+            <button onclick="goSummary()">Ir al resumen</button>
+          </div>
+          ${st.locked?`<div class="locked-overlay">🔒 Este ejercicio quedó cerrado. Puntaje registrado: <b>${fmt(st.score)}/10</b>.</div>`:''}
+        </section>`;
+    }
+    function renderQuestion(ex,st,scope,idx){
+      const disabled=st.locked||app.sent?'disabled':'';
+      if(ex.type==='direct') return `<label>Respuesta</label><input id="${scope}_${idx}_direct" ${disabled} placeholder="Ejemplo: x=3 o 3" />`;
+      if(ex.type==='mc') return `<div class="options">${ex.options.map(o=>`<label class="option"><input type="radio" name="${scope}_${idx}_mc" value="${o[0]}" ${disabled}/> <span>${o[1]}</span></label>`).join('')}</div>`;
+      if(ex.type==='tf') return `<div class="options"><label class="option"><input type="radio" name="${scope}_${idx}_tf" value="true" ${disabled}/> Verdadero</label><label class="option"><input type="radio" name="${scope}_${idx}_tf" value="false" ${disabled}/> Falso</label></div>`;
+      if(ex.type==='incomplete'||ex.type==='verification') return renderFillSteps(ex,scope,idx,disabled);
+      if(ex.type==='matching') return `<div class="match-grid">${ex.pairs.map((p,k)=>`<div class="match-row"><div class="match-text">${p[1]}</div><select id="${scope}_${idx}_${p[0]}" ${disabled}><option value="">Selecciona...</option>${ex.options.map(opt=>`<option value="${escapeAttr(opt)}">${opt}</option>`).join('')}</select></div>`).join('')}</div>`;
+      if(ex.type==='order'){
+        const byId=Object.fromEntries(ex.steps);
+        return `<div class="step-list">${st.order.map((id,pos)=>`<div class="step-item" draggable="${!st.locked&&!app.sent}" ondragstart="dragStart(event,'${scope}',${idx},'${id}')" ondragover="event.preventDefault()" ondrop="dropStep(event,'${scope}',${idx},'${id}')"><span class="step-index">${pos+1}</span><span>${byId[id]}</span><div class="step-tools"><button onclick="moveStep('${scope}',${idx},'${id}',-1)" ${disabled}>↑</button><button onclick="moveStep('${scope}',${idx},'${id}',1)" ${disabled}>↓</button></div><small class="small-note">Arrastra o usa ↑ ↓</small></div>`).join('')}</div>`;
+      }
+      if(ex.type==='detective') return `<div class="two-col"><div><label>Paso incorrecto</label><select id="${scope}_${idx}_step" ${disabled}><option value="">Selecciona...</option><option value="1">Paso 1</option><option value="2">Paso 2</option><option value="3">Paso 3</option><option value="4">Paso 4</option></select></div><div><label>Razón del error</label><select id="${scope}_${idx}_reason" ${disabled}><option value="">Selecciona...</option><option value="signo">Error de signo al distribuir</option><option value="mcm">MCM incorrecto</option><option value="division">División final incorrecta</option><option value="ninguno">No hay error</option></select></div></div>`;
+      if(ex.type==='classification') return `<div class="blank-grid">${ex.items.map(item=>`<div><label>${item[1]}</label><select id="${scope}_${idx}_${item[0]}" ${disabled}><option value="">Selecciona...</option>${ex.categories.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div>`).join('')}</div>`;
+      if(ex.type==='common') return `<div class="options">${ex.options.map(o=>`<label class="option"><input type="radio" name="${scope}_${idx}_common" value="${o[0]}" ${disabled}/> <span>${o[1]}</span></label>`).join('')}</div>`;
+      return '<p>No se pudo cargar el ejercicio.</p>';
+    }
+
+    function normalizeStepText(s){
+      return String(s||'')
+        .replace(/\\\(|\\\)/g,'')
+        .replace(/\\frac\{/g,'')
+        .replace(/\\neq/g,'≠')
+        .replace(/\}\{/g,'/')
+        .replace(/[\{}]/g,'')
+        .replace(/\s+/g,' ')
+        .trim();
+    }
+    function renderFillSteps(ex,scope,idx,disabled){
+      if(ex.fillLayout && ex.fillLayout.length){
+        return `<div class="work-steps">${ex.fillLayout.map(step=>{
+          const dis = disabled ? 'disabled' : '';
+          return `<div class="work-line"><small>${step.label||'Paso'}</small><div class="equation-flow"><span class="math-inline">${normalizeStepText(step.pre||'')}</span><input class="inline-blank" id="${scope}_${idx}_${step.fid}" ${dis} placeholder="Completa aquí" /><span class="math-inline">${normalizeStepText(step.post||'')}</span></div></div>`;
+        }).join('')}</div>`;
+      }
+      return `<div class="blank-grid">${ex.fields.map(f=>`<div><label>${f[1]}</label><input id="${scope}_${idx}_${f[0]}" ${disabled} placeholder="Completa aquí" /></div>`).join('')}</div>`;
+    }
+
+    function renderFeedback(st){
+      if(!st.feedback) return '';
+      return `<div class="feedback ${st.feedbackType}">${st.feedback}</div>`;
+    }
+    function showHint(scope,idx){
+      const ex=(scope==='main'?exercises:recoveryExercises)[idx];
+      const st=getState(scope,idx);
+      st.feedback='💡 Pista: '+(ex.hint||'Revisa el procedimiento paso a paso.');
+      st.feedbackType='warn';
+      renderAll();
+    }
+    function getState(scope,idx){ return scope==='main'?states.main[idx]:states.recovery[idx]; }
+
+    function checkExercise(scope,idx){
+      const list=scope==='main'?exercises:recoveryExercises;
+      const ex=list[idx], st=getState(scope,idx);
+      if(st.locked||app.sent) return;
+      st.attempts++;
+      const result=grade(ex,scope,idx);
+      if(result.mode==='single'){
+        if(result.correct){ st.score=11-st.attempts; st.locked=true; st.feedback=`✅ Correcto. Puntaje: <b>${fmt(st.score)}/10</b>. ${ex.explain}`; st.feedbackType='ok'; }
+        else if(st.attempts>=3){ st.score=0; st.locked=true; st.feedback=`❌ Se agotaron los 3 intentos. Puntaje: <b>0/10</b>. Respuesta correcta: ${answerText(ex)}. ${ex.explain}`; st.feedbackType='bad'; }
+        else { st.feedback=`⚠️ Todavía no. Revisa con calma. Te quedan <b>${3-st.attempts}</b> intento(s).`; st.feedbackType='warn'; }
+      }else{
+        st.best=Math.max(st.best??0,result.score);
+        st.score=st.best;
+        const full=result.score>=9.999;
+        if(full||st.attempts>=3){ st.locked=true; }
+        st.feedback=`${full?'✅ Excelente.':'🧩 Revisión parcial:'} ${result.detail}. Puntaje registrado: <b>${fmt(st.score)}/10</b>. ${st.locked?ex.explain:'Puedes mejorar en el siguiente intento.'}`;
+        st.feedbackType=full?'ok':(st.locked?'warn':'warn');
+      }
+      renderAll();
+    }
+    function grade(ex,scope,idx){
+      if(ex.type==='direct') return {mode:'single',correct:checkDirect(ex,document.getElementById(`${scope}_${idx}_direct`)?.value||'')};
+      if(ex.type==='mc') return {mode:'single',correct:getRadio(`${scope}_${idx}_mc`)===ex.correct};
+      if(ex.type==='tf') return {mode:'single',correct:String(ex.correct)===getRadio(`${scope}_${idx}_tf`)};
+      if(ex.type==='common') return {mode:'single',correct:getRadio(`${scope}_${idx}_common`)===ex.correct};
+      if(ex.type==='incomplete'||ex.type==='verification'){
+        let ok=0; ex.fields.forEach(f=>{ if(checkValue(document.getElementById(`${scope}_${idx}_${f[0]}`)?.value||'',f[2])) ok++; });
+        return {mode:'partial',score:round1(ok/ex.fields.length*10),detail:`${ok} de ${ex.fields.length} espacios correctos`};
+      }
+      if(ex.type==='matching'){
+        let ok=0; ex.pairs.forEach(p=>{ if((document.getElementById(`${scope}_${idx}_${p[0]}`)?.value||'')===p[2]) ok++; });
+        return {mode:'partial',score:round1(ok/ex.pairs.length*10),detail:`${ok} de ${ex.pairs.length} pares correctos`};
+      }
+      if(ex.type==='order'){
+        const st=getState(scope,idx); let ok=0; const correct=ex.steps.map(s=>s[0]);
+        st.order.forEach((id,i)=>{ if(id===correct[i]) ok++; });
+        return {mode:'partial',score:round1(ok/correct.length*10),detail:`${ok} de ${correct.length} pasos están en la posición correcta`};
+      }
+      if(ex.type==='detective'){
+        const step=document.getElementById(`${scope}_${idx}_step`)?.value||'';
+        const reason=document.getElementById(`${scope}_${idx}_reason`)?.value||'';
+        let pts=0; if(step===ex.correctStep) pts+=5; if(reason===ex.correctReason) pts+=5;
+        return {mode:'partial',score:pts,detail:`obtuviste ${pts} puntos: ${step===ex.correctStep?'paso correcto':'paso incorrecto'} y ${reason===ex.correctReason?'razón correcta':'razón por revisar'}`};
+      }
+      if(ex.type==='classification'){
+        let ok=0; ex.items.forEach(item=>{ if((document.getElementById(`${scope}_${idx}_${item[0]}`)?.value||'')===item[2]) ok++; });
+        return {mode:'partial',score:round1(ok/ex.items.length*10),detail:`${ok} de ${ex.items.length} clasificaciones correctas`};
+      }
+      return {mode:'single',correct:false};
+    }
+    function getRadio(name){ const el=document.querySelector(`input[name="${name}"]:checked`); return el?el.value:''; }
+    function checkDirect(ex,input){
+      if(ex.noSolution) return isNoSolution(input);
+      if(typeof ex.value==='number'){
+        const n=parseNumber(input); return n!==null && Math.abs(n-ex.value)<0.0001;
+      }
+      return checkValue(input,String(ex.answer||''));
+    }
+    function parseNumber(s){
+      let t=clean(s).replace(/^x=/,'');
+      if(isNoSolution(t)) return null;
+      if(t.includes('/')){const [a,b]=t.split('/').map(Number); if(!isNaN(a)&&!isNaN(b)&&b!==0) return a/b;}
+      const n=Number(t); return isNaN(n)?null:n;
+    }
+    function checkValue(input,correct){
+      const a=clean(input).replace(/^x=/,'');
+      const b=clean(correct).replace(/^x=/,'');
+      if(a===b) return true;
+      const na=parseNumber(a), nb=parseNumber(b);
+      return na!==null&&nb!==null&&Math.abs(na-nb)<0.0001;
+    }
+    function isNoSolution(s){ const t=clean(s); return ['sinsolucion','notienesolucion','notienerespuesta','nosolucion','vacio','conjuntovacio','∅','nexists'].includes(t); }
+    function clean(s){ return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/−/g,'-').replace(/\\/g,'').replace(/\s+/g,'').replace(/[{}]/g,'').replace(/,/g,'.'); }
+    function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function answerText(ex){ if(ex.value!==undefined) return `\\(x=${ex.value}\\)`; if(ex.correct) return ex.correct; return 'ver explicación'; }
+    function round1(n){ return Math.round(n*10)/10; }
+    function fmt(n){ return Number(n||0).toFixed(2); }
+
+    function dragStart(e,scope,idx,id){ dragPayload={scope,idx,id}; }
+    function dropStep(e,scope,idx,targetId){
+      e.preventDefault();
+      if(!dragPayload||dragPayload.scope!==scope||dragPayload.idx!==idx) return;
+      const st=getState(scope,idx); if(st.locked||app.sent) return;
+      const from=st.order.indexOf(dragPayload.id), to=st.order.indexOf(targetId);
+      if(from<0||to<0) return;
+      const [moved]=st.order.splice(from,1); st.order.splice(to,0,moved);
+      renderAll();
+    }
+    function moveStep(scope,idx,id,dir){
+      const st=getState(scope,idx); if(st.locked||app.sent) return;
+      const pos=st.order.indexOf(id), next=pos+dir;
+      if(pos<0||next<0||next>=st.order.length) return;
+      [st.order[pos],st.order[next]]=[st.order[next],st.order[pos]];
+      renderAll();
+    }
+
+    function renderRecoveryGate(){
+      const initial=calcAverage(states.main,exercises.length);
+      const allMain=states.main.every(s=>s.score!==null);
+      if(!allMain){
+        document.getElementById('mainContent').innerHTML=`<section class="slide"><h2>🛠️ Recuperación bloqueada por ahora</h2><div class="status-banner">Primero debes intentar o cerrar los 20 ejercicios del deber inicial. Te faltan <b>${states.main.filter(s=>s.score===null).length}</b> reto(s).</div><button class="primary" onclick="goExercises()">Volver a ejercicios</button></section>`;
+        return;
+      }
+      if(initial>=7){
+        document.getElementById('mainContent').innerHTML=`<section class="slide"><h2>✅ No necesitas recuperación</h2><p class="lead">Tu nota inicial es ${fmt(initial)}. La recuperación solo se activa cuando la nota inicial es menor a 7.</p><button class="primary" onclick="goSummary()">Ir al resumen</button></section>`;
+        return;
+      }
+      renderExercise('recovery',app.recCurrent);
+    }
+    function nextRecovery(){ app.recCurrent=Math.min(recoveryExercises.length-1,app.recCurrent+1); renderAll(); }
+    function prevRecovery(){ app.recCurrent=Math.max(0,app.recCurrent-1); renderAll(); }
+
+    function calcAverage(stateList,total){
+      const sum=stateList.reduce((acc,s)=>acc+(s.score===null?0:Number(s.score)),0);
+      return sum/total;
+    }
+    function recoveryEnabled(){ return states.main.every(s=>s.score!==null) && calcAverage(states.main,exercises.length)<7; }
+    function calcFinal(){
+      const initial=calcAverage(states.main,exercises.length);
+      const recOn=recoveryEnabled();
+      const recAvg=recOn?calcAverage(states.recovery,recoveryExercises.length):0;
+      const final=recOn?(initial+recAvg)/2:initial;
+      return {initial,recOn,recAvg,final};
+    }
+    function level(n){ if(n>=9) return 'Destacado'; if(n>=7) return 'Alcanzado'; if(n>=4) return 'En desarrollo'; return 'Inicial'; }
+    function observation(n){
+      if(n>=9) return 'Excelente dominio del despeje y la comprobación de ecuaciones de primer grado.';
+      if(n>=7) return 'Logro alcanzado. Conviene seguir practicando ejercicios con fracciones y signos.';
+      if(n>=4) return 'Está en desarrollo. Necesita reforzar eliminación de denominadores, signos y verificación.';
+      return 'Requiere acompañamiento. Se recomienda repasar operaciones inversas y procedimientos guiados.';
+    }
+    function renderSummary(){
+      let c=calcFinal();
+      if((app.sent||detectAlreadySent())&&app.savedSummary){ c={initial:Number(app.savedSummary.promedioInicial),recOn:app.savedSummary.recuperacionHabilitada==='Sí',recAvg:app.savedSummary.promedioRecuperacion==='No aplica'?0:Number(app.savedSummary.promedioRecuperacion),final:Number(app.savedSummary.notaFinal)}; }
+      const allMain=states.main.every(s=>s.score!==null)||!!app.savedSummary;
+      const allRecovery=!c.recOn || states.recovery.every(s=>s.score!==null)||!!app.savedSummary;
+      const missingMain=states.main.filter(s=>s.score===null).length;
+      const missingRec=c.recOn?states.recovery.filter(s=>s.score===null).length:0;
+      const canSend=allMain && allRecovery && !app.sent && !detectAlreadySent();
+      document.getElementById('mainContent').innerHTML=`
+      <section class="slide">
+        <div class="badge-row"><span class="chip">📊 Cofre de resultados</span><span class="chip">${level(c.final)}</span></div>
+        <h2>Resumen final del deber</h2>
+        <p class="lead">Aquí se envía únicamente el resumen final. No se envían respuestas individuales.</p>
+        <div class="summary-grid">
+          <div class="summary-card"><small>Nota inicial</small><strong>${fmt(c.initial)}</strong></div>
+          <div class="summary-card"><small>Recuperación</small><strong>${c.recOn?fmt(c.recAvg):'No aplica'}</strong></div>
+          <div class="summary-card"><small>Nota final</small><strong>${fmt(c.final)}</strong></div>
+          <div class="summary-card"><small>Porcentaje</small><strong>${Math.round(c.final*10)}%</strong></div>
+          <div class="summary-card"><small>Nivel</small><strong>${level(c.final)}</strong></div>
+          <div class="summary-card"><small>Estado</small><strong>${app.sent||detectAlreadySent()?'Enviado':'Pendiente'}</strong></div>
+        </div>
+        <div class="status-banner"><b>Observación automática:</b> ${observation(c.final)}</div>
+        ${!allMain?`<div class="feedback warn">Te faltan ${missingMain} ejercicio(s) del deber inicial. Debes completarlos antes de enviar.</div>`:''}
+        ${c.recOn&&!allRecovery?`<div class="feedback warn">Tu nota inicial fue menor a 7. La recuperación está activada y faltan ${missingRec} ejercicio(s) de recuperación.</div>`:''}
+        ${app.sent||detectAlreadySent()?`<div class="feedback ok">Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.</div>`:''}
+        <div class="footer-actions">
+          <button onclick="goExercises()">Volver a ejercicios</button>
+          <button class="purple" onclick="goRecovery()" ${!c.recOn?'disabled':''}>Ir a recuperación</button>
+          <button class="primary" onclick="sendSummary()" ${canSend?'':'disabled'}>Enviar resumen a Google Sheets</button>
+        </div>
+      </section>`;
+    }
+    function sendSummary(){
+      if(app.sent||detectAlreadySent()) return;
+      if(!val('nombre')||!val('curso')||!val('paralelo')){ alert('Completa nombre, curso y paralelo antes de enviar.'); return; }
+      const c=calcFinal();
+      if(!states.main.every(s=>s.score!==null)){ alert('Aún faltan ejercicios del deber inicial.'); return; }
+      if(c.recOn&&!states.recovery.every(s=>s.score!==null)){ alert('Aún faltan ejercicios de recuperación.'); return; }
+      const set=(id,v)=>{document.getElementById(id).value=v;};
+      set('sendHoja',SHEET_NAME);
+      set('sendNombre',val('nombre'));
+      set('sendCurso',val('curso'));
+      set('sendParalelo',val('paralelo'));
+      set('sendTema',TOPIC);
+      set('sendTipoActividad','Deber interactivo');
+      set('sendNumeroEjercicios',exercises.length);
+      set('sendPuntajeInicial',fmt(c.initial*exercises.length));
+      set('sendPromedioInicial',fmt(c.initial));
+      set('sendRecuperacionHabilitada',c.recOn?'Sí':'No');
+      set('sendPromedioRecuperacion',c.recOn?fmt(c.recAvg):'No aplica');
+      set('sendNotaFinal',fmt(c.final));
+      set('sendPorcentajeFinal',Math.round(c.final*10)+'%');
+      set('sendNivel',level(c.final));
+      set('sendEstado','Enviado');
+      set('sendFechaLimite',DEADLINE);
+      set('sendObservacion',observation(c.final));
+      const saved={promedioInicial:fmt(c.initial),recuperacionHabilitada:c.recOn?'Sí':'No',promedioRecuperacion:c.recOn?fmt(c.recAvg):'No aplica',notaFinal:fmt(c.final),nivel:level(c.final),observacion:observation(c.final)};
+      localStorage.setItem(summaryKey(),JSON.stringify(saved));
+      app.savedSummary=saved;
+      document.getElementById('formEnvio').submit();
+      localStorage.setItem(studentKey(),'1');
+      app.sent=true;
+      lockAll();
+      renderAll();
+    }
+    function lockAll(){
+      states.main.forEach(s=>{s.locked=true; if(s.score===null) s.score=0;});
+      states.recovery.forEach(s=>{s.locked=true;});
+    }
+
+    function loadMathJaxSafe(){
+      window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']]},startup:{typeset:false}};
+      const script=document.createElement('script');
+      script.src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.async=true;
+      script.onload=()=>{ mathLoaded=true; queueMath(); };
+      script.onerror=()=>{ console.warn('MathJax no se cargó, pero la actividad sigue funcionando.'); };
+      document.head.appendChild(script);
+    }
+    function queueMath(){
+      if(window.MathJax&&window.MathJax.typesetPromise){
+        window.MathJax.typesetPromise([document.getElementById('mainContent'),document.getElementById('exerciseNav')]).catch(()=>{});
+      }
+    }
+  </script>
+</body>
+</html>
