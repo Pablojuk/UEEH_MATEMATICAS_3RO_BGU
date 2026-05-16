@@ -21,7 +21,7 @@ Construir una mini app educativa moderna que permita:
 
 ## Estado actual
 
-✅ **Fase 1 completada:** arquitectura base creada (sin contenido matemático real todavía).
+✅ **Fase 2 completada:** arquitectura base + sistema de slides interactivas con LaTeX renderizado por MathJax (aún sin juego/deber/recuperación reales).
 
 ## Estructura de carpetas
 
@@ -59,7 +59,7 @@ Construir una mini app educativa moderna que permita:
 - CSS3
 - JavaScript Vanilla (módulos ES)
 - Tailwind CSS por CDN
-- KaTeX por CDN
+- MathJax por CDN
 - localStorage
 - GitHub Pages
 
