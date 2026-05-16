@@ -1,7 +1,8 @@
 import { renderView, bindClick } from "./navigation.js";
+import { createSlideViewer } from "../components/slide-viewer.js";
+import { slidesPlantillaTema } from "../topics/plantilla-tema/content.js";
 import { obtenerDatosEstudiante } from "./storage.js";
 import { crearFormularioEstudiante, activarFormularioEstudiante } from "../components/student-form.js";
-import { crearSlideViewer } from "../components/slide-viewer.js";
 import { crearGameShell } from "../components/game-shell.js";
 import { crearResultPanel } from "../components/result-panel.js";
 import { crearFeedbackBox } from "../components/feedback-box.js";
@@ -76,8 +77,13 @@ function goToDashboard(data = obtenerDatosEstudiante()) {
 }
 
 function goToSlides() {
-  renderView(layout("Slides", crearSlideViewer()));
-  bindClick("#btn-back-dashboard", () => goToDashboard());
+  const viewer = createSlideViewer({
+    slides: slidesPlantillaTema,
+    onExit: () => goToDashboard(),
+    onComplete: () => goToDashboard()
+  });
+
+  viewer.repaint();
 }
 
 function goToGame() {

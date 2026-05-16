@@ -65,3 +65,29 @@ En Fase 6 se activa el `fetch` real.
 2. Abrir el enlace público desde celular y computadora.
 3. Verificar que se vea bienvenida, formulario y panel.
 4. Probar navegación a slides/juego/deber/resultados.
+
+
+## Fase 2: Sistema de slides interactivas con LaTeX + MathJax
+
+- El contenido de slides se define en `topics/plantilla-tema/content.js` con un arreglo `slidesPlantillaTema`.
+- Cada slide incluye: `id`, `momento`, `dua`, `titulo`, `subtitulo`, `contenido`, `formula`, `ayuda`, `icono`.
+- El motor de visualización está en `components/slide-viewer.js` y muestra una slide por vez.
+- Incluye navegación **Anterior/Siguiente**, contador de avance, barra de progreso y botón para volver al panel.
+- Las fórmulas se escriben en LaTeX usando `\( ... \)` para inline y `\[ ... \]` para bloque.
+- `index.html` carga MathJax por CDN, y `core/navigation.js` aporta `renderMathInElementSafe()` para reprocesar fórmulas cada vez que cambia la slide.
+- Si MathJax no está disponible, el sistema no se rompe y muestra fallback textual de la fórmula.
+
+### Cómo agregar una nueva slide
+
+1. Abrir `topics/plantilla-tema/content.js`.
+2. Agregar un nuevo objeto dentro de `slidesPlantillaTema`.
+3. Completar campos pedagógicos (`momento`, `dua`) y visuales (`icono`, `ayuda`).
+4. Si hay fórmula, escribirla en LaTeX (inline o bloque).
+5. Guardar y recargar la app: la slide aparecerá automáticamente en el visor.
+
+### Qué falta para fases posteriores
+
+- Fase 3: gamificación real.
+- Fase 4: deber interactivo evaluado.
+- Fase 5: recuperación automática.
+- Fase 6: envío real a Google Sheets.
