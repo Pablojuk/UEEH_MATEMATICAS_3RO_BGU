@@ -20,11 +20,18 @@ function layout(title, body, withBack = true) {
 
 function goToWelcome() {
   renderView(`
-    <section class="app-card p-6 sm:p-10 text-center">
-      <p class="text-sm font-semibold uppercase tracking-wide text-blue-600">Plataforma educativa</p>
-      <h1 class="screen-title mt-2">Matemáticas de Tercero de BGU</h1>
-      <p class="mt-3 text-slate-600">Una experiencia tipo app, moderna y pensada para estudiantes.</p>
-      <button id="btn-start" class="app-btn mt-6 bg-blue-600 text-white">Empezar</button>
+    <section class="app-card overflow-hidden p-6 sm:p-10 text-center relative">
+      <div class="absolute -top-6 -right-5 text-5xl opacity-20">📐</div>
+      <div class="absolute -bottom-8 -left-4 text-6xl opacity-15">➗</div>
+      <p class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-blue-700">Plataforma educativa</p>
+      <h1 class="screen-title mt-3">Matemáticas de Tercero de BGU</h1>
+      <p class="mt-3 section-subtitle">Aprende con una experiencia visual, guiada y hecha para avanzar paso a paso.</p>
+      <div class="mt-6 grid grid-cols-3 gap-2 text-xs font-semibold text-slate-600">
+        <span class="rounded-lg bg-slate-100 px-2 py-2">🎯 Retos</span>
+        <span class="rounded-lg bg-slate-100 px-2 py-2">🧠 Práctica</span>
+        <span class="rounded-lg bg-slate-100 px-2 py-2">🏆 Progreso</span>
+      </div>
+      <button id="btn-start" class="app-btn mt-6 bg-blue-600 text-white">Comenzar</button>
     </section>
   `);
   bindClick("#btn-start", goToStudentForm);
@@ -45,13 +52,16 @@ function goToDashboard(data = obtenerDatosEstudiante()) {
       "Panel principal",
       `
       <section class="app-card p-5 sm:p-8 space-y-4">
-        <p>${saludo}</p>
+        <div class="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white">
+          <p class="text-sm opacity-90">Tu espacio de aprendizaje</p>
+          <p class="mt-1 text-base font-semibold">${saludo}</p>
+        </div>
         ${crearFeedbackBox("great", "Excelente inicio, continúa con el siguiente reto.")}
-        <div class="grid gap-3 sm:grid-cols-2">
-          <button id="btn-slides" class="app-btn bg-indigo-600 text-white">Ir a Slides</button>
-          <button id="btn-game" class="app-btn bg-violet-600 text-white">Ir a Juego</button>
-          <button id="btn-homework" class="app-btn bg-cyan-600 text-white">Ir a Deber</button>
-          <button id="btn-results" class="app-btn bg-emerald-600 text-white">Ir a Resultados</button>
+        <div class="nav-grid">
+          <button id="btn-slides" class="nav-card gradient-slides"><span class="nav-card__title">📘 Slides</span><span class="nav-card__desc">Explicaciones visuales e interactivas.</span></button>
+          <button id="btn-game" class="nav-card gradient-game"><span class="nav-card__title">🎮 Juego</span><span class="nav-card__desc">Zona de retos matemáticos.</span></button>
+          <button id="btn-homework" class="nav-card gradient-homework"><span class="nav-card__title">📝 Deber</span><span class="nav-card__desc">Área de práctica evaluada.</span></button>
+          <button id="btn-results" class="nav-card gradient-results"><span class="nav-card__title">📊 Resultados</span><span class="nav-card__desc">Panel de resultados y retroalimentación.</span></button>
         </div>
       </section>
     `,
@@ -79,7 +89,7 @@ function goToHomework() {
   renderView(
     layout(
       "Deber interactivo (Placeholder)",
-      `<section class="app-card p-5 sm:p-8 space-y-3"><p class="text-slate-700">Próximamente: deber evaluado por competencias.</p>${crearFeedbackBox("warn", "Revisa el procedimiento antes de continuar.")}</section>`
+      `<section class="app-card p-5 sm:p-8 space-y-3"><div class="inline-flex items-center rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold text-cyan-700">📝 Deber</div><h2 class="screen-title mt-2">Área de práctica evaluada</h2><p class="section-subtitle">Próximamente se habilitarán actividades calificadas por competencias.</p>${crearFeedbackBox("warn", "Revisa el procedimiento antes de continuar.")}</section>`
     )
   );
   bindClick("#btn-back-dashboard", () => goToDashboard());

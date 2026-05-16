@@ -12,12 +12,15 @@ export function crearResultPanel() {
 
   return `
     <section class="app-card p-5 sm:p-8">
-      <h2 class="screen-title">Panel de resultados (Base)</h2>
+      <div class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">📊 Resultados</div>
+      <h2 class="screen-title mt-3">Panel de resultados y retroalimentación</h2>
+      <p class="mt-2 section-subtitle">Esta vista mostrará tu progreso final cuando se habiliten evaluaciones reales.</p>
+
       <div class="mt-4 space-y-2">
         ${rows
           .map(
             ([label, value]) =>
-              `<div class="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm"><span class="font-semibold">${label}</span><span>${value}</span></div>`
+              `<div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span class="font-semibold text-slate-700">${label}</span><span class="font-bold text-slate-900">${value}</span></div>`
           )
           .join("")}
       </div>
