@@ -1,88 +1,645 @@
 import { renderView, bindClick } from "./navigation.js";
 import { createSlideViewer } from "../components/slide-viewer.js";
 import { slidesPlantillaTema } from "../topics/plantilla-tema/content.js";
-import { obtenerDatosEstudiante } from "./storage.js";
-import { crearFormularioEstudiante, activarFormularioEstudiante } from "../components/student-form.js";
+import { obtenerDatosEstudiante, guardarDatosEstudiante } from "./storage.js";
 import { crearGameShell } from "../components/game-shell.js";
 import { crearResultPanel } from "../components/result-panel.js";
 import { crearFeedbackBox } from "../components/feedback-box.js";
 
-const topics = [
-  { id: "ecuaciones-primer-grado", unit: "Unidad 1", title: "Ecuaciones de Primer Grado", desc: "Fundamentos algebraicos, despeje de incógnitas y resolución de problemas cotidianos.", icon: "∑", status: "Disponible", progress: 45, unlocked: true },
-  { id: "funciones-lineales", unit: "Unidad 2", title: "Funciones Lineales", desc: "Interpretación de relaciones entre variables, pendiente y representación gráfica.", icon: "π", status: "Próximamente", progress: 0, unlocked: false },
-  { id: "sistemas-ecuaciones", unit: "Unidad 3", title: "Sistemas de Ecuaciones", desc: "Resolución de problemas mediante dos o más ecuaciones relacionadas.", icon: "±", status: "Próximamente", progress: 0, unlocked: false },
-  { id: "derivadas-basicas", unit: "Unidad 4", title: "Derivadas Básicas", desc: "Introducción a la tasa de cambio y análisis inicial de funciones.", icon: "f(x)", status: "Próximamente", progress: 0, unlocked: false },
-  { id: "aplicaciones-derivadas", unit: "Unidad 5", title: "Aplicaciones de Derivadas", desc: "Máximos, mínimos y problemas de optimización.", icon: "∆", status: "Próximamente", progress: 0, unlocked: false },
-  { id: "simulador-matematico", unit: "Unidad 6", title: "Simulador Matemático", desc: "Retos de repaso para fortalecer el razonamiento lógico y algebraico.", icon: "∞", status: "Próximamente", progress: 0, unlocked: false }
-];
+const LOGO_URL = "./assets/img/logo-ueeh.png";
+const HERO_IMAGE_URL = "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80";
 
-const symbols = ["∑", "π", "√", "f(x)", "x²", "∆", "∞", "=", "±", "y = mx + b"];
-const particles = () => `<div class="math-particles" aria-hidden="true">${symbols.map((s, i) => `<span class="math-symbol text-${i % 3 === 0 ? "3xl" : "2xl"}" style="left:${6 + i * 9}%;top:${10 + ((i * 13) % 70)}%;--dur:${12 + (i % 5) * 2}s;--delay:-${i}s">${s}</span>`).join("")}</div>`;
+let currentActivity = "";
 
-const topNav = (d = obtenerDatosEstudiante()) => {
-  const nombre = d?.nombre || "Estudiante";
-  const inicial = nombre.charAt(0).toUpperCase() || "E";
-  return `<header class="glass-nav"><div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between"><div><h1 class="font-bold text-white">U.E. Emiliano Hinostroza</h1><p class="text-xs text-slate-300">Campus Matemático Digital · 3.º BGU</p></div><div class="flex items-center gap-3"><div class="text-right hidden sm:block"><p class="font-semibold text-white">${nombre}</p><p class="text-xs text-slate-300">${d?.curso || "Tercero BGU"}${d?.paralelo ? ` · Paralelo ${d.paralelo}` : ""}</p></div><div class="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-200 to-violet-300 text-slate-900 grid place-items-center font-black">${inicial}</div></div></div></header>`;
-};
+function getStoredStudent() {
+  const appStudent = obtenerDatosEstudiante();
 
-function goToWelcome() {
-  renderView(`${particles()}<section class="min-h-screen flex items-center px-4 py-8"><div class="max-w-5xl mx-auto w-full grid lg:grid-cols-2 gap-7"><div class="space-y-5"><p class="text-cyan-100/80 font-bold uppercase tracking-[.18em] text-xs">Unidad Educativa Emiliano Hinostroza</p><h1 class="screen-title">Academia Matemática Digital</h1><p class="text-violet-100 font-semibold">Tercero de BGU</p><p class="section-subtitle">Bienvenido al campus matemático nocturno: una experiencia moderna, suave y motivadora para aprender.</p><button id="btn-start" class="app-btn bg-gradient-to-r from-cyan-200 to-violet-300 text-slate-900">Iniciar aventura matemática</button></div><div class="hero-panel rounded-3xl p-6"><p class="text-sm text-slate-300">Ruta activa</p><h2 class="text-2xl font-black text-white mt-2">Álgebra fundamental</h2><div class="mt-4 progress-track"><div class="progress-bar" style="width:45%"></div></div></div></div></section>`);
-  bindClick("#btn-start", goToStudentForm);
+  const savedName = localStorage.getItem("ueeh_student_name");
+  const savedGrade = localStorage.getItem("ueeh_student_grade");
+  const savedParallel = localStorage.getItem("ueeh_student_parallel");
+
+  return {
+    nombre: savedName || appStudent?.nombre || "Pablo Juca",
+    curso: savedGrade || appStudent?.curso || "3ro BGU",
+    paralelo: savedParallel || appStudent?.paralelo || "A"
+  };
 }
 
-function goToStudentForm() {
-  renderView(`${particles()}<div class="min-h-screen flex items-center justify-center px-4 py-8">${crearFormularioEstudiante(goToDashboard)}</div>`);
-  activarFormularioEstudiante(goToDashboard);
+function initialsFromName(name = "Estudiante") {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) return "ES";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
 }
 
-function topicCard(t) {
-  return `<article class="topic-card" data-topic-id="${t.id}"><div class="flex justify-between"><div class="h-12 w-12 rounded-xl bg-white/10 grid place-items-center font-bold text-cyan-100">${t.icon}</div><span class="unit-status-badge ${t.unlocked ? "unit-status-available" : "unit-status-soon"}">${t.status}</span></div><p class="mt-4 text-xs text-cyan-100/75 font-bold uppercase">${t.unit}</p><h4 class="text-xl font-black text-white mt-1">${t.title}</h4><p class="text-sm text-slate-300 mt-2">${t.desc}</p><div class="mt-4 flex justify-between text-xs"><span>${t.unlocked ? "En curso" : "Bloqueado"}</span><span>${t.progress}%</span></div><div class="progress-track mt-1"><div class="${t.unlocked ? "progress-bar" : "bg-slate-600"}" style="width:${t.progress}%"></div></div><button class="app-btn mt-4 ${t.unlocked ? "bg-white/10 text-white" : "bg-slate-800 text-slate-300"}">${t.unlocked ? "Abrir unidad" : "Próximamente"}</button></article>`;
+function mathSymbolsLayer() {
+  return `
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+      <span class="symbol-float text-5xl font-light top-[10%] left-[5%]">∑</span>
+      <span class="symbol-float text-4xl font-light top-[15%] left-[40%]">π</span>
+      <span class="symbol-float text-5xl font-light top-[8%] left-[75%]">√</span>
+      <span class="symbol-float text-4xl font-medium top-[40%] left-[12%]">f(x)</span>
+      <span class="symbol-float text-5xl font-light top-[48%] left-[50%]">x²</span>
+      <span class="symbol-float text-6xl font-light top-[38%] left-[85%]">∞</span>
+      <span class="symbol-float text-5xl font-light top-[75%] left-[8%]">∆</span>
+      <span class="symbol-float text-4xl font-light top-[82%] left-[35%]">=</span>
+      <span class="symbol-float text-4xl font-light top-[70%] left-[68%]">±</span>
+    </div>
+  `;
 }
 
-function goToDashboard(data = obtenerDatosEstudiante()) {
-  renderView(`${particles()}${topNav(data)}<section class="pt-24 pb-20 px-4"><div class="max-w-7xl mx-auto space-y-6"><div class="hero-panel rounded-3xl p-6 md:p-8"><h2 class="screen-title">Matemáticas en modo espacio digital</h2><p class="section-subtitle mt-2">Avanza a tu ritmo, desbloquea logros y fortalece tus competencias matemáticas.</p><div class="mt-4 flex flex-wrap gap-3"><button id="btn-open-active-topic" class="app-btn bg-gradient-to-r from-cyan-200 to-violet-300 text-slate-900 sm:w-auto">Abrir unidad activa</button><button id="btn-scroll-units" class="app-btn bg-white/10 text-white sm:w-auto">Ver ruta de aprendizaje</button></div></div><section id="units" class="app-card rounded-3xl p-5"><div class="flex flex-col md:flex-row md:items-center justify-between gap-3"><h3 class="text-2xl font-black text-white">Unidades de estudio</h3><input id="topic-search" class="search-field md:w-80" placeholder="Buscar por título, descripción o unidad"></div><p id="empty-search" class="hidden text-sm text-amber-100 mt-3">No se encontraron unidades con esa búsqueda</p><div id="topics-grid" class="mt-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">${topics.map(topicCard).join("")}</div></section></div></section>${topicModal(topics[0])}<div id="blocked-toast" class="hidden fixed bottom-4 right-4 z-50 rounded-xl border border-amber-200/30 bg-amber-200/15 px-4 py-3 text-amber-100 font-semibold">Esta unidad se activará próximamente.</div>`);
+function renderHeader() {
+  const student = getStoredStudent();
+  const initials = initialsFromName(student.nombre);
+
+  return `
+    <header class="w-full bg-white/80 backdrop-blur-xl border-b border-neutral-200 sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="flex flex-col">
+            <span class="text-[10px] font-bold tracking-widest text-moodle-text-gray uppercase leading-none mb-1">
+              U.E. Emiliano Hinostroza
+            </span>
+            <span class="heading-font text-lg font-bold text-moodle-text-blue flex items-center gap-1.5">
+              Campus Matemático Digital
+              <span class="text-moodle-orange text-sm font-normal font-sans">· 3.º BGU</span>
+            </span>
+          </div>
+          <img src="${LOGO_URL}" alt="Logo UEEH" class="h-12 w-auto object-contain">
+        </div>
+
+        <div class="flex items-center gap-3 bg-neutral-100 border border-neutral-200 rounded-xl py-1.5 pl-3 pr-4">
+          <div class="relative">
+            <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-neutral-400 to-neutral-500 flex items-center justify-center font-bold text-white text-sm tracking-wider">
+              ${initials}
+            </div>
+            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
+          </div>
+
+          <div class="hidden sm:flex flex-col text-left">
+            <span class="text-[10px] font-semibold text-moodle-text-gray leading-none mb-1 uppercase tracking-wide">
+              Estudiante
+            </span>
+            <span class="text-sm font-medium text-moodle-text-blue leading-none">
+              ${student.nombre}
+            </span>
+          </div>
+
+          <div class="text-xs font-bold px-2 py-1 rounded bg-neutral-200 text-moodle-text-blue ml-1">
+            Paralelo ${student.paralelo}
+          </div>
+        </div>
+      </div>
+    </header>
+  `;
+}
+
+function renderHero() {
+  return `
+    <section class="relative bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-12 lg:gap-8 pt-8 pb-12">
+      <div class="max-w-2xl space-y-6 flex-1 z-10">
+        <span class="inline-block text-sm font-medium text-moodle-text-gray uppercase tracking-widest text-xs">
+          Bienvenido a la comunidad
+        </span>
+
+        <h2 class="hero-font text-5xl sm:text-6xl font-bold text-moodle-text-blue leading-[1.1]">
+          Bienvenido a la Comunidad del Saber de
+          <span class="text-moodle-orange">3ro de BGU</span>
+        </h2>
+
+        <p class="text-moodle-text-gray text-base leading-relaxed max-w-md">
+          Explora tus actividades, participa en los retos y completa tu ruta de aprendizaje para dominar las matemáticas este año.
+        </p>
+
+        <div class="pt-2">
+          <button id="btn-open-unit-hero" class="group px-6 py-2.5 rounded-full border border-moodle-text-blue text-moodle-text-blue hover:bg-neutral-50 font-medium text-sm transition-colors duration-200 flex items-center gap-2">
+            Abrir unidad activa
+            <span class="text-lg transform group-hover:translate-x-1 transition-transform">→</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="w-full lg:w-[500px] flex-shrink-0 relative z-10 flex justify-end">
+        <div class="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full">
+          <div class="absolute right-0 bottom-[-10%] w-[320px] h-[320px] bg-moodle-orange rounded-full"></div>
+          <div class="absolute left-10 top-[-20%] w-[200px] h-[200px] border-[1.5px] border-dashed border-moodle-orange rounded-full"></div>
+        </div>
+
+        <div class="w-full max-w-[450px] rounded-[32px] overflow-hidden shadow-2xl relative bg-neutral-100 z-10 border-4 border-white">
+          <img src="${HERO_IMAGE_URL}" alt="Comunidad del saber" class="w-full h-auto object-cover aspect-[4/3]" />
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderProgressSection() {
+  return `
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-moodle-bg-light rounded-2xl p-8 border border-neutral-200 relative z-10">
+      <div class="space-y-4">
+        <div class="flex justify-between items-end mb-2">
+          <span class="text-xs font-bold text-moodle-text-gray tracking-wider uppercase">
+            Progreso en Ecuaciones de 1er Grado
+          </span>
+          <span class="heading-font text-xl font-bold text-moodle-orange">50%</span>
+        </div>
+
+        <div class="w-full bg-neutral-200 h-3 rounded-full overflow-hidden">
+          <div class="bg-moodle-orange h-full rounded-full transition-all duration-500" style="width: 50%;"></div>
+        </div>
+
+        <p class="text-[10px] text-moodle-text-gray italic">
+          * Cada actividad completada (Presentación, Gamificación, Tareas) suma un 25%.
+        </p>
+      </div>
+
+      <div class="md:pl-8 md:border-l border-neutral-200 flex flex-col justify-center">
+        <span class="text-xs font-bold text-moodle-text-gray tracking-wider uppercase block mb-3">
+          Medallas ganadas
+        </span>
+
+        <div class="flex gap-3">
+          <div class="w-12 h-12 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-2xl shadow-sm">🥇</div>
+          <div class="w-12 h-12 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-2xl shadow-sm">⚡</div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderCurriculumRoute() {
+  return `
+    <section class="space-y-8 relative z-10">
+      <h3 class="heading-font text-3xl font-bold text-moodle-text-blue border-b border-neutral-200 pb-4">
+        Ruta Curricular
+      </h3>
+
+      <div id="units-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="unit-card bg-white border border-neutral-200 hover:border-moodle-orange/40 rounded-2xl p-6 flex flex-col justify-between transition-all hover:shadow-lg">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-10 h-10 rounded-lg bg-orange-50 text-moodle-orange flex items-center justify-center font-bold">
+                [=]
+              </div>
+              <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 animate-pulse">
+                ACTIVA
+              </span>
+            </div>
+
+            <div>
+              <h4 class="heading-font text-xl font-bold text-moodle-text-blue">
+                Ecuaciones de Primer Grado
+              </h4>
+              <p class="text-moodle-text-gray text-sm mt-2 leading-relaxed">
+                Fundamentos y resolución de problemas cotidianos.
+              </p>
+            </div>
+          </div>
+
+          <button id="btn-open-unit-card" class="mt-8 w-full py-3 rounded-xl bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors">
+            Entrar a la Unidad
+          </button>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderUnitModal() {
+  return `
+    <div id="unit-1" class="fixed inset-0 z-50 bg-moodle-dark-blue/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
+      <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl relative transition-transform duration-300 scale-95 flex flex-col">
+
+        <div class="p-8 border-b border-neutral-100 flex items-start justify-between bg-white sticky top-0 z-10">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-moodle-orange">Unidad 1</span>
+            <h3 class="heading-font text-3xl font-bold text-moodle-text-blue mt-1">
+              Ecuaciones de Primer Grado
+            </h3>
+            <p class="text-moodle-text-gray text-sm mt-1">
+              Cada actividad completada suma un 25% a tu progreso total.
+            </p>
+          </div>
+
+          <button id="btn-close-unit-top" class="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-moodle-text-gray transition-colors" aria-label="Cerrar unidad">
+            ✕
+          </button>
+        </div>
+
+        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 bg-neutral-50/50">
+
+          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-orange-50 text-moodle-orange flex items-center justify-center text-2xl shrink-0">📽️</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Presentación de la Clase</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Repasa las diapositivas y conceptos explicados por el docente.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+              <button id="btn-modal-slides" class="text-sm font-semibold text-moodle-orange cursor-pointer hover:underline">
+                Iniciar lectura →
+              </button>
+            </div>
+          </div>
+
+          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center text-2xl shrink-0">🎮</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Demuestra lo que sabes con retos y juegos interactivos.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+              <button id="btn-modal-game-data" class="text-sm font-semibold text-violet-600 cursor-pointer hover:underline">
+                Empezar a jugar →
+              </button>
+            </div>
+          </div>
+
+          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0">🏠</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Trabajo para la Casa</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Dos actividades independientes para fortalecer tu aprendizaje autónomo.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+              <button id="btn-modal-homework-data" class="text-sm font-semibold text-blue-600 cursor-pointer hover:underline">
+                Ver actividades →
+              </button>
+            </div>
+          </div>
+
+          <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">📊</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Resultados de las Actividades</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Consulta aquí tu desempeño en la Gamificación y el Trabajo para la Casa.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-neutral-100">
+              <button id="btn-modal-results" class="w-full flex justify-between items-center text-[10px] font-bold text-emerald-700 cursor-pointer hover:text-emerald-800">
+                <span>REVISAR DESEMPEÑO</span>
+                <span>VER DETALLES</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="p-6 bg-white border-t border-neutral-100 text-right">
+          <button id="btn-close-unit-bottom" class="px-8 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors">
+            Cerrar unidad
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStudentDataModal() {
+  const student = getStoredStudent();
+
+  return `
+    <div id="student-data-modal" class="fixed inset-0 z-[60] bg-moodle-dark-blue/90 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
+      <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl relative transition-transform duration-300 scale-95 flex flex-col overflow-hidden">
+
+        <div class="bg-moodle-orange p-6 text-white text-center">
+          <h3 class="heading-font text-2xl font-bold">Antes de comenzar</h3>
+          <p class="text-orange-100 text-sm mt-1">
+            Registra tus datos para guardar tu calificación de <br>
+            <strong id="activity-name-display" class="text-white">la actividad</strong>.
+          </p>
+        </div>
+
+        <div class="p-6 space-y-4 bg-white">
+          <div>
+            <label class="block text-xs font-bold text-moodle-text-gray uppercase tracking-wide mb-1">
+              Nombre y Apellido
+            </label>
+            <input
+              type="text"
+              id="student-name"
+              value="${student.nombre}"
+              placeholder="Ej. Juan Pérez"
+              class="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm text-moodle-text-blue focus:outline-none focus:border-moodle-orange focus:ring-1 focus:ring-moodle-orange transition-colors"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-moodle-text-gray uppercase tracking-wide mb-1">
+                Grado / Curso
+              </label>
+              <select
+                id="student-grade"
+                class="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm text-moodle-text-blue focus:outline-none focus:border-moodle-orange focus:ring-1 focus:ring-moodle-orange transition-colors"
+              >
+                <option value="" disabled>Selecciona...</option>
+                <option value="1ro BGU" ${student.curso === "1ro BGU" || student.curso === "1BGU" ? "selected" : ""}>1ro BGU</option>
+                <option value="2do BGU" ${student.curso === "2do BGU" || student.curso === "2BGU" ? "selected" : ""}>2do BGU</option>
+                <option value="3ro BGU" ${student.curso === "3ro BGU" || student.curso === "3BGU" ? "selected" : ""}>3ro BGU</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-moodle-text-gray uppercase tracking-wide mb-1">
+                Paralelo
+              </label>
+              <select
+                id="student-parallel"
+                class="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm text-moodle-text-blue focus:outline-none focus:border-moodle-orange focus:ring-1 focus:ring-moodle-orange transition-colors"
+              >
+                <option value="" disabled>Selecciona...</option>
+                ${["A", "B", "C", "D"]
+                  .map((p) => `<option value="${p}" ${student.paralelo === p ? "selected" : ""}>${p}</option>`)
+                  .join("")}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 bg-neutral-50 border-t border-neutral-100 flex gap-3 justify-end">
+          <button id="btn-cancel-data" class="px-5 py-2.5 rounded-full bg-white border border-neutral-200 hover:bg-neutral-100 text-sm font-semibold text-moodle-text-gray transition-colors">
+            Cancelar
+          </button>
+          <button id="btn-start-activity" class="px-6 py-2.5 rounded-full bg-moodle-orange hover:bg-moodle-orange/90 text-sm font-semibold text-white transition-colors shadow-lg shadow-orange-500/20">
+            Ingresar a la Actividad
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderToast() {
+  return `
+    <div id="toast" class="fixed bottom-5 right-5 z-[70] bg-moodle-text-blue text-white px-5 py-3.5 rounded-xl text-sm font-medium shadow-xl translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3">
+      <span>💡</span>
+      <span id="toast-text">Notificación</span>
+    </div>
+  `;
+}
+
+function goToDashboard() {
+  renderView(`
+    ${mathSymbolsLayer()}
+
+    <div class="relative z-10 min-h-screen flex flex-col">
+      ${renderHeader()}
+
+      <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+        ${renderHero()}
+        ${renderProgressSection()}
+        ${renderCurriculumRoute()}
+      </main>
+    </div>
+
+    ${renderUnitModal()}
+    ${renderStudentDataModal()}
+    ${renderToast()}
+  `);
+
   bindDashboardEvents();
 }
 
-function topicModal(topic) { return `<div id="topicModal" class="fixed inset-0 z-50 hidden overflow-y-auto"><div id="modal-backdrop" class="modal-backdrop fixed inset-0"></div><div class="min-h-full flex items-start justify-center px-4 py-6"><section class="modal-card w-full max-w-5xl mb-10 p-5 md:p-8"><button id="modal-close" aria-label="Cerrar modal" class="absolute right-4 top-4 h-10 w-10 rounded-full bg-white/10 text-white">×</button><p class="text-xs uppercase tracking-[.18em] text-cyan-100">${topic.unit}</p><h2 class="text-3xl font-black text-white mt-2">${topic.title}</h2><p class="section-subtitle mt-2">${topic.desc}</p><div class="grid md:grid-cols-2 gap-4 mt-6">
-<button id="modal-slides" class="bento-action bento-slides p-5 text-left"><div class="flex items-start justify-between gap-3"><div class="bento-icon">📘</div></div><h3 class="bento-title">Slides y teoría</h3><p class="bento-desc">Repasa las presentaciones de la clase y el material teórico interactivo.</p><p class="bento-cta">Iniciar lectura →</p></button>
-<button id="modal-game" class="bento-action bento-game p-5 text-left"><div class="flex items-start justify-between gap-3"><div class="bento-icon">🎮</div></div><h3 class="bento-title">Gamificación</h3><p class="bento-desc">Aprende jugando. Retos, quizzes interactivos y recompensas.</p><p class="bento-cta">Empezar a jugar →</p></button>
-<button id="modal-homework" class="bento-action bento-homework p-5 text-left"><div class="flex items-start justify-between gap-3"><div class="bento-icon">📝</div><span class="bento-mini">Pendiente</span></div><h3 class="bento-title">Deber interactivo</h3><p class="bento-desc">Resuelve actividades prácticas y fortalece tus habilidades.</p><p class="bento-cta">Resolver deber →</p></button>
-<button id="modal-results" class="bento-action bento-results p-5 text-left"><div class="flex items-start justify-between gap-3"><div class="bento-icon">📊</div><span class="bento-mini">Resumen</span></div><h3 class="bento-title">Resultados</h3><p class="bento-desc">Consulta tu progreso, desempeño y observaciones pedagógicas.</p><p class="bento-cta">Ver resultados →</p></button>
-</div></section></div></div>`; }
+function openModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+
+  modal.classList.remove("opacity-0", "pointer-events-none");
+  modal.firstElementChild?.classList.remove("scale-95");
+  modal.firstElementChild?.classList.add("scale-100");
+
+  if (id === "unit-1") {
+    document.body.classList.add("overflow-hidden");
+  }
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+
+  modal.classList.add("opacity-0", "pointer-events-none");
+  modal.firstElementChild?.classList.remove("scale-100");
+  modal.firstElementChild?.classList.add("scale-95");
+
+  if (id === "unit-1") {
+    document.body.classList.remove("overflow-hidden");
+  }
+}
+
+function openDataModal(activityName) {
+  currentActivity = activityName;
+
+  const activityLabel = document.getElementById("activity-name-display");
+  if (activityLabel) {
+    activityLabel.textContent = activityName;
+  }
+
+  openModal("student-data-modal");
+}
+
+function saveStudentDataFromModal() {
+  const nameInput = document.getElementById("student-name");
+  const gradeInput = document.getElementById("student-grade");
+  const parallelInput = document.getElementById("student-parallel");
+
+  const nombre = nameInput?.value.trim() || "";
+  const curso = gradeInput?.value || "";
+  const paralelo = parallelInput?.value || "";
+
+  if (!nombre || !curso || !paralelo) {
+    showToast("Completa tus datos antes de ingresar a la actividad.");
+    return false;
+  }
+
+  localStorage.setItem("ueeh_student_name", nombre);
+  localStorage.setItem("ueeh_student_grade", curso);
+  localStorage.setItem("ueeh_student_parallel", paralelo);
+
+  guardarDatosEstudiante({ nombre, curso, paralelo });
+
+  return true;
+}
+
+function startActivity() {
+  if (!saveStudentDataFromModal()) return;
+
+  closeModal("student-data-modal");
+  closeModal("unit-1");
+
+  showToast(`Datos asegurados. Iniciando ${currentActivity}...`);
+
+  if (currentActivity === "Gamificación") {
+    goToGame();
+    return;
+  }
+
+  if (currentActivity === "Trabajo para la Casa") {
+    goToHomework();
+  }
+}
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  const toastText = document.getElementById("toast-text");
+
+  if (!toast || !toastText) return;
+
+  toastText.textContent = message;
+  toast.classList.remove("translate-y-20", "opacity-0");
+
+  setTimeout(() => {
+    toast.classList.add("translate-y-20", "opacity-0");
+  }, 3000);
+}
 
 function bindDashboardEvents() {
-  const modal = document.getElementById("topicModal");
-  const openModal = () => { modal?.classList.remove("hidden"); modal.scrollTop = 0; document.body.style.overflow = "hidden"; };
-  const closeModal = () => { modal?.classList.add("hidden"); document.body.style.overflow = ""; };
-  const showToast = () => { const t = document.getElementById("blocked-toast"); t?.classList.remove("hidden"); setTimeout(() => t?.classList.add("hidden"), 1800); };
+  bindClick("#btn-open-unit-hero", () => openModal("unit-1"));
+  bindClick("#btn-open-unit-card", () => openModal("unit-1"));
 
-  bindClick("#btn-open-active-topic", openModal); bindClick('[data-topic-id="ecuaciones-primer-grado"]', openModal);
-  bindClick("#modal-close", closeModal); bindClick("#modal-backdrop", closeModal);
-  bindClick("#btn-scroll-units", () => document.getElementById("units")?.scrollIntoView({ behavior: "smooth" }));
-  bindClick("#modal-slides", () => { closeModal(); goToSlides(); }); bindClick("#modal-game", () => { closeModal(); goToGame(); });
-  bindClick("#modal-homework", () => { closeModal(); goToHomework(); }); bindClick("#modal-results", () => { closeModal(); goToResults(); });
+  bindClick("#btn-close-unit-top", () => closeModal("unit-1"));
+  bindClick("#btn-close-unit-bottom", () => closeModal("unit-1"));
 
-  document.querySelectorAll(".topic-card[data-topic-id]").forEach((card) => {
-    if (card.getAttribute("data-topic-id") !== "ecuaciones-primer-grado") card.addEventListener("click", showToast);
+  bindClick("#btn-modal-slides", () => {
+    closeModal("unit-1");
+    showToast("Abriendo diapositivas...");
+    goToSlides();
   });
 
-  const search = document.getElementById("topic-search");
-  const empty = document.getElementById("empty-search");
-  search?.addEventListener("input", () => {
-    const term = search.value.trim().toLowerCase(); let visible = 0;
-    document.querySelectorAll(".topic-card[data-topic-id]").forEach((card) => {
-      const match = !term || card.textContent.toLowerCase().includes(term);
-      card.classList.toggle("hidden", !match); if (match) visible += 1;
-    });
-    empty?.classList.toggle("hidden", visible !== 0);
+  bindClick("#btn-modal-game-data", () => {
+    openDataModal("Gamificación");
+  });
+
+  bindClick("#btn-modal-homework-data", () => {
+    openDataModal("Trabajo para la Casa");
+  });
+
+  bindClick("#btn-modal-results", () => {
+    closeModal("unit-1");
+    showToast("Cargando panel de resultados...");
+    goToResults();
+  });
+
+  bindClick("#btn-cancel-data", () => closeModal("student-data-modal"));
+  bindClick("#btn-start-activity", startActivity);
+
+  ["#student-name", "#student-grade", "#student-parallel"].forEach((selector) => {
+    const input = document.querySelector(selector);
+
+    input?.addEventListener("input", saveStudentAutosave);
+    input?.addEventListener("change", saveStudentAutosave);
   });
 }
 
-function layout(title, body) { return `${particles()}${topNav()}<div class="max-w-5xl mx-auto px-4 pt-24 pb-10 space-y-4"><button id="btn-back-dashboard" class="app-btn bg-white/10 text-white">← Volver al campus</button><section class="app-card p-6 rounded-3xl"><h1 class="screen-title">${title}</h1></section>${body}</div>`; }
-function goToSlides() { const viewer = createSlideViewer({ slides: slidesPlantillaTema, onExit: () => goToDashboard(), onComplete: () => goToDashboard() }); viewer.repaint(); }
-function goToGame() { renderView(layout("Zona de retos matemáticos", `${crearGameShell()} ${crearFeedbackBox("good", "Buen intento, vas por buen camino.")}`)); bindClick("#btn-back-dashboard", () => goToDashboard()); }
-function goToHomework() { renderView(layout("Deber interactivo", `<section class="app-card p-6 rounded-3xl">${crearFeedbackBox("warn", "Revisa el procedimiento antes de continuar.")}</section>`)); bindClick("#btn-back-dashboard", () => goToDashboard()); }
-function goToResults() { renderView(layout("Resultados", crearResultPanel())); bindClick("#btn-back-dashboard", () => goToDashboard()); }
+function saveStudentAutosave() {
+  const nameInput = document.getElementById("student-name");
+  const gradeInput = document.getElementById("student-grade");
+  const parallelInput = document.getElementById("student-parallel");
 
-export function iniciarApp() { goToWelcome(); }
+  if (nameInput?.value) {
+    localStorage.setItem("ueeh_student_name", nameInput.value);
+  }
+
+  if (gradeInput?.value) {
+    localStorage.setItem("ueeh_student_grade", gradeInput.value);
+  }
+
+  if (parallelInput?.value) {
+    localStorage.setItem("ueeh_student_parallel", parallelInput.value);
+  }
+}
+
+function layout(title, body) {
+  return `
+    ${mathSymbolsLayer()}
+
+    <div class="relative z-10 min-h-screen flex flex-col">
+      ${renderHeader()}
+
+      <div class="max-w-5xl mx-auto w-full px-4 sm:px-6 py-10 space-y-4">
+        <button id="btn-back-dashboard" class="px-5 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors">
+          ← Volver al campus
+        </button>
+
+        <header class="app-card p-6 sm:p-8">
+          <h1 class="screen-title">${title}</h1>
+        </header>
+
+        ${body}
+      </div>
+    </div>
+  `;
+}
+
+function goToSlides() {
+  const viewer = createSlideViewer({
+    slides: slidesPlantillaTema,
+    onExit: () => goToDashboard(),
+    onComplete: () => goToDashboard()
+  });
+
+  viewer.repaint();
+}
+
+function goToGame() {
+  renderView(layout("Gamificación", `${crearGameShell()} ${crearFeedbackBox("good", "Buen intento, vas por buen camino.")}`));
+  bindClick("#btn-back-dashboard", () => goToDashboard());
+}
+
+function goToHomework() {
+  renderView(
+    layout(
+      "Trabajo para la Casa",
+      `
+        <section class="app-card p-6 sm:p-8">
+          <div class="inline-flex items-center rounded-full bg-blue-50 text-blue-600 px-3 py-1 text-xs font-bold">
+            🏠 Trabajo para la Casa
+          </div>
+
+          <h2 class="heading-font text-2xl font-bold text-moodle-text-blue mt-4">
+            Actividades para fortalecer tu aprendizaje
+          </h2>
+
+          <p class="section-subtitle mt-2">
+            Próximamente se habilitarán ejercicios evaluados, intentos y retroalimentación automática.
+          </p>
+
+          <div class="mt-5">
+            ${crearFeedbackBox("warn", "Revisa el procedimiento antes de continuar.")}
+          </div>
+        </section>
+      `
+    )
+  );
+
+  bindClick("#btn-back-dashboard", () => goToDashboard());
+}
+
+function goToResults() {
+  renderView(layout("Resultados", crearResultPanel()));
+  bindClick("#btn-back-dashboard", () => goToDashboard());
+}
+
+export function iniciarApp() {
+  goToDashboard();
+}
