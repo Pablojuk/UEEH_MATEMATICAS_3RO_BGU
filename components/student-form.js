@@ -2,26 +2,29 @@ import { guardarDatosEstudiante } from "../core/storage.js";
 
 export function crearFormularioEstudiante(onSuccess) {
   return `
-    <section class="app-card p-5 sm:p-8">
-      <div class="mb-4 inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">👩‍🎓 Registro inicial</div>
-      <h2 class="screen-title text-slate-900">Cuéntanos quién eres</h2>
-      <p class="mt-2 section-subtitle">Estos datos se usarán para personalizar y registrar tu actividad académica.</p>
-      <form id="student-form" class="mt-6 space-y-4">
-        <label class="block">
-          <span class="mb-1 block text-sm font-semibold">Nombre</span>
-          <input name="nombre" class="input-field" placeholder="Ejemplo: María José" required />
-        </label>
-        <label class="block">
-          <span class="mb-1 block text-sm font-semibold">Curso</span>
-          <input name="curso" class="input-field" placeholder="Ejemplo: 3ro BGU" required />
-        </label>
-        <label class="block">
-          <span class="mb-1 block text-sm font-semibold">Paralelo</span>
-          <input name="paralelo" class="input-field" placeholder="Ejemplo: A" required />
-        </label>
-        <p id="form-error" class="hidden rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-600"></p>
-        <button class="app-btn bg-blue-600 text-white" type="submit">Guardar y continuar</button>
-      </form>
+    <section class="app-card w-full max-w-xl p-6 sm:p-8">
+      <div class="relative z-10">
+        <div class="mb-5 inline-flex items-center rounded-full bg-cyan-200/8 border border-cyan-100/14 px-4 py-2 text-xs font-black uppercase tracking-[.18em] text-cyan-100">Credencial de ingreso</div>
+        <h2 class="screen-title">Activa tu misión matemática</h2>
+        <p class="mt-3 section-subtitle">Estos datos personalizan tu campus y preparan el registro académico de tus actividades.</p>
+
+        <form id="student-form" class="mt-7 space-y-4">
+          <label class="block">
+            <span class="mb-2 block text-sm font-black text-cyan-100/80">Nombre del estudiante</span>
+            <input name="nombre" class="input-field" placeholder="Ejemplo: María José" required />
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-sm font-black text-cyan-100/80">Curso</span>
+            <input name="curso" class="input-field" placeholder="Ejemplo: 3ro BGU" required />
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-sm font-black text-cyan-100/80">Paralelo</span>
+            <input name="paralelo" class="input-field" placeholder="Ejemplo: A" required />
+          </label>
+          <p id="form-error" class="hidden rounded-2xl bg-rose-300/10 border border-rose-200/20 px-4 py-3 text-sm font-bold text-rose-100"></p>
+          <button class="app-btn bg-gradient-to-r from-cyan-200 to-violet-300 text-slate-950 shadow-2xl shadow-cyan-300/10" type="submit">Ingresar al campus</button>
+        </form>
+      </div>
     </section>
   `;
 }
