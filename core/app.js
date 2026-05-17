@@ -2,7 +2,7 @@ import { renderView, bindClick } from "./navigation.js";
 import { createSlideViewer } from "../components/slide-viewer.js";
 import { slidesPlantillaTema } from "../topics/plantilla-tema/content.js";
 import { obtenerDatosEstudiante, guardarDatosEstudiante } from "./storage.js";
-import { crearGameShell } from "../components/game-shell.js";
+import { crearGameShell, activarGameShell } from "../components/game-shell.js";
 import { crearResultPanel } from "../components/result-panel.js";
 import { crearFeedbackBox } from "../components/feedback-box.js";
 
@@ -602,8 +602,11 @@ function goToSlides() {
 }
 
 function goToGame() {
-  renderView(layout("Gamificación", `${crearGameShell()} ${crearFeedbackBox("good", "Buen intento, vas por buen camino.")}`));
+  renderView(layout("Gamificación", crearGameShell()));
+
   bindClick("#btn-back-dashboard", () => goToDashboard());
+
+  activarGameShell();
 }
 
 function goToHomework() {
