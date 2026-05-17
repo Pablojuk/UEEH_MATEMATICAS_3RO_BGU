@@ -202,6 +202,32 @@ function renderCurriculumRoute() {
             Entrar a la Unidad
           </button>
         </div>
+
+        <div class="unit-card bg-white border border-neutral-200 hover:border-moodle-orange/40 rounded-2xl p-6 flex flex-col justify-between transition-all hover:shadow-lg">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-10 h-10 rounded-lg bg-orange-50 text-moodle-orange flex items-center justify-center font-bold">
+                f′
+              </div>
+              <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 animate-pulse">
+                ACTIVA
+              </span>
+            </div>
+
+            <div>
+              <h4 class="heading-font text-xl font-bold text-moodle-text-blue">
+                Introducción a las Derivadas
+              </h4>
+              <p class="text-moodle-text-gray text-sm mt-2 leading-relaxed">
+                Cambio, pendiente y primeras reglas de derivación.
+              </p>
+            </div>
+          </div>
+
+          <button id="btn-open-unit-derivatives" class="mt-8 w-full py-3 rounded-xl bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors">
+            Entrar a la Unidad
+          </button>
+        </div>
       </div>
     </section>
   `;
@@ -315,6 +341,107 @@ function renderUnitModal() {
   `;
 }
 
+function renderDerivativesUnitModal() {
+  return `
+    <div id="unit-2" class="fixed inset-0 z-50 bg-moodle-dark-blue/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
+      <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl relative transition-transform duration-300 scale-95 flex flex-col">
+        <div class="p-8 border-b border-neutral-100 flex items-start justify-between bg-white sticky top-0 z-10">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-moodle-orange">Unidad 2</span>
+            <h3 class="heading-font text-3xl font-bold text-moodle-text-blue mt-1">
+              Introducción a las Derivadas
+            </h3>
+            <p class="text-moodle-text-gray text-sm mt-1">
+              Cada actividad completada suma un 25% a tu progreso total.
+            </p>
+          </div>
+
+          <button id="btn-close-unit-2-top" class="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-moodle-text-gray transition-colors" aria-label="Cerrar unidad">
+            ✕
+          </button>
+        </div>
+
+        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 bg-neutral-50/50">
+          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-orange-50 text-moodle-orange flex items-center justify-center text-2xl shrink-0">📽️</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Presentación de la Clase</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Aquí se colocarán las diapositivas del tema Introducción a las Derivadas.
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+              <button id="btn-unit-2-slides" class="text-sm font-semibold text-moodle-orange cursor-pointer hover:underline">
+                Iniciar lectura →
+              </button>
+            </div>
+          </div>
+
+          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center text-2xl shrink-0">🎮</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Aquí se colocará el juego interactivo del tema Introducción a las Derivadas.
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+              <button id="btn-unit-2-game" class="text-sm font-semibold text-violet-600 cursor-pointer hover:underline">
+                Empezar a jugar →
+              </button>
+            </div>
+          </div>
+
+          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0">🏠</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Trabajo para la Casa</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Aquí se colocarán las actividades independientes para reforzar el tema.
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+              <button id="btn-unit-2-homework" class="text-sm font-semibold text-blue-600 cursor-pointer hover:underline">
+                Ver actividades →
+              </button>
+            </div>
+          </div>
+
+          <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">📊</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Resultados de las Actividades</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Aquí se consultará el desempeño del estudiante en este tema.
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-neutral-100">
+              <button id="btn-unit-2-results" class="w-full flex justify-between items-center text-[10px] font-bold text-emerald-700 cursor-pointer hover:text-emerald-800">
+                <span>REVISAR DESEMPEÑO</span>
+                <span>VER DETALLES</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 bg-white border-t border-neutral-100 text-right">
+          <button id="btn-close-unit-2-bottom" class="px-8 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors">
+            Cerrar unidad
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderStudentDataModal() {
   const student = getStoredStudent();
 
@@ -414,6 +541,7 @@ function goToDashboard() {
     </div>
 
     ${renderUnitModal()}
+    ${renderDerivativesUnitModal()}
     ${renderStudentDataModal()}
     ${renderToast()}
   `);
@@ -429,7 +557,7 @@ function openModal(id) {
   modal.firstElementChild?.classList.remove("scale-95");
   modal.firstElementChild?.classList.add("scale-100");
 
-  if (id === "unit-1") {
+  if (id === "unit-1" || id === "unit-2") {
     document.body.classList.add("overflow-hidden");
   }
 }
@@ -442,7 +570,7 @@ function closeModal(id) {
   modal.firstElementChild?.classList.remove("scale-100");
   modal.firstElementChild?.classList.add("scale-95");
 
-  if (id === "unit-1") {
+  if (id === "unit-1" || id === "unit-2") {
     document.body.classList.remove("overflow-hidden");
   }
 }
@@ -516,9 +644,16 @@ function showToast(message) {
 function bindDashboardEvents() {
   bindClick("#btn-open-unit-hero", () => openModal("unit-1"));
   bindClick("#btn-open-unit-card", () => openModal("unit-1"));
+  bindClick("#btn-open-unit-derivatives", () => openModal("unit-2"));
 
   bindClick("#btn-close-unit-top", () => closeModal("unit-1"));
   bindClick("#btn-close-unit-bottom", () => closeModal("unit-1"));
+  bindClick("#btn-close-unit-2-top", () => closeModal("unit-2"));
+  bindClick("#btn-close-unit-2-bottom", () => closeModal("unit-2"));
+
+  ["#btn-unit-2-slides", "#btn-unit-2-game", "#btn-unit-2-homework", "#btn-unit-2-results"].forEach((selector) => {
+    bindClick(selector, () => showToast("Este contenido se construirá en la siguiente fase."));
+  });
 
   bindClick("#btn-modal-slides", () => {
     closeModal("unit-1");
