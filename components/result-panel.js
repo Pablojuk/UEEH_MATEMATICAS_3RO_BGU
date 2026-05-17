@@ -1,13 +1,45 @@
+import { obtenerResultadoGamificacion } from "../core/storage.js";
+
+function formatScore(value) {
+  if (value == null || Number.isNaN(Number(value))) {
+    return "-- / 10";
+  }
+
+  return `${Number(value).toFixed(2)} / 10`;
+}
+
 export function crearResultPanel() {
+  const gameResults = obtenerResultadoGamificacion();
+
+  const gamificationScore = formatScore(gameResults?.notaFinal);
+  const homeworkScore = "-- / 10";
+  const recoveryScore = "-- / 10";
+
+  const finalScore = gameResults?.notaFinal != null ? formatScore(gameResults.notaFinal) : "-- / 10";
+  const percentage =
+    gameResults?.porcentajeFinal != null ? `${gameResults.porcentajeFinal} %` : "-- %";
+  const level = gameResults?.nivel || "Pendiente";
+  const status = gameResults?.estado || "Pendiente";
+  const observation =
+    gameResults?.observacion ||
+    "Aún no hay evaluación final. Completa la gamificación para ver tu calificación.";
+
+  const sheetStatus = gameResults?.enviadoSheets
+    ? "Registrado en Google Sheets"
+    : gameResults
+      ? "Guardado localmente"
+      : "Pendiente de envío";
+
   const rows = [
-    ["Gamificación", "-- / 10"],
-    ["Trabajo para la Casa", "-- / 10"],
-    ["Recuperación", "-- / 10"],
-    ["Nota final", "-- / 10"],
-    ["Porcentaje final", "-- %"],
-    ["Nivel", "Pendiente"],
-    ["Estado", "Pendiente"],
-    ["Observación pedagógica", "Aún no hay evaluación final."]
+    ["Gamificación", gamificationScore],
+    ["Trabajo para la Casa", homeworkScore],
+    ["Recuperación", recoveryScore],
+    ["Nota final", finalScore],
+    ["Porcentaje final", percentage],
+    ["Nivel", level],
+    ["Estado", status],
+    ["Registro en hoja", sheetStatus],
+    ["Observación pedagógica", observation]
   ];
 
   return `
@@ -24,15 +56,34 @@ export function crearResultPanel() {
         Consulta aquí tu desempeño en la Gamificación y el Trabajo para la Casa.
       </p>
 
+      ${
+        gameResults
+          ? `
+        <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Última calificación de gamificación: <strong>${gamificationScore}</strong>
+          ${
+            gameResults.paresEncontrados != null
+              ? ` · Pares: ${gameResults.paresEncontrados}/8`
+              : ""
+          }
+        </div>
+      `
+          : ""
+      }
+
       <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         ${rows
           .map(
             ([label, value]) => `
-              <div class="rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4">
+              <div class="rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 ${
+                label === "Observación pedagógica" ? "sm:col-span-2" : ""
+              }">
                 <span class="block text-xs font-bold text-moodle-text-gray uppercase tracking-wide">
                   ${label}
                 </span>
-                <span class="block heading-font text-xl font-bold text-moodle-text-blue mt-1">
+                <span class="block heading-font text-xl font-bold text-moodle-text-blue mt-1 ${
+                  label === "Observación pedagógica" ? "text-base font-medium font-sans" : ""
+                }">
                   ${value}
                 </span>
               </div>

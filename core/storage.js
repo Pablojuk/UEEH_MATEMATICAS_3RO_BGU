@@ -1,7 +1,8 @@
 const KEYS = {
   student: "bgu_student",
   progress: "bgu_progress",
-  lastSubmission: "bgu_last_submission"
+  lastSubmission: "bgu_last_submission",
+  gameResults: "ueeh_game_results"
 };
 
 export function guardarDatosEstudiante(datos) {
@@ -32,5 +33,20 @@ export function guardarMarcaReenvio(payload) {
 
 export function obtenerMarcaReenvio() {
   const raw = localStorage.getItem(KEYS.lastSubmission);
+  return raw ? JSON.parse(raw) : null;
+}
+
+export function guardarResultadoGamificacion(resultado) {
+  localStorage.setItem(
+    KEYS.gameResults,
+    JSON.stringify({
+      ...resultado,
+      guardadoEn: new Date().toISOString()
+    })
+  );
+}
+
+export function obtenerResultadoGamificacion() {
+  const raw = localStorage.getItem(KEYS.gameResults);
   return raw ? JSON.parse(raw) : null;
 }
