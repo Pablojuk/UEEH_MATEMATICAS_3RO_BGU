@@ -42,3 +42,19 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(103,232,249,.7);
 .bento-action{background:rgba(15,23,42,.65);border:1px solid var(--border);border-radius:1.2rem;transition:transform .2s ease,border-color .2s ease}
 .bento-action:hover{transform:translateY(-3px);border-color:rgba(103,232,249,.42)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+.unit-status-badge{display:inline-flex;align-items:center;justify-content:center;padding:.34rem .8rem;border-radius:999px;border:1px solid transparent;font-size:.75rem;line-height:1;font-weight:600;letter-spacing:.01em;white-space:nowrap;min-height:1.8rem}
+.unit-status-available{color:#d1fae5;background:rgba(16,185,129,.14);border-color:rgba(52,211,153,.35)}
+.unit-status-soon{color:#ddd6fe;background:rgba(139,92,246,.12);border-color:rgba(167,139,250,.3)}
+
+.bento-action{min-height:220px;display:flex;flex-direction:column;gap:.7rem;padding:1.2rem;background:linear-gradient(160deg, rgba(15,23,42,.78), rgba(15,23,42,.52));box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 10px 24px rgba(2,6,23,.35)}
+.bento-icon{height:2.6rem;width:2.6rem;border-radius:.85rem;display:grid;place-items:center;font-size:1.2rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.bento-title{font-size:1.22rem;line-height:1.2;font-weight:800;color:#fff;margin-top:.1rem}
+.bento-desc{font-size:.92rem;line-height:1.5;color:rgba(203,213,225,.88);max-width:34ch}
+.bento-cta{margin-top:auto;font-size:.88rem;font-weight:700;color:#e2e8f0}
+.bento-mini{display:inline-flex;align-items:center;justify-content:center;padding:.24rem .62rem;border-radius:999px;font-size:.68rem;font-weight:700;border:1px solid rgba(255,255,255,.2);color:rgba(226,232,240,.92);background:rgba(255,255,255,.06)}
+.bento-slides .bento-icon{background:rgba(34,211,238,.14);border-color:rgba(103,232,249,.35)}
+.bento-game .bento-icon{background:rgba(167,139,250,.14);border-color:rgba(167,139,250,.35)}
+.bento-homework .bento-icon{background:rgba(251,191,36,.16);border-color:rgba(252,211,77,.35)}
+.bento-results .bento-icon{background:rgba(52,211,153,.15);border-color:rgba(110,231,183,.35)}
+.bento-slides .bento-cta{color:#bae6fd}.bento-game .bento-cta{color:#ddd6fe}.bento-homework .bento-cta{color:#fde68a}.bento-results .bento-cta{color:#bbf7d0}
