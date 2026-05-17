@@ -1,11 +1,30 @@
 export function crearGameShell() {
   return `
     <section class="app-card p-5 sm:p-8">
-      <div class="inline-flex items-center rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">🎮 Juego</div>
-      <h2 class="screen-title mt-3">Zona de retos matemáticos</h2>
-      <p class="mt-2 section-subtitle">Próximamente: dinámicas de juego, puntos, progreso y recompensas.</p>
-      <div class="mt-4 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-100 to-fuchsia-100 p-4 font-semibold text-violet-900">
-        🚀 Modo juego en construcción para Fase 3.
+      <div class="relative z-10">
+        <div class="inline-flex items-center rounded-full bg-violet-200/10 border border-violet-100/14 px-4 py-2 text-xs font-black uppercase tracking-[.18em] text-violet-100">🎮 Zona de retos</div>
+        <h2 class="screen-title mt-4">Portal de gamificación</h2>
+        <p class="mt-3 section-subtitle">Próximamente se activarán misiones matemáticas con intentos, retroalimentación positiva, medallas y progreso visual.</p>
+
+        <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="rounded-2xl bg-white/7 border border-white/9 p-4 text-center">
+            <p class="text-3xl font-black text-white">3</p>
+            <p class="text-xs font-bold text-slate-300">intentos por reto</p>
+          </div>
+          <div class="rounded-2xl bg-white/7 border border-white/9 p-4 text-center">
+            <p class="text-3xl font-black text-white">10</p>
+            <p class="text-xs font-bold text-slate-300">puntaje máximo</p>
+          </div>
+          <div class="rounded-2xl bg-white/7 border border-white/9 p-4 text-center">
+            <p class="text-3xl font-black text-white">★</p>
+            <p class="text-xs font-bold text-slate-300">medallas</p>
+          </div>
+        </div>
+
+        <div class="mt-6 rounded-[2rem] border border-violet-100/14 bg-violet-200/8 p-5">
+          <p class="font-black text-violet-100">Modo juego en construcción</p>
+          <p class="mt-2 text-sm leading-relaxed text-slate-300">En la siguiente fase este espacio se convertirá en una aventura interactiva para resolver ecuaciones paso a paso.</p>
+        </div>
       </div>
     </section>
   `;
