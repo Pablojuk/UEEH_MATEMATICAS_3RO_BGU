@@ -1,28 +1,21 @@
 import { renderMathInElementSafe, bindClick } from "../core/navigation.js";
 
-function getTagClass(label) {
-  if (label === "Anticipación") return "tag tag--anticipacion";
-  if (label === "Construcción") return "tag tag--construccion";
-  return "tag tag--consolidacion";
-}
+const momentClass = {
+  "Anticipación": "moment-tag--anticipacion",
+  "Construcción": "moment-tag--construccion",
+  "Consolidación": "moment-tag--consolidacion"
+};
 
-function renderFormulaBlock(formula) {
-  if (!formula) return "";
-  return `<div class="slide-formula" data-formula>${formula}</div>`;
-}
+const duaClass = {
+  "Compromiso": "dua-tag--compromiso",
+  "Representación": "dua-tag--representacion",
+  "Acción y expresión": "dua-tag--accion"
+};
 
-function renderInteraction(slide) {
-  if (slide.tipo !== "interaccion") return "";
-  return `
-    <div class="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
-      <p class="text-sm font-semibold text-indigo-900">¿Qué observas en la expresión?</p>
-      <div class="mt-2 flex flex-col gap-2">
-        <button type="button" class="mini-answer" data-answer="1">Primero identifico los elementos de la expresión.</button>
-        <button type="button" class="mini-answer" data-answer="2">Busco una relación entre datos y operaciones.</button>
-      </div>
-      <p id="mini-feedback" class="mt-2 hidden text-sm font-semibold text-indigo-700"></p>
-    </div>
-  `;
+function toArray(dua) {
+  if (Array.isArray(dua)) return dua;
+  if (!dua) return [];
+  return [dua];
 }
 
 export function createSlideViewer({ slides = [], onExit, onComplete }) {
@@ -30,47 +23,97 @@ export function createSlideViewer({ slides = [], onExit, onComplete }) {
 
   function buildSlideHTML() {
     const total = slides.length;
-    const slide = slides[currentIndex];
+    const slide = slides[currentIndex] || {};
     const progress = Math.round(((currentIndex + 1) / total) * 100);
+    const momento = slide.momento || slide.moment || "Construcción";
+    const duaList = toArray(slide.dua);
+    const titulo = slide.titulo || slide.title || "";
+    const subtitulo = slide.subtitulo || slide.subtitle || "";
+    const contenido = slide.contenido || slide.content || "";
+    const formula = slide.formula || "";
+    const actividad = slide.actividad || slide.activity || "";
+    const visual = slide.visual || slide.icono || "";
+    const notaDocente = slide.notaDocente || slide.teacherNote || slide.ayuda || "";
 
     return `
-      <section class="app-card p-5 sm:p-8 space-y-4">
-        <div class="flex items-center justify-between gap-2">
-          <div class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">📘 Slides interactivas</div>
-          <p class="text-xs font-semibold text-slate-500">Slide ${currentIndex + 1} de ${total}</p>
-        </div>
-
-        <div class="progress-track" aria-label="Progreso de slides">
-          <div class="progress-bar" style="width:${progress}%"></div>
-        </div>
-
-        <article class="slide-stage">
-          <header class="space-y-2">
-            <div class="flex flex-wrap gap-2">
-              <span class="${getTagClass(slide.momento)}">${slide.momento}</span>
-              <span class="tag tag--dua">DUA: ${slide.dua}</span>
-            </div>
-            <h2 class="screen-title">${slide.icono ? `${slide.icono} ` : ""}${slide.titulo}</h2>
-            ${slide.subtitulo ? `<p class="section-subtitle">${slide.subtitulo}</p>` : ""}
-          </header>
-
-          <div class="mt-4 space-y-3">
-            <p class="text-slate-700">${slide.contenido || ""}</p>
-            ${renderFormulaBlock(slide.formula)}
-            ${renderInteraction(slide)}
-            ${slide.ayuda ? `<p class="help-note">${slide.ayuda}</p>` : ""}
+      <section class="slide-viewer-shell">
+        <header class="slide-viewer-header">
+          <button id="slide-exit" class="slide-viewer-exit">← Volver al campus</button>
+          <div class="slide-viewer-head-right">
+            <span class="moment-tag ${momentClass[momento] || "moment-tag--construccion"}">${momento}</span>
+            <span class="slide-viewer-counter">${currentIndex + 1} / ${total}</span>
           </div>
+        </header>
+
+        <div class="slide-viewer-progress"><div class="slide-viewer-progress-bar" style="width:${progress}%"></div></div>
+
+        <article class="slide-viewer-card slide-viewer-animate" id="lesson-slide-container">
+          <div class="slide-viewer-content">
+            ${visual ? `<div class="lesson-slide-visual">${visual}</div>` : ""}
+            ${subtitulo ? `<p class="lesson-slide-subtitle">${subtitulo}</p>` : ""}
+            <h2 class="lesson-slide-title">${titulo}</h2>
+            ${contenido ? `<div class="lesson-slide-copy">${contenido}</div>` : ""}
+            ${formula ? `<div class="slide-formula lesson-slide-formula">${formula}</div>` : ""}
+            ${actividad ? `<div class="lesson-slide-activity">${actividad}</div>` : ""}
+          </div>
+          ${notaDocente ? `<aside class="lesson-slide-note"><strong>💡 Nota docente:</strong> ${notaDocente}</aside>` : ""}
         </article>
 
-        <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <button id="slide-prev" class="app-btn bg-slate-200 text-slate-800" ${currentIndex === 0 ? "disabled" : ""} aria-label="Ir a la slide anterior">Anterior</button>
-          <button id="slide-next" class="app-btn bg-indigo-600 text-white" ${currentIndex === total - 1 ? "disabled" : ""} aria-label="Ir a la slide siguiente">Siguiente</button>
-          <button id="slide-exit" class="app-btn bg-white border border-slate-300 text-slate-700" aria-label="Volver al panel principal">Volver al panel</button>
-        </div>
+        <footer class="slide-viewer-footer">
+          <div class="dua-tags-wrap">
+            ${duaList.map((d) => `<span class="dua-tag ${duaClass[d] || "dua-tag--compromiso"}">DUA: ${d}</span>`).join("")}
+          </div>
+          <div class="slide-viewer-nav">
+            <button id="slide-prev" class="slide-viewer-btn slide-viewer-btn--ghost" ${currentIndex === 0 ? "disabled" : ""}>Anterior</button>
+            <button id="slide-next" class="slide-viewer-btn slide-viewer-btn--primary" ${currentIndex === total - 1 ? "disabled" : ""}>Siguiente</button>
+          </div>
+        </footer>
 
-        ${currentIndex === total - 1 ? '<button id="slide-complete" class="app-btn bg-emerald-600 text-white" aria-label="Ir al siguiente módulo">Ir al siguiente módulo</button>' : ""}
+        ${currentIndex === total - 1 ? '<button id="slide-complete" class="slide-viewer-btn slide-viewer-btn--success">Ir al siguiente módulo</button>' : ""}
       </section>
     `;
+  }
+
+  function bindInteractions(app) {
+    app.querySelectorAll("[data-action='quiz']").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const wrap = btn.closest("[data-quiz]");
+        if (!wrap) return;
+        const feedback = wrap.querySelector("[data-quiz-feedback]");
+        wrap.querySelectorAll("[data-action='quiz']").forEach((option) => {
+          option.disabled = true;
+          option.classList.add("is-disabled");
+        });
+        btn.classList.remove("is-disabled");
+
+        const ok = btn.dataset.correct === "true";
+        if (ok) btn.classList.add("is-correct");
+        else btn.classList.add("is-wrong");
+
+        if (feedback) {
+          feedback.classList.remove("hidden");
+          feedback.classList.toggle("feedback--good", ok);
+          feedback.classList.toggle("feedback--warn", !ok);
+          feedback.textContent = `${ok ? "✅" : "❌"} ${btn.dataset.feedback || ""}`;
+        }
+      });
+    });
+
+    app.querySelectorAll("[data-action='toggle-hint']").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const target = app.querySelector(`#${btn.dataset.target}`);
+        if (!target) return;
+        target.classList.toggle("hidden");
+        await renderMathInElementSafe(target);
+      });
+    });
+  }
+
+  function bindKeyboard() {
+    document.onkeydown = (event) => {
+      if (event.key === "ArrowRight") document.getElementById("slide-next")?.click();
+      if (event.key === "ArrowLeft") document.getElementById("slide-prev")?.click();
+    };
   }
 
   async function repaint() {
@@ -94,19 +137,14 @@ export function createSlideViewer({ slides = [], onExit, onComplete }) {
       }
     });
 
-    bindClick("#slide-exit", onExit);
+    bindClick("#slide-exit", () => {
+      document.onkeydown = null;
+      onExit?.();
+    });
     bindClick("#slide-complete", onComplete);
 
-    document.querySelectorAll(".mini-answer").forEach((button) => {
-      button.addEventListener("click", () => {
-        const feedback = document.getElementById("mini-feedback");
-        if (!feedback) return;
-        feedback.classList.remove("hidden");
-        feedback.textContent = button.dataset.answer === "1"
-          ? "Excelente observación. Vas por buen camino."
-          : "Muy bien, ahora conecta esta idea con el ejemplo.";
-      });
-    });
+    bindInteractions(app);
+    bindKeyboard();
   }
 
   return { repaint };

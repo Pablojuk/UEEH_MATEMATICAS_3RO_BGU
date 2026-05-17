@@ -337,3 +337,78 @@ select:focus-visible {
     max-height: 92vh;
   }
 }
+/* Slide viewer - clase interactiva */
+.slide-viewer-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: grid;
+  gap: 0.8rem;
+}
+.slide-viewer-header,
+.slide-viewer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.slide-viewer-exit {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #1e293b;
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 700;
+}
+.slide-viewer-head-right { display: flex; align-items: center; gap: 0.6rem; }
+.slide-viewer-counter { font-size: .9rem; font-weight: 700; color: #6B7280; }
+.slide-viewer-progress { height: .5rem; border-radius: 999px; overflow: hidden; background: #e5e7eb; }
+.slide-viewer-progress-bar { height: 100%; background: #F47C20; transition: width .35s ease; }
+.slide-viewer-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1.4rem;
+  box-shadow: 0 14px 40px rgba(15,23,42,.08);
+  overflow: hidden;
+  min-height: min(68vh, 780px);
+  display: flex;
+  flex-direction: column;
+}
+.slide-viewer-content { padding: 1.2rem; overflow-y: auto; }
+.lesson-slide-visual { font-size: 3rem; text-align: center; margin-bottom: .8rem; }
+.lesson-slide-subtitle { text-transform: uppercase; letter-spacing: .08em; font-weight: 800; color: #F47C20; font-size: .8rem; text-align: center; }
+.lesson-slide-title { text-align: center; color: #1E293B; font-size: clamp(1.5rem, 4vw, 2.5rem); margin: .45rem 0 1rem; }
+.lesson-slide-copy { color: #313849; line-height: 1.7; }
+.lesson-slide-formula { margin-top: 1rem; font-size: clamp(1.1rem,3vw,1.7rem); }
+.lesson-slide-note { border-top: 1px solid #e5e7eb; background: #f8fafc; padding: .85rem 1rem; color: #6b7280; font-size: .88rem; }
+.slide-viewer-nav { display: flex; gap: .6rem; }
+.slide-viewer-btn { border-radius: 999px; min-height: 46px; padding: 0.7rem 1rem; font-weight: 700; border: 0; }
+.slide-viewer-btn--ghost { background: #e2e8f0; color: #1e293b; }
+.slide-viewer-btn--primary { background: #F47C20; color: #fff; }
+.slide-viewer-btn--success { background: #059669; color: #fff; width: 100%; }
+.slide-viewer-btn:disabled { opacity: .4; cursor: not-allowed; }
+.moment-tag, .dua-tag { border-radius: 999px; padding: .3rem .75rem; font-size: .75rem; font-weight: 700; }
+.moment-tag--anticipacion { background: #ffedd5; color: #c2410c; }
+.moment-tag--construccion { background: #1e293b; color: #fff; }
+.moment-tag--consolidacion { background: #dcfce7; color: #15803d; }
+.dua-tags-wrap { display: flex; gap: .4rem; flex-wrap: wrap; }
+.dua-tag--compromiso { background: #dcfce7; color: #166534; }
+.dua-tag--representacion { background: #f3e8ff; color: #7e22ce; }
+.dua-tag--accion { background: #dbeafe; color: #1d4ed8; }
+.lesson-slide-grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:.65rem; margin-top:.75rem; }
+.lesson-slide-item { background:#f8fafc;border:1px solid #e2e8f0; border-radius:.8rem; padding:.7rem; display:flex; gap:.5rem; align-items:flex-start; }
+.lesson-slide-list { margin: .6rem 0 0 0; padding-left: 1rem; line-height: 1.7; }
+.lesson-slide-quiz { display:grid; gap:.6rem; }
+.lesson-slide-quiz-option { width:100%; text-align:left; border:2px solid #e2e8f0; background:#fff; border-radius:.8rem; padding:.8rem; font-weight:600; }
+.lesson-slide-quiz-option.is-correct { border-color:#10b981; background:#ecfdf5; color:#065f46; }
+.lesson-slide-quiz-option.is-wrong { border-color:#f87171; background:#fef2f2; color:#991b1b; }
+.lesson-slide-quiz-option.is-disabled { opacity:.55; }
+.lesson-slide-feedback { border-radius:.8rem; padding:.65rem .8rem; font-weight:700; }
+.lesson-slide-hint-btn { margin-top:.8rem; border:none; background:none; color:#F47C20; font-weight:800; }
+.lesson-slide-hint { margin-top:.6rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:.8rem; padding:.8rem; }
+@media (max-width: 768px) {
+  .lesson-slide-grid { grid-template-columns: 1fr; }
+  .slide-viewer-nav { width: 100%; }
+  .slide-viewer-btn { flex: 1; }
+}
