@@ -20,9 +20,18 @@ export function crearResultPanel() {
     gameResults?.porcentajeFinal != null ? `${gameResults.porcentajeFinal} %` : "-- %";
   const level = gameResults?.nivel || "Pendiente";
   const status = gameResults?.estado || "Pendiente";
+  const notasDetalle =
+    Array.isArray(gameResults?.notasPorEjercicio) && gameResults.notasPorEjercicio.length
+      ? gameResults.notasPorEjercicio.join(", ")
+      : null;
+
   const observation =
     gameResults?.observacion ||
     "Aún no hay evaluación final. Completa la gamificación para ver tu calificación.";
+
+  const rubricaInfo = gameResults
+    ? "Escala: 1.er intento = 10, 2.º = 9, 3.º = 8, 4.º o más = 7. Promedio de ejercicios (el memorama no califica)."
+    : "";
 
   const sheetStatus = gameResults?.enviadoSheets
     ? "Registrado en Google Sheets"
@@ -66,7 +75,13 @@ export function crearResultPanel() {
               ? ` · Pares: ${gameResults.paresEncontrados}/8`
               : ""
           }
+          ${notasDetalle ? ` · Notas por ejercicio: ${notasDetalle}` : ""}
         </div>
+        ${
+          rubricaInfo
+            ? `<p class="mt-3 text-xs text-moodle-text-gray leading-relaxed">${rubricaInfo}</p>`
+            : ""
+        }
       `
           : ""
       }

@@ -101,8 +101,26 @@ let activeExercise = null;
 let wrongAttempts = 0;
 let totalExerciseErrors = 0;
 let exercisesSolved = 0;
+let exerciseScores = [];
 let availableExercises = [...exerciseBank];
 let resultSubmitted = false;
+
+/** Nota por ejercicio según intento en que acertó (solo respuestas algebraicas). */
+function scoreFromExerciseAttempts(attemptNumber) {
+  if (attemptNumber <= 1) return 10;
+  if (attemptNumber === 2) return 9;
+  if (attemptNumber === 3) return 8;
+  return 7;
+}
+
+function averageExerciseScores(scores = exerciseScores) {
+  if (!scores.length) return 7;
+
+  const sum = scores.reduce((total, item) => total + item.nota, 0);
+  const average = sum / scores.length;
+
+  return Math.max(7, Math.min(10, average));
+}
 
 const sounds = {
   click: new Audio("./sounds/click.wav"),
@@ -132,7 +150,7 @@ export function crearGameShell() {
             Memorama Algebraico
           </h2>
           <p class="text-[#6B7280] text-sm mt-2">
-            Encuentra los pares y resuelve un reto algebraico para asegurar cada acierto.
+            Encuentra los pares y resuelve cada reto. La nota depende del intento en el ejercicio: 1.º=10, 2.º=9, 3.º=8, 4.º+=7. Los pares del memorama no califican.
           </p>
         </header>
 
@@ -150,8 +168,8 @@ export function crearGameShell() {
             <span id="game-ui-exercises" class="heading-font text-xl font-bold text-[#1E293B]">0 / 8</span>
           </div>
           <div class="text-center">
-            <span class="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wide">Errores</span>
-            <span id="game-ui-errors" class="heading-font text-xl font-bold text-[#1E293B]">0</span>
+            <span class="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wide">Promedio</span>
+            <span id="game-ui-average" class="heading-font text-xl font-bold text-[#F47C20]">—</span>
           </div>
         </div>
 
@@ -310,6 +328,7 @@ function resetState() {
   wrongAttempts = 0;
   totalExerciseErrors = 0;
   exercisesSolved = 0;
+  exerciseScores = [];
   availableExercises = [...exerciseBank];
   resultSubmitted = false;
 
@@ -582,8 +601,20 @@ function validateExerciseAnswer() {
   }
 
   if (isCorrect) {
+    const attemptNumber = wrongAttempts + 1;
+    const notaEjercicio = scoreFromExerciseAttempts(attemptNumber);
+
+    exerciseScores.push({
+      exerciseId: activeExercise.id,
+      intentos: attemptNumber,
+      nota: notaEjercicio
+    });
+
     playSound("match");
-    showExerciseFeedback(true, "¡Excelente! Despeje correcto.");
+    showExerciseFeedback(
+      true,
+      `¡Excelente! Nota de este ejercicio: ${notaEjercicio}/10 (intento ${attemptNumber}).`
+    );
 
     setTimeout(() => {
       closeModal("game-exercise-modal");
@@ -671,8 +702,10 @@ function finishGameManually() {
     return;
   }
 
-  if (matchedPairs === 0 && exercisesSolved === 0) {
-    window.alert("Aún no has registrado avance. Encuentra al menos un par antes de terminar.");
+  if (exerciseScores.length === 0) {
+    window.alert(
+      "Aún no tienes ejercicios calificados. Resuelve al menos un reto algebraico antes de terminar."
+    );
     return;
   }
 
@@ -714,41 +747,43 @@ function finalizeGame({ completedAll = true } = {}) {
 }
 
 function buildResultSummary({ completedAll = true } = {}) {
-  const minimumAttempts = TOTAL_PAIRS;
-  const extraMemoryAttempts = Math.max(0, attempts - minimumAttempts);
-  const progressRatio = matchedPairs / TOTAL_PAIRS;
-
-  let rawScore = 10 - totalExerciseErrors * 0.5 - extraMemoryAttempts * 0.15;
-
-  if (!completedAll) {
-    rawScore = rawScore * Math.max(progressRatio, 0.15) - (TOTAL_PAIRS - matchedPairs) * 0.25;
-  }
-
-  const notaFinal = Math.max(4, Math.min(10, rawScore));
+  const notaFinal = averageExerciseScores();
   const porcentajeFinal = Math.round(notaFinal * 10);
-  const nivel = notaFinal >= 9 ? "Excelente" : notaFinal >= 7 ? "Logrado" : "En proceso";
-  const estado = notaFinal >= 7 ? "Aprobado" : "Requiere refuerzo";
+  const nivel = notaFinal >= 9.5 ? "Excelente" : notaFinal >= 8 ? "Logrado" : "En proceso";
+  const estado = "Aprobado";
+
+  const notasDetalle = exerciseScores.map((item) => item.nota).join(", ") || "—";
+  const intentosPromedioEjercicios = exerciseScores.length
+    ? (
+        exerciseScores.reduce((total, item) => total + item.intentos, 0) / exerciseScores.length
+      ).toFixed(1)
+    : "0";
 
   const baseObservation =
-    notaFinal >= 9
-      ? "Excelente desempeño en el memorama algebraico."
-      : notaFinal >= 7
-        ? "Buen avance. Se recomienda seguir practicando signos y fracciones."
-        : "Requiere refuerzo en despeje y manejo de fracciones.";
+    notaFinal >= 9.5
+      ? "Excelente dominio en los ejercicios algebraicos."
+      : notaFinal >= 8
+        ? "Buen proceso de aprendizaje. Sigue practicando para acertar al primer intento."
+        : "Avance en proceso de aprendizaje. Los intentos del memorama no afectan la nota.";
+
+  const rubrica =
+    "Calificación: 1.er intento=10, 2.º=9, 3.º=8, 4.º o más=7 (mínimo). Promedio de ejercicios resueltos.";
 
   const observacion = completedAll
-    ? baseObservation
-    : `Juego terminado antes de completar todos los pares (${matchedPairs}/${TOTAL_PAIRS}). ${baseObservation}`;
+    ? `${baseObservation} ${rubrica} Notas por ejercicio: [${notasDetalle}]. Promedio: ${notaFinal.toFixed(2)}.`
+    : `Juego terminado con ${exerciseScores.length} ejercicio(s) evaluado(s) de ${TOTAL_PAIRS}. ${baseObservation} Notas: [${notasDetalle}].`;
 
   return {
     notaFinal,
     porcentajeFinal,
     nivel,
     estado,
-    intentos: attempts,
+    intentosMemorama: attempts,
+    intentosPromedioEjercicios,
     paresEncontrados: matchedPairs,
     ejerciciosResueltos: exercisesSolved,
     erroresEjercicios: totalExerciseErrors,
+    notasPorEjercicio: exerciseScores.map((item) => item.nota),
     completadoTotal: completedAll,
     observacion
   };
@@ -784,7 +819,7 @@ function submitResultToSheets(summary) {
     nivel: summary.nivel,
     estado: summary.estado,
     fechaLimite: "",
-    observacion: `${summary.observacion} Intentos: ${summary.intentos}. Errores en ejercicios: ${summary.erroresEjercicios}.`
+    observacion: `${summary.observacion} Intentos promedio en ejercicios: ${summary.intentosPromedioEjercicios}. Intentos del memorama (no califican): ${summary.intentosMemorama}.`
   };
 
   submitByHiddenForm(payload);
@@ -853,12 +888,17 @@ function updateStats() {
   const matchesEl = document.getElementById("game-ui-matches");
   const attemptsEl = document.getElementById("game-ui-attempts");
   const exercisesEl = document.getElementById("game-ui-exercises");
-  const errorsEl = document.getElementById("game-ui-errors");
+  const averageEl = document.getElementById("game-ui-average");
 
   if (matchesEl) matchesEl.textContent = `${matchedPairs} / ${TOTAL_PAIRS}`;
   if (attemptsEl) attemptsEl.textContent = String(attempts);
   if (exercisesEl) exercisesEl.textContent = `${exercisesSolved} / ${TOTAL_PAIRS}`;
-  if (errorsEl) errorsEl.textContent = String(totalExerciseErrors);
+
+  if (averageEl) {
+    averageEl.textContent = exerciseScores.length
+      ? averageExerciseScores().toFixed(1)
+      : "—";
+  }
 }
 
 function openModal(id) {
@@ -936,6 +976,7 @@ function saveGameState() {
     attempts,
     totalExerciseErrors,
     exercisesSolved,
+    exerciseScores,
     wrongAttempts,
     activeExerciseId: activeExercise?.id || null,
     availableExerciseIds: availableExercises.map((exercise) => exercise.id),
@@ -974,6 +1015,7 @@ function loadGameState() {
     attempts = Number(state.attempts || 0);
     totalExerciseErrors = Number(state.totalExerciseErrors || 0);
     exercisesSolved = Number(state.exercisesSolved || 0);
+    exerciseScores = Array.isArray(state.exerciseScores) ? state.exerciseScores : [];
     wrongAttempts = Number(state.wrongAttempts || 0);
 
     if (Array.isArray(state.availableExerciseIds)) {
