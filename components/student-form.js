@@ -22,7 +22,7 @@ export function crearFormularioEstudiante(onSuccess) {
             <input name="paralelo" class="input-field" placeholder="Ejemplo: A" required />
           </label>
           <p id="form-error" class="hidden rounded-2xl bg-rose-300/10 border border-rose-200/20 px-4 py-3 text-sm font-bold text-rose-100"></p>
-          <button class="app-btn bg-gradient-to-r from-cyan-200 to-violet-300 text-slate-950 shadow-2xl shadow-cyan-300/10" type="submit">Ingresar al campus</button>
+          <button class="app-btn bg-gradient-to-r from-cyan-200 to-violet-300 text-slate-950 shadow-2xl shadow-cyan-300/10" type="submit">Entrar al campus matemático</button>
         </form>
       </div>
     </section>
