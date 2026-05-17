@@ -607,6 +607,12 @@ function goToGame() {
   bindClick("#btn-back-dashboard", () => goToDashboard());
 
   activarGameShell();
+
+  document.addEventListener(
+    "ueeh:game-finished",
+    () => goToResults(),
+    { once: true }
+  );
 }
 
 function goToHomework() {

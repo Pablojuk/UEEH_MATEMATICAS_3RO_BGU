@@ -1,3 +1,8 @@
+import {
+  guardarResultadoGamificacion,
+  obtenerResultadoGamificacion
+} from "../core/storage.js";
+
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec";
 
@@ -159,6 +164,13 @@ export function crearGameShell() {
 
         <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
           <button
+            id="game-finish-btn"
+            class="px-6 py-3 rounded-xl bg-[#F47C20] hover:bg-orange-600 text-white text-sm font-bold transition-colors"
+            type="button"
+          >
+            Terminar juego
+          </button>
+          <button
             id="game-reset-btn"
             class="px-6 py-3 rounded-xl bg-[#1E293B] hover:bg-[#313849] text-white text-sm font-bold transition-colors"
             type="button"
@@ -220,10 +232,10 @@ export function crearGameShell() {
     <div id="game-win-modal" class="fixed inset-0 z-[85] bg-[#1E293B]/85 backdrop-blur-sm hidden items-center justify-center p-4" role="dialog" aria-modal="true">
       <div class="bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl text-center">
         <div class="text-6xl mb-3">🏆</div>
-        <h2 class="heading-font text-2xl font-bold text-[#1E293B]">
+        <h2 id="game-win-title" class="heading-font text-2xl font-bold text-[#1E293B]">
           ¡Misión cumplida!
         </h2>
-        <p class="text-[#6B7280] text-sm mt-2">
+        <p id="game-win-message" class="text-[#6B7280] text-sm mt-2">
           Encontraste todos los pares y resolviste los retos algebraicos.
         </p>
 
@@ -243,8 +255,16 @@ export function crearGameShell() {
         </p>
 
         <button
+          id="game-view-results-btn"
+          class="mt-5 w-full px-6 py-3 rounded-xl bg-[#F47C20] hover:bg-orange-600 text-white text-sm font-bold transition-colors"
+          type="button"
+        >
+          Ver resultados
+        </button>
+
+        <button
           id="game-play-again-btn"
-          class="mt-5 w-full px-6 py-3 rounded-xl bg-[#1E293B] hover:bg-[#313849] text-white text-sm font-bold transition-colors"
+          class="mt-3 w-full px-6 py-3 rounded-xl bg-[#1E293B] hover:bg-[#313849] text-white text-sm font-bold transition-colors"
           type="button"
         >
           Jugar otra vez
@@ -297,10 +317,16 @@ function resetState() {
 }
 
 function bindGameEvents() {
+  document.getElementById("game-finish-btn")?.addEventListener("click", finishGameManually);
+
   document.getElementById("game-reset-btn")?.addEventListener("click", () => {
     resetState();
     createBoard();
     updateStats();
+  });
+
+  document.getElementById("game-view-results-btn")?.addEventListener("click", () => {
+    document.dispatchEvent(new CustomEvent("ueeh:game-finished"));
   });
 
   document.getElementById("game-check-answer-btn")?.addEventListener("click", validateExerciseAnswer);
@@ -635,10 +661,49 @@ function showHint(forceSteps = false) {
 function checkVictory() {
   if (matchedPairs !== TOTAL_PAIRS) return;
 
-  isBoardLocked = true;
   playSound("win");
+  finalizeGame({ completedAll: true });
+}
 
-  const summary = buildResultSummary();
+function finishGameManually() {
+  if (resultSubmitted) {
+    openModal("game-win-modal");
+    return;
+  }
+
+  if (matchedPairs === 0 && exercisesSolved === 0) {
+    window.alert("Aún no has registrado avance. Encuentra al menos un par antes de terminar.");
+    return;
+  }
+
+  const confirmFinish = window.confirm(
+    "¿Deseas terminar el juego? Se calculará tu calificación con el avance actual y se enviará al registro."
+  );
+
+  if (!confirmFinish) return;
+
+  finalizeGame({ completedAll: false });
+}
+
+function finalizeGame({ completedAll = true } = {}) {
+  isBoardLocked = true;
+
+  const summary = buildResultSummary({ completedAll });
+
+  guardarResultadoGamificacion(summary);
+
+  const titleEl = document.getElementById("game-win-title");
+  const messageEl = document.getElementById("game-win-message");
+
+  if (titleEl) {
+    titleEl.textContent = completedAll ? "¡Misión cumplida!" : "Juego finalizado";
+  }
+
+  if (messageEl) {
+    messageEl.textContent = completedAll
+      ? "Encontraste todos los pares y resolviste los retos algebraicos."
+      : `Completaste ${matchedPairs} de ${TOTAL_PAIRS} pares. Tu calificación se registró con tu avance actual.`;
+  }
 
   document.getElementById("game-win-attempts").textContent = String(attempts);
   document.getElementById("game-win-score").textContent = summary.notaFinal.toFixed(2);
@@ -648,14 +713,32 @@ function checkVictory() {
   submitResultToSheets(summary);
 }
 
-function buildResultSummary() {
+function buildResultSummary({ completedAll = true } = {}) {
   const minimumAttempts = TOTAL_PAIRS;
   const extraMemoryAttempts = Math.max(0, attempts - minimumAttempts);
-  const rawScore = 10 - totalExerciseErrors * 0.5 - extraMemoryAttempts * 0.15;
-  const notaFinal = Math.max(5, Math.min(10, rawScore));
+  const progressRatio = matchedPairs / TOTAL_PAIRS;
+
+  let rawScore = 10 - totalExerciseErrors * 0.5 - extraMemoryAttempts * 0.15;
+
+  if (!completedAll) {
+    rawScore = rawScore * Math.max(progressRatio, 0.15) - (TOTAL_PAIRS - matchedPairs) * 0.25;
+  }
+
+  const notaFinal = Math.max(4, Math.min(10, rawScore));
   const porcentajeFinal = Math.round(notaFinal * 10);
   const nivel = notaFinal >= 9 ? "Excelente" : notaFinal >= 7 ? "Logrado" : "En proceso";
   const estado = notaFinal >= 7 ? "Aprobado" : "Requiere refuerzo";
+
+  const baseObservation =
+    notaFinal >= 9
+      ? "Excelente desempeño en el memorama algebraico."
+      : notaFinal >= 7
+        ? "Buen avance. Se recomienda seguir practicando signos y fracciones."
+        : "Requiere refuerzo en despeje y manejo de fracciones.";
+
+  const observacion = completedAll
+    ? baseObservation
+    : `Juego terminado antes de completar todos los pares (${matchedPairs}/${TOTAL_PAIRS}). ${baseObservation}`;
 
   return {
     notaFinal,
@@ -666,12 +749,8 @@ function buildResultSummary() {
     paresEncontrados: matchedPairs,
     ejerciciosResueltos: exercisesSolved,
     erroresEjercicios: totalExerciseErrors,
-    observacion:
-      notaFinal >= 9
-        ? "Excelente desempeño en el memorama algebraico."
-        : notaFinal >= 7
-          ? "Buen avance. Se recomienda seguir practicando signos y fracciones."
-          : "Requiere refuerzo en despeje y manejo de fracciones."
+    completadoTotal: completedAll,
+    observacion
   };
 }
 
@@ -709,6 +788,9 @@ function submitResultToSheets(summary) {
   };
 
   submitByHiddenForm(payload);
+
+  const stored = obtenerResultadoGamificacion() || summary;
+  guardarResultadoGamificacion({ ...stored, enviadoSheets: true });
 
   setTimeout(() => {
     if (statusEl) {
