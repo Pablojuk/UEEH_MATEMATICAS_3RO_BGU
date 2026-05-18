@@ -144,7 +144,7 @@
 
   <script>
     const SHEET_NAME = "Deb_Uni_2";
-    const HOMEWORK_VERSION = "derivadas_unidad2_v3_mathjax_clean";
+    const HOMEWORK_VERSION = "derivadas_unidad2_v4_autosave";
     const STORAGE_KEY_SENT = "deber_derivadas_unidad2_enviado_v1";
     const STORAGE_KEY_PROGRESS = "deber_derivadas_unidad2_progreso_v1";
     const FECHA_LIMITE = "Sin definir";
@@ -181,6 +181,7 @@
     ];
 
     let currentId = 1, selectedChoice = null, selectedTF = null;
+    const selectedAnswers = {};
     const recSelections = {};
     const state = {sent:false,initialFinished:false,recoveryEnabled:false,recoveryFinished:false,initialAverage:0,recoveryAverage:null,finalGrade:0,exercises:exercises.map(e=>({id:e.id,attempts:0,closed:false,score:0,correct:false,lastCorrect:0,mcqOptions:[]})),recovery:recoveryExercises.map(e=>({id:e.id,attempts:0,closed:false,score:0,correct:false}))};
 
@@ -209,7 +210,7 @@
       if (raw.startsWith("\\[") && raw.endsWith("\\]")) return raw;
       return `\\(${raw}\\)`;
     }
-    function buildMcqOptions(data){ return shuffleArray(data.options.map((text,index)=>({text:toMathInline(text),correct:index===data.correctIndex}))); }
+    function buildMcqOptions(data){ return shuffleArray(data.options.map((text,index)=>({text:toMathInline(text),correct:index===data.correctIndex,originalIndex:index}))); }
     function levelText(grade){ if(grade>=9)return 'Destacado'; if(grade>=7)return 'Alcanzado'; if(grade>=4)return 'En desarrollo'; return 'Inicial'; }
     function observation(grade){ if(grade>=9)return 'Domina el cálculo de derivadas básicas, incluyendo potencias, raíces, productos, cocientes y expresiones algebraicas.'; if(grade>=7)return 'Alcanza el aprendizaje esperado. Debe seguir practicando raíces, cocientes y simplificación antes de derivar.'; if(grade>=4)return 'Está en proceso. Requiere reforzar la regla de la potencia, la cadena y el cociente.'; return 'Necesita acompañamiento y práctica guiada para comprender la derivada como tasa de cambio y aplicar reglas básicas.'; }
     function getData(id){return exercises.find(e=>e.id===id)} function getState(id){return state.exercises.find(e=>e.id===id)}
@@ -218,7 +219,7 @@
     function renderExerciseGrid(){ const grid=$('exerciseGrid'); grid.innerHTML=''; exercises.forEach(e=>{ const st=getState(e.id); const b=document.createElement('button'); b.className='exBtn'; b.textContent=e.id; if(e.id===currentId)b.classList.add('active'); if(st.closed){ if(st.score>=7||st.correct)b.classList.add('done'); else if(st.score>0)b.classList.add('partial'); else b.classList.add('fail'); } b.onclick=()=>openExercise(e.id); grid.appendChild(b); }); }
     function renderStats(){ const closed=state.exercises.filter(s=>s.closed).length; const totalScore=state.exercises.reduce((a,b)=>a+b.score,0); const avg=closed?round2(totalScore/exercises.length):0; $('doneCount').textContent=`${closed}/20`; $('avgNow').textContent=avg; $('progressBar').style.width=`${closed/exercises.length*100}%`; $('finishBtn').disabled=closed!==exercises.length || state.sent; }
     function renderAll(){ renderExerciseGrid(); renderStats(); renderExercise(); typeset(); }
-    function openExercise(id){ currentId=id; selectedChoice=null; selectedTF=null; const data=getData(id), st=getState(id); if(data.mode==='mcq' && (!Array.isArray(st.mcqOptions) || st.mcqOptions.length!==data.options.length)){ st.mcqOptions=buildMcqOptions(data); } renderAll(); saveProgress(); }
+    function openExercise(id){ currentId=id; selectedChoice=null; selectedTF=null; const data=getData(id), st=getState(id); if(data.mode==='mcq' && (!Array.isArray(st.mcqOptions) || st.mcqOptions.length!==data.options.length)){ st.mcqOptions=buildMcqOptions(data); } if(data.mode==='mcq' && Number.isInteger(selectedAnswers[id])){ selectedChoice=selectedAnswers[id]; } renderAll(); saveProgress(); }
     function prevExercise(){ openExercise(Math.max(1,currentId-1)); } function nextExercise(){ openExercise(Math.min(exercises.length,currentId+1)); }
 
     function renderExercise(){
@@ -233,7 +234,7 @@
       panel.innerHTML=html; typesetElement(panel);
     }
     function renderFillBody(data, st){return data.body.replace(/\[\[(\d+)\]\]/g,(m,idx)=>`<input class="blank" id="blank${idx}" data-blank="${idx}" ${st.closed||state.sent?'disabled':''}>`);}
-    function selectChoice(i){ selectedChoice=i; document.querySelectorAll('.choice').forEach(b=>b.classList.remove('selected')); const btn=document.querySelector(`[data-choice="${i}"]`); if(btn)btn.classList.add('selected');}
+    function selectChoice(i){ selectedChoice=i; selectedAnswers[currentId]=i; document.querySelectorAll('.choice').forEach(b=>b.classList.remove('selected')); const btn=document.querySelector(`[data-choice="${i}"]`); if(btn)btn.classList.add('selected'); saveProgress();}
     function selectTF(value){selectedTF=value; document.querySelectorAll('[data-tf]').forEach(b=>b.classList.remove('selected')); const btn=document.querySelector(`[data-tf="${value}"]`); if(btn)btn.classList.add('selected');}
     function showHint(){ $('hintBox').classList.add('show'); typesetElement($('exercisePanel')); }
 
@@ -244,9 +245,11 @@
         const ok=Boolean(st.mcqOptions[selectedChoice]?.correct);
         document.querySelectorAll('.choice').forEach((b)=>b.classList.remove('correct','wrong'));
         if(ok){
+          delete selectedAnswers[currentId];
           document.querySelector(`[data-choice="${selectedChoice}"]`)?.classList.add('correct');
           closeWithScore(st,scoreByAttempt(st.attempts),true,`Correcto. Puntaje obtenido: ${scoreByAttempt(st.attempts)}/10.`);
         } else if(st.attempts>=3){
+          delete selectedAnswers[currentId];
           document.querySelector(`[data-choice="${selectedChoice}"]`)?.classList.add('wrong');
           const correctIdx=st.mcqOptions.findIndex((op)=>op.correct);
           document.querySelector(`[data-choice="${correctIdx}"]`)?.classList.add('correct');
@@ -290,9 +293,9 @@
  state.sent=true; localStorage.setItem(STORAGE_KEY_SENT,'true'); localStorage.removeItem(STORAGE_KEY_PROGRESS); showSend('Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.','ok'); blockAll();}
     function showSend(msg,type){const n=$('sendNotice');n.textContent=msg;n.className=`notice show ${type}`;}
     function blockAll(){document.querySelectorAll('input,button,select').forEach(el=>el.disabled=true);}
-    function saveProgress(){try{localStorage.setItem(STORAGE_KEY_PROGRESS,JSON.stringify({version:HOMEWORK_VERSION,currentId,state,studentName:$('studentName')?.value||'',studentCourse:$('studentCourse')?.value||'',studentParallel:$('studentParallel')?.value||'',savedAt:new Date().toISOString()}));}catch{}}
-    function loadProgress(){try{const raw=localStorage.getItem(STORAGE_KEY_PROGRESS); if(!raw)return false; const saved=JSON.parse(raw); if(!saved||!saved.state)return false; if(saved.version!==HOMEWORK_VERSION){ localStorage.removeItem(STORAGE_KEY_PROGRESS); return false; } currentId=Number(saved.currentId||1); Object.assign(state,saved.state); if(saved.studentName)$('studentName').value=saved.studentName; if(saved.studentCourse)$('studentCourse').value=saved.studentCourse; if(saved.studentParallel)$('studentParallel').value=saved.studentParallel; return true;}catch{localStorage.removeItem(STORAGE_KEY_PROGRESS);return false;}}
-    function init(){ const appName=localStorage.getItem("ueeh_student_name"), appCourse=localStorage.getItem("ueeh_student_grade"), appParallel=localStorage.getItem("ueeh_student_parallel"); if(appName)$('studentName').value=appName; if(appCourse)$('studentCourse').value=appCourse; if(appParallel)$('studentParallel').value=appParallel; loadProgress(); exercises.forEach((e)=>{ const st=getState(e.id); if(e.mode==="mcq"){ st.mcqOptions=buildMcqOptions(e); } }); renderExerciseGrid(); renderStats(); renderExercise(); updateSummary(); if(localStorage.getItem(STORAGE_KEY_SENT)==='true'){state.sent=true; showSend('Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.','ok'); blockAll();} setTimeout(typeset,700);}
+    function saveProgress(){try{const optionOrderByExercise={}; state.exercises.forEach((st)=>{ if(Array.isArray(st.mcqOptions)&&st.mcqOptions.length){ optionOrderByExercise[st.id]=st.mcqOptions.map((op)=>op.originalIndex); } }); localStorage.setItem(STORAGE_KEY_PROGRESS,JSON.stringify({version:HOMEWORK_VERSION,currentId,selectedAnswers,optionOrderByExercise,state:{...state,exercises:state.exercises.map((e)=>({id:e.id,attempts:e.attempts,closed:e.closed,score:e.score,correct:e.correct,lastCorrect:e.lastCorrect}))},studentName:$('studentName')?.value||'',studentCourse:$('studentCourse')?.value||'',studentParallel:$('studentParallel')?.value||'',savedAt:new Date().toISOString()}));}catch{}}
+    function loadProgress(){try{const raw=localStorage.getItem(STORAGE_KEY_PROGRESS); if(!raw)return false; const saved=JSON.parse(raw); if(!saved||!saved.state)return false; if(saved.version!==HOMEWORK_VERSION){ localStorage.removeItem(STORAGE_KEY_PROGRESS); return false; } currentId=Number(saved.currentId||1); state.sent=Boolean(saved.state.sent); state.initialFinished=Boolean(saved.state.initialFinished); state.recoveryEnabled=Boolean(saved.state.recoveryEnabled); state.recoveryFinished=Boolean(saved.state.recoveryFinished); state.initialAverage=Number(saved.state.initialAverage||0); state.recoveryAverage=saved.state.recoveryAverage ?? null; state.finalGrade=Number(saved.state.finalGrade||0); if(Array.isArray(saved.state.exercises)){ saved.state.exercises.forEach((se)=>{ const st=getState(se.id); if(st){ st.attempts=Number(se.attempts||0); st.closed=Boolean(se.closed); st.score=Number(se.score||0); st.correct=Boolean(se.correct); st.lastCorrect=Number(se.lastCorrect||0);} }); } if(Array.isArray(saved.state.recovery)){ saved.state.recovery.forEach((sr,idx)=>{ const st=state.recovery[idx]; if(st){ st.attempts=Number(sr.attempts||0); st.closed=Boolean(sr.closed); st.score=Number(sr.score||0); st.correct=Boolean(sr.correct);} }); } Object.keys(selectedAnswers).forEach((k)=>delete selectedAnswers[k]); if(saved.selectedAnswers&&typeof saved.selectedAnswers==='object'){ Object.entries(saved.selectedAnswers).forEach(([k,v])=>{ selectedAnswers[k]=v; }); } if(saved.studentName)$('studentName').value=saved.studentName; if(saved.studentCourse)$('studentCourse').value=saved.studentCourse; if(saved.studentParallel)$('studentParallel').value=saved.studentParallel; return true;}catch{localStorage.removeItem(STORAGE_KEY_PROGRESS);return false;}}
+    function init(){ const appName=localStorage.getItem("ueeh_student_name"), appCourse=localStorage.getItem("ueeh_student_grade"), appParallel=localStorage.getItem("ueeh_student_parallel"); if(appName)$('studentName').value=appName; if(appCourse)$('studentCourse').value=appCourse; if(appParallel)$('studentParallel').value=appParallel; const recovered=loadProgress(); exercises.forEach((e)=>{ const st=getState(e.id); st.mcqOptions=buildMcqOptions(e); }); renderExerciseGrid(); renderStats(); renderExercise(); updateSummary(); if(recovered&&$('sideNotice')){ $('sideNotice').textContent='Avance recuperado. Puedes continuar desde donde te quedaste.'; $('sideNotice').className='notice ok show'; } if(localStorage.getItem(STORAGE_KEY_SENT)==='true'){state.sent=true; showSend('Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.','ok'); blockAll();} setTimeout(typeset,700);}
     document.addEventListener('DOMContentLoaded',init);
   </script>
 </body>
