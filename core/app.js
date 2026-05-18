@@ -680,7 +680,9 @@ function bindDashboardEvents() {
   });
 
   bindClick("#btn-unit-2-results", () => {
-    showToast("Este contenido se construirá en la siguiente fase.");
+    closeModal("unit-2");
+    showToast("Cargando panel de resultados de Unidad 2...");
+    goToDerivadasResults();
   });
 
   bindClick("#btn-modal-slides", () => {
@@ -767,6 +769,7 @@ function goToSlides() {
 }
 
 function goToDerivadasSlides() {
+  localStorage.setItem("ueeh_unidad2_presentation_viewed", "true");
   renderView(
     layout(
       "Introducción a las Derivadas",
@@ -805,6 +808,25 @@ function goToDerivadasHomework() {
     )
   );
 
+  bindClick("#btn-back-dashboard", () => goToDashboard());
+}
+
+
+function getUnidad2Results() {
+  const safeParse = (key) => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } };
+  return { presentationViewed: localStorage.getItem("ueeh_unidad2_presentation_viewed") === "true", gamificacion: safeParse("ueeh_unidad2_result_gamificacion"), deber: safeParse("ueeh_unidad2_result_deber"), resultsViewed: localStorage.getItem("ueeh_unidad2_results_viewed") === "true" };
+}
+function getUnidad2Progress() { const d = getUnidad2Results(); return (d.presentationViewed?25:0) + (d.gamificacion?.estado?25:0) + (d.deber?.estado?25:0) + (d.resultsViewed?25:0); }
+function goToDerivadasResults() {
+  localStorage.setItem("ueeh_unidad2_results_viewed", "true");
+  const data = getUnidad2Results();
+  const progress = getUnidad2Progress();
+  const notas = [data.gamificacion?.notaFinal, data.deber?.notaFinal].filter((n) => Number.isFinite(Number(n))).map(Number);
+  const promedio = notas.length ? (notas.reduce((a,b)=>a+b,0)/notas.length) : null;
+  const promedioTxt = promedio == null ? "Pendiente" : `${promedio.toFixed(2)} / 10`;
+  const mensaje = promedio == null ? "Aún no hay actividades completadas." : promedio >= 9 ? "Excelente desempeño." : promedio >= 7 ? "Buen avance." : "Requiere refuerzo.";
+  const card = (titulo, r) => `<div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 space-y-2"><h3 class="heading-font text-lg font-bold text-moodle-text-blue">${titulo}</h3><p><strong>Nota:</strong> ${r?.notaFinal ?? "Pendiente"}</p><p><strong>Porcentaje:</strong> ${r?.porcentajeFinal ?? "Pendiente"}${r?.porcentajeFinal ? "%" : ""}</p><p><strong>Nivel:</strong> ${r?.nivel ?? "Pendiente"}</p><p><strong>Estado:</strong> ${r?.estado ?? "Pendiente"}</p><p><strong>Observación:</strong> ${r?.observacion ?? "Sin registro"}</p><p><strong>Fecha:</strong> ${r?.fecha ? new Date(r.fecha).toLocaleString() : "Pendiente"}</p></div>`;
+  renderView(layout("Resultados · Introducción a las Derivadas", `<section class="app-card p-6 sm:p-8 space-y-6"><div class="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-bold">📊 Unidad 2</div><h2 class="heading-font text-2xl font-bold text-moodle-text-blue">Introducción a las Derivadas</h2><div class="rounded-2xl border border-neutral-200 p-4 bg-white"><div class="flex justify-between text-sm font-semibold"><span>Progreso de la unidad</span><span>${progress}%</span></div><div class="w-full bg-neutral-200 h-3 rounded-full mt-2"><div class="bg-moodle-orange h-full rounded-full" style="width:${progress}%"></div></div><p class="text-xs text-moodle-text-gray mt-2">Presentación: ${data.presentationViewed ? "Vista" : "Pendiente"}</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${card("Gamificación", data.gamificacion)}${card("Trabajo para la Casa", data.deber)}</div><div class="rounded-2xl border border-neutral-200 bg-blue-50 p-5"><p class="text-xs font-bold text-moodle-text-gray uppercase">Promedio general (actividades evaluadas)</p><p class="heading-font text-3xl text-moodle-text-blue font-bold mt-1">${promedioTxt}</p><p class="mt-2 text-moodle-text-gray">${mensaje}</p></div></section>`));
   bindClick("#btn-back-dashboard", () => goToDashboard());
 }
 
