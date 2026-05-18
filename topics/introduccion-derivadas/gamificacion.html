@@ -1683,6 +1683,21 @@
 
       submitByHiddenForm(payload);
 
+      const unit2GameSummary = {
+        tipoActividad: "Gamificación",
+        tema: "Introducción a las Derivadas",
+        notaFinal: Number(summary.notaFinal.toFixed(2)),
+        porcentajeFinal: summary.porcentajeFinal,
+        nivel: summary.nivel,
+        estado: "Completado",
+        numeroEjercicios: summary.ejerciciosResueltos,
+        intentos: summary.intentos,
+        erroresEjercicios: summary.erroresEjercicios,
+        observacion: summary.observacion,
+        fecha: new Date().toISOString()
+      };
+      localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify(unit2GameSummary));
+
       setTimeout(() => {
         if (statusEl) {
           statusEl.textContent = "Resultado enviado a Google Sheets en la hoja Unidad 2.";
