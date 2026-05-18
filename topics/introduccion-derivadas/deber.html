@@ -144,6 +144,7 @@
 
   <script>
     const SHEET_NAME = "Deb_Uni_2";
+    const HOMEWORK_VERSION = "derivadas_unidad2_v3_mathjax_clean";
     const STORAGE_KEY_SENT = "deber_derivadas_unidad2_enviado_v1";
     const STORAGE_KEY_PROGRESS = "deber_derivadas_unidad2_progreso_v1";
     const FECHA_LIMITE = "Sin definir";
@@ -289,9 +290,9 @@
  state.sent=true; localStorage.setItem(STORAGE_KEY_SENT,'true'); localStorage.removeItem(STORAGE_KEY_PROGRESS); showSend('Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.','ok'); blockAll();}
     function showSend(msg,type){const n=$('sendNotice');n.textContent=msg;n.className=`notice show ${type}`;}
     function blockAll(){document.querySelectorAll('input,button,select').forEach(el=>el.disabled=true);}
-    function saveProgress(){try{localStorage.setItem(STORAGE_KEY_PROGRESS,JSON.stringify({currentId,state,studentName:$('studentName')?.value||'',studentCourse:$('studentCourse')?.value||'',studentParallel:$('studentParallel')?.value||'',savedAt:new Date().toISOString()}));}catch{}}
-    function loadProgress(){try{const raw=localStorage.getItem(STORAGE_KEY_PROGRESS); if(!raw)return false; const saved=JSON.parse(raw); if(!saved||!saved.state)return false; currentId=Number(saved.currentId||1); Object.assign(state,saved.state); if(saved.studentName)$('studentName').value=saved.studentName; if(saved.studentCourse)$('studentCourse').value=saved.studentCourse; if(saved.studentParallel)$('studentParallel').value=saved.studentParallel; return true;}catch{localStorage.removeItem(STORAGE_KEY_PROGRESS);return false;}}
-    function init(){ const appName=localStorage.getItem("ueeh_student_name"), appCourse=localStorage.getItem("ueeh_student_grade"), appParallel=localStorage.getItem("ueeh_student_parallel"); if(appName)$('studentName').value=appName; if(appCourse)$('studentCourse').value=appCourse; if(appParallel)$('studentParallel').value=appParallel; loadProgress(); exercises.forEach((e)=>{ const st=getState(e.id); if(e.mode==='mcq' && (!Array.isArray(st.mcqOptions) || st.mcqOptions.length!==e.options.length)){ st.mcqOptions=buildMcqOptions(e); } }); renderExerciseGrid(); renderStats(); renderExercise(); updateSummary(); if(localStorage.getItem(STORAGE_KEY_SENT)==='true'){state.sent=true; showSend('Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.','ok'); blockAll();} setTimeout(typeset,700);}
+    function saveProgress(){try{localStorage.setItem(STORAGE_KEY_PROGRESS,JSON.stringify({version:HOMEWORK_VERSION,currentId,state,studentName:$('studentName')?.value||'',studentCourse:$('studentCourse')?.value||'',studentParallel:$('studentParallel')?.value||'',savedAt:new Date().toISOString()}));}catch{}}
+    function loadProgress(){try{const raw=localStorage.getItem(STORAGE_KEY_PROGRESS); if(!raw)return false; const saved=JSON.parse(raw); if(!saved||!saved.state)return false; if(saved.version!==HOMEWORK_VERSION){ localStorage.removeItem(STORAGE_KEY_PROGRESS); return false; } currentId=Number(saved.currentId||1); Object.assign(state,saved.state); if(saved.studentName)$('studentName').value=saved.studentName; if(saved.studentCourse)$('studentCourse').value=saved.studentCourse; if(saved.studentParallel)$('studentParallel').value=saved.studentParallel; return true;}catch{localStorage.removeItem(STORAGE_KEY_PROGRESS);return false;}}
+    function init(){ const appName=localStorage.getItem("ueeh_student_name"), appCourse=localStorage.getItem("ueeh_student_grade"), appParallel=localStorage.getItem("ueeh_student_parallel"); if(appName)$('studentName').value=appName; if(appCourse)$('studentCourse').value=appCourse; if(appParallel)$('studentParallel').value=appParallel; loadProgress(); exercises.forEach((e)=>{ const st=getState(e.id); if(e.mode==="mcq"){ st.mcqOptions=buildMcqOptions(e); } }); renderExerciseGrid(); renderStats(); renderExercise(); updateSummary(); if(localStorage.getItem(STORAGE_KEY_SENT)==='true'){state.sent=true; showSend('Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.','ok'); blockAll();} setTimeout(typeset,700);}
     document.addEventListener('DOMContentLoaded',init);
   </script>
 </body>
