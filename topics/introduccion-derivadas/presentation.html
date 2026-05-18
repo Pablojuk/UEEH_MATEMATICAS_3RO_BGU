@@ -15,6 +15,7 @@ window.MathJax = {
 };
 </script>
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>localStorage.setItem("ueeh_unidad2_presentation_viewed", "true");</script>
 
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -172,6 +173,15 @@ body {
 .btn-reveal:hover { background: var(--or); color: white; }
 .btn-reveal.done { background: var(--rel); border-color: var(--reb); color: var(--re); cursor: default; }
 .btn-reveal.done:hover { background: var(--rel); color: var(--re); }
+
+@media (max-width: 640px) {
+  html, body, .slide-card, .slide-body, .main { max-width: 100%; }
+  .slide-body, .s-concept, .s-graph, .s-title, .graph-body, .graph-right, .graph-left { overflow-x: hidden; }
+  .slide-body * { max-width: 100%; overflow-wrap: break-word; word-break: break-word; }
+  .formula-box, .formula-dark, .math-block { overflow-x: auto; }
+  h1 { font-size: 34px; }
+  h2 { font-size: 21px; }
+}
 
 /* ═══════════════════════════════════════
    SLIDE TYPES
