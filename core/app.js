@@ -1,5 +1,6 @@
 import { renderView, bindClick } from "./navigation.js";
 import { createSlideViewer } from "../components/slide-viewer.js";
+import { crearHtmlLessonViewer } from "../components/html-lesson-viewer.js";
 import { slidesPlantillaTema } from "../topics/plantilla-tema/content.js";
 import { obtenerDatosEstudiante, guardarDatosEstudiante } from "./storage.js";
 import { crearGameShell, activarGameShell } from "../components/game-shell.js";
@@ -10,6 +11,8 @@ const LOGO_URL = "./assets/img/logo-ueeh.png";
 const HERO_IMAGE_URL = "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80";
 
 let currentActivity = "";
+let currentGamificationUnit = 1;
+let currentHomeworkUnit = 1;
 
 function getStoredStudent() {
   const appStudent = obtenerDatosEstudiante();
@@ -614,16 +617,25 @@ function startActivity() {
 
   closeModal("student-data-modal");
   closeModal("unit-1");
+  closeModal("unit-2");
 
   showToast(`Datos asegurados. Iniciando ${currentActivity}...`);
 
   if (currentActivity === "Gamificación") {
-    goToGame();
+    if (currentGamificationUnit === 2) {
+      goToDerivadasGame();
+    } else {
+      goToGame();
+    }
     return;
   }
 
   if (currentActivity === "Trabajo para la Casa") {
-    goToHomework();
+    if (currentHomeworkUnit === 2) {
+      goToDerivadasHomework();
+    } else {
+      goToHomework();
+    }
   }
 }
 
@@ -651,8 +663,24 @@ function bindDashboardEvents() {
   bindClick("#btn-close-unit-2-top", () => closeModal("unit-2"));
   bindClick("#btn-close-unit-2-bottom", () => closeModal("unit-2"));
 
-  ["#btn-unit-2-slides", "#btn-unit-2-game", "#btn-unit-2-homework", "#btn-unit-2-results"].forEach((selector) => {
-    bindClick(selector, () => showToast("Este contenido se construirá en la siguiente fase."));
+  bindClick("#btn-unit-2-slides", () => {
+    closeModal("unit-2");
+    showToast("Abriendo presentación de Derivadas...");
+    goToDerivadasSlides();
+  });
+
+  bindClick("#btn-unit-2-game", () => {
+    currentGamificationUnit = 2;
+    openDataModal("Gamificación");
+  });
+
+  bindClick("#btn-unit-2-homework", () => {
+    currentHomeworkUnit = 2;
+    openDataModal("Trabajo para la Casa");
+  });
+
+  bindClick("#btn-unit-2-results", () => {
+    showToast("Este contenido se construirá en la siguiente fase.");
   });
 
   bindClick("#btn-modal-slides", () => {
@@ -662,10 +690,12 @@ function bindDashboardEvents() {
   });
 
   bindClick("#btn-modal-game-data", () => {
+    currentGamificationUnit = 1;
     openDataModal("Gamificación");
   });
 
   bindClick("#btn-modal-homework-data", () => {
+    currentHomeworkUnit = 1;
     openDataModal("Trabajo para la Casa");
   });
 
@@ -734,6 +764,48 @@ function goToSlides() {
   });
 
   viewer.repaint();
+}
+
+function goToDerivadasSlides() {
+  renderView(
+    layout(
+      "Introducción a las Derivadas",
+      crearHtmlLessonViewer({
+        src: "./topics/introduccion-derivadas/presentation.html",
+        title: "Introducción a las Derivadas - Presentación de la Clase"
+      })
+    )
+  );
+
+  bindClick("#btn-back-dashboard", () => goToDashboard());
+}
+
+function goToDerivadasGame() {
+  renderView(
+    layout(
+      "Gamificación · Introducción a las Derivadas",
+      crearHtmlLessonViewer({
+        src: "./topics/introduccion-derivadas/gamificacion.html",
+        title: "Escape Room: Protocolo Derivadas · Unidad 2"
+      })
+    )
+  );
+
+  bindClick("#btn-back-dashboard", () => goToDashboard());
+}
+
+function goToDerivadasHomework() {
+  renderView(
+    layout(
+      "Trabajo para la Casa · Introducción a las Derivadas",
+      crearHtmlLessonViewer({
+        src: "./topics/introduccion-derivadas/deber.html",
+        title: "Deber interactivo | Derivadas Unidad 2"
+      })
+    )
+  );
+
+  bindClick("#btn-back-dashboard", () => goToDashboard());
 }
 
 function goToGame() {

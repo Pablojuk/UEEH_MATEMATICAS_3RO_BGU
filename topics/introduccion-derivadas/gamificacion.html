@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Escape Room: Protocolo Derivadas · Unidad 2</title>
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']]
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    :root {
+      --bg: #020617;
+      --bg2: #07111f;
+      --panel: rgba(15, 23, 42, 0.82);
+      --panel2: rgba(2, 6, 23, 0.74);
+      --line: rgba(148, 163, 184, 0.22);
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --cyan: #22d3ee;
+      --cyan-soft: rgba(34, 211, 238, 0.16);
+      --green: #39ff14;
+      --green-soft: rgba(57, 255, 20, 0.15);
+      --red: #ef4444;
+      --red-soft: rgba(239, 68, 68, 0.14);
+      --amber: #fbbf24;
+      --amber-soft: rgba(251, 191, 36, 0.15);
+      --violet: #8b5cf6;
+      --violet-soft: rgba(139, 92, 246, 0.16);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      overflow-x: hidden;
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(34, 211, 238, 0.19), transparent 28rem),
+        radial-gradient(circle at 82% 18%, rgba(139, 92, 246, 0.16), transparent 30rem),
+        radial-gradient(circle at 52% 88%, rgba(57, 255, 20, 0.08), transparent 32rem),
+        linear-gradient(180deg, #020617 0%, #07111f 46%, #020617 100%);
+    }
+
+    button,
+    input { font-family: inherit; }
+
+    button { cursor: pointer; }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(34, 211, 238, 0.35);
+      outline-offset: 3px;
+    }
+
+    .screen {
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .crt-layer,
+    .noise-layer,
+    .math-layer,
+    .lights-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .noise-layer {
+      z-index: 0;
+      opacity: 0.18;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(255,255,255,.85) 0 1px, transparent 1px),
+        radial-gradient(circle at 80% 28%, rgba(255,255,255,.45) 0 1px, transparent 1px),
+        radial-gradient(circle at 30% 74%, rgba(255,255,255,.35) 0 1px, transparent 1px),
+        radial-gradient(circle at 66% 86%, rgba(255,255,255,.5) 0 1px, transparent 1px);
+      background-size: 180px 180px, 260px 260px, 220px 220px, 300px 300px;
+      animation: starDrift 38s linear infinite;
+    }
+
+    @keyframes starDrift {
+      from { transform: translate3d(0,0,0); }
+      to { transform: translate3d(-90px,100px,0); }
+    }
+
+    .crt-layer {
+      z-index: 3;
+      opacity: 0.08;
+      background:
+        repeating-linear-gradient(180deg, transparent 0 7px, rgba(255,255,255,.45) 8px),
+        linear-gradient(90deg, rgba(255,0,0,.06), rgba(0,255,0,.04), rgba(0,0,255,.06));
+      mix-blend-mode: overlay;
+    }
+
+    .lights-layer {
+      z-index: 1;
+      background:
+        radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(34, 211, 238, 0.14), transparent 18rem),
+        radial-gradient(circle at 50% 50%, transparent 20%, rgba(0,0,0,.42) 88%);
+      transition: background .15s ease-out;
+    }
+
+    .math-layer {
+      z-index: 2;
+      overflow: hidden;
+    }
+
+    .math-symbol {
+      position: absolute;
+      font-family: var(--font-mono);
+      font-size: clamp(2rem, 7vw, 6rem);
+      font-weight: 900;
+      color: rgba(226, 232, 240, 0.08);
+      text-shadow: 0 0 28px rgba(34, 211, 238, 0.34);
+      animation: floatMath var(--duration) ease-in-out infinite;
+      animation-delay: var(--delay);
+      transform: rotate(var(--rot));
+      user-select: none;
+    }
+
+    @keyframes floatMath {
+      0%, 100% {
+        transform: translate3d(0,0,0) rotate(var(--rot));
+        opacity: .08;
+      }
+      50% {
+        transform: translate3d(var(--x), var(--y), 0) rotate(calc(var(--rot) + 18deg));
+        opacity: .18;
+      }
+    }
+
+    .app {
+      position: relative;
+      z-index: 5;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem clamp(1rem, 3vw, 2.25rem);
+      background: rgba(2, 6, 23, 0.72);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.25);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      min-width: 0;
+    }
+
+    .brand-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 17px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.9), transparent 17%),
+        linear-gradient(135deg, var(--green), var(--cyan), var(--violet));
+      color: #020617;
+      font-size: 1.45rem;
+      box-shadow: 0 0 32px rgba(34,211,238,.24);
+      flex-shrink: 0;
+    }
+
+    .brand small {
+      display: block;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      font-size: .64rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: .25rem;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: white;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .hud-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: .55rem .82rem;
+      background: rgba(15,23,42,.65);
+      color: var(--text);
+      font-weight: 900;
+      font-size: .82rem;
+      white-space: nowrap;
+    }
+
+    .hud-pill.danger {
+      color: #fecaca;
+      background: rgba(127, 29, 29, .38);
+      border-color: rgba(248, 113, 113, .28);
+      text-shadow: 0 0 18px rgba(239, 68, 68, .28);
+    }
+
+    .hud-pill.ok {
+      color: #bbf7d0;
+      background: rgba(20, 83, 45, .35);
+      border-color: rgba(74, 222, 128, .25);
+    }
+
+    .hud-pill.score {
+      color: #cffafe;
+      background: rgba(8, 47, 73, .38);
+      border-color: rgba(34, 211, 238, .28);
+    }
+
+    .sound-toggle {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      color: white;
+      height: 42px;
+      padding: 0 .95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      font-size: .82rem;
+      font-weight: 900;
+    }
+
+    .sound-toggle:hover { background: rgba(255,255,255,.1); }
+
+    .stage {
+      width: min(1180px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: clamp(1rem, 3vw, 2.4rem) 0 2rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 1.1rem;
+      align-items: stretch;
+    }
+
+    .main-panel,
+    .side-panel {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 75% 15%, rgba(34,211,238,.12), transparent 18rem),
+        linear-gradient(180deg, rgba(15,23,42,.86), rgba(2,6,23,.82));
+      box-shadow: 0 28px 90px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.06);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .main-panel {
+      min-height: calc(100vh - 128px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .panel-header {
+      padding: clamp(1rem, 3vw, 1.6rem);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      background: rgba(2,6,23,.38);
+    }
+
+    .mission-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .42rem .75rem;
+      border-radius: 999px;
+      background: var(--green-soft);
+      border: 1px solid rgba(57,255,20,.24);
+      color: #b7ffac;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      font-weight: 900;
+      margin-bottom: .75rem;
+    }
+
+    .mission-title {
+      margin: 0;
+      color: white;
+      font-size: clamp(1.65rem, 4vw, 3.2rem);
+      line-height: .98;
+      letter-spacing: -0.05em;
+      font-weight: 1000;
+    }
+
+    .mission-subtitle {
+      max-width: 680px;
+      margin: .75rem 0 0;
+      color: #cbd5e1;
+      line-height: 1.6;
+      font-size: clamp(.94rem, 1.6vw, 1.05rem);
+    }
+
+    .door-gauge {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      position: relative;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--green) calc(var(--progress) * 1%), rgba(148,163,184,.18) 0);
+      box-shadow: 0 0 45px rgba(57,255,20,.12);
+      flex-shrink: 0;
+    }
+
+    .door-gauge::before {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: inherit;
+      background: rgba(2,6,23,.94);
+      border: 1px solid rgba(148,163,184,.2);
+    }
+
+    .door-gauge span {
+      position: relative;
+      z-index: 1;
+      color: white;
+      font-weight: 1000;
+      font-size: 1.3rem;
+    }
+
+    .scene {
+      position: relative;
+      padding: clamp(1rem, 3vw, 1.6rem);
+      display: grid;
+      gap: 1rem;
+    }
+
+    .scene-visual {
+      position: relative;
+      min-height: 210px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(2,6,23,.2), rgba(2,6,23,.82)),
+        radial-gradient(circle at 50% 18%, rgba(57,255,20,.16), transparent 15rem),
+        linear-gradient(135deg, #0f172a, #111827);
+      box-shadow: inset 0 0 65px rgba(0,0,0,.35);
+    }
+
+    .scene-visual::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(57,255,20,.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(57,255,20,.12) 1px, transparent 1px);
+      background-size: 32px 32px;
+      transform: perspective(500px) rotateX(55deg) translateY(30px) scale(1.25);
+      transform-origin: bottom;
+      opacity: .25;
+    }
+
+    .bunker-door {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: min(340px, 70%);
+      height: 180px;
+      transform: translateX(-50%);
+      border-radius: 120px 120px 0 0;
+      background:
+        radial-gradient(circle at 50% 38%, rgba(255,255,255,.12), transparent 18%),
+        linear-gradient(90deg, #111827, #293548 45%, #111827);
+      border: 5px solid rgba(148,163,184,.26);
+      box-shadow: 0 0 60px rgba(0,0,0,.4), inset 0 0 35px rgba(0,0,0,.6);
+    }
+
+    .bunker-door::before {
+      content: "";
+      position: absolute;
+      inset: 18px 36px 0;
+      border-radius: 90px 90px 0 0;
+      border: 2px dashed rgba(34,211,238,.25);
+    }
+
+    .door-lock {
+      position: absolute;
+      left: 50%;
+      top: 64px;
+      width: 78px;
+      height: 78px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(57,255,20,.24), transparent 38%),
+        #020617;
+      border: 2px solid rgba(57,255,20,.46);
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      box-shadow: 0 0 35px rgba(57,255,20,.2);
+    }
+
+    .zombie-shadow {
+      position: absolute;
+      width: 86px;
+      height: 140px;
+      border-radius: 45% 45% 22% 22%;
+      background: linear-gradient(180deg, rgba(0,0,0,.8), rgba(0,0,0,.15));
+      filter: blur(2px);
+      bottom: 0;
+      opacity: .46;
+      animation: zombieMove 5s ease-in-out infinite;
+    }
+
+    .zombie-shadow.one { left: 8%; animation-delay: -1s; }
+    .zombie-shadow.two { right: 10%; height: 125px; animation-delay: -2.5s; }
+    .zombie-shadow.three { left: 23%; height: 105px; opacity: .28; animation-delay: -3.5s; }
+
+    @keyframes zombieMove {
+      0%,100% { transform: translateY(8px) translateX(0) scaleX(1); }
+      50% { transform: translateY(-4px) translateX(12px) scaleX(1.06); }
+    }
+
+    .mission-card {
+      display: none;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(15, 23, 42, 0.68);
+      overflow: hidden;
+      animation: cardIn .42s cubic-bezier(.16,1,.3,1);
+    }
+
+    .mission-card.active { display: block; }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(18px) scale(.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .mission-body { padding: clamp(1rem, 3vw, 1.4rem); }
+
+    .mission-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: clamp(1rem, 3vw, 1.4rem);
+      border-bottom: 1px solid var(--line);
+      background: rgba(2,6,23,.36);
+    }
+
+    .lock-title {
+      margin: 0;
+      font-size: clamp(1.25rem, 3vw, 1.9rem);
+      line-height: 1.1;
+      color: white;
+      letter-spacing: -0.03em;
+    }
+
+    .lock-desc {
+      margin: .55rem 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: .95rem;
+    }
+
+    .lock-badge {
+      min-width: 58px;
+      height: 58px;
+      border-radius: 19px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--green-soft), var(--cyan-soft));
+      border: 1px solid rgba(57,255,20,.28);
+      color: #bbf7d0;
+      font-weight: 1000;
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      box-shadow: 0 0 30px rgba(57,255,20,.13);
+      flex-shrink: 0;
+    }
+
+    .terminal-line {
+      border: 1px solid rgba(34,211,238,.18);
+      background: rgba(2,6,23,.62);
+      border-radius: 18px;
+      padding: .85rem 1rem;
+      margin-bottom: 1rem;
+      color: #a5f3fc;
+      font-family: var(--font-mono);
+      font-size: .86rem;
+      line-height: 1.55;
+    }
+
+    .math-expr {
+      margin: 1rem 0;
+      padding: 1rem;
+      border-radius: 20px;
+      border: 1px solid rgba(34,211,238,.22);
+      border-left: 5px solid var(--cyan);
+      background:
+        radial-gradient(circle at 90% 15%, rgba(34,211,238,.15), transparent 10rem),
+        rgba(2,6,23,.74);
+      color: white;
+      text-align: center;
+      font-size: clamp(1rem, 2vw, 1.28rem);
+      overflow-x: auto;
+      box-shadow: inset 0 0 28px rgba(0,0,0,.25);
+    }
+
+    .math-expr small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: .6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: .68rem;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .85rem;
+      margin-top: 1rem;
+    }
+
+    .option-btn {
+      min-height: 72px;
+      border: 1px solid rgba(148,163,184,.22);
+      border-radius: 18px;
+      padding: .95rem;
+      background:
+        radial-gradient(circle at 80% 20%, rgba(34,211,238,.08), transparent 5rem),
+        rgba(15,23,42,.86);
+      color: white;
+      font-size: 1.15rem;
+      font-weight: 1000;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      transform: translateY(-4px);
+      border-color: rgba(34,211,238,.55);
+      box-shadow: 0 18px 45px rgba(0,0,0,.25), 0 0 28px rgba(34,211,238,.12);
+      background: rgba(34,211,238,.10);
+    }
+
+    .option-btn:disabled {
+      opacity: .56;
+      cursor: not-allowed;
+    }
+
+    .option-btn.correct {
+      border-color: rgba(74,222,128,.65);
+      background: rgba(22,101,52,.36);
+      color: #bbf7d0;
+    }
+
+    .option-btn.wrong {
+      border-color: rgba(248,113,113,.65);
+      background: rgba(127,29,29,.38);
+      color: #fecaca;
+    }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1rem;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      border: 0;
+      border-radius: 999px;
+      min-height: 46px;
+      padding: 0 1.25rem;
+      font-weight: 1000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, var(--green), var(--cyan));
+      color: #020617;
+      box-shadow: 0 18px 42px rgba(34,211,238,.18);
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 24px 52px rgba(34,211,238,.25);
+    }
+
+    .secondary-btn {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+
+    .secondary-btn:hover {
+      background: rgba(255,255,255,.1);
+      transform: translateY(-2px);
+    }
+
+    .feedback {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 18px;
+      margin-top: 1rem;
+      padding: .9rem 1rem;
+      background: rgba(2,6,23,.45);
+      border: 1px solid rgba(148,163,184,.14);
+      color: var(--muted);
+      font-weight: 900;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .feedback.ok {
+      color: #bbf7d0;
+      background: rgba(22,101,52,.25);
+      border-color: rgba(74,222,128,.28);
+    }
+
+    .feedback.err {
+      color: #fecaca;
+      background: rgba(127,29,29,.28);
+      border-color: rgba(248,113,113,.28);
+    }
+
+    .feedback.warn {
+      color: #fde68a;
+      background: rgba(146,64,14,.26);
+      border-color: rgba(251,191,36,.28);
+    }
+
+    .feedback.info {
+      color: #cffafe;
+      background: rgba(8,47,73,.27);
+      border-color: rgba(34,211,238,.28);
+    }
+
+    .side-panel {
+      min-height: calc(100vh - 128px);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .9rem;
+    }
+
+    .side-card {
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: rgba(2,6,23,.46);
+      padding: 1rem;
+    }
+
+    .side-card h3 {
+      margin: 0 0 .8rem;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .mission-map {
+      display: grid;
+      gap: .55rem;
+    }
+
+    .map-item {
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      align-items: center;
+      gap: .65rem;
+      border-radius: 16px;
+      padding: .55rem;
+      border: 1px solid rgba(148,163,184,.14);
+      background: rgba(15,23,42,.62);
+    }
+
+    .map-lock {
+      width: 38px;
+      height: 38px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      font-weight: 1000;
+      font-size: .9rem;
+      font-family: var(--font-mono);
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+      border: 1px solid rgba(148,163,184,.15);
+    }
+
+    .map-item.active .map-lock {
+      background: var(--cyan-soft);
+      color: #a5f3fc;
+      border-color: rgba(34,211,238,.28);
+      box-shadow: 0 0 22px rgba(34,211,238,.11);
+    }
+
+    .map-item.done .map-lock {
+      background: var(--green-soft);
+      color: #bbf7d0;
+      border-color: rgba(57,255,20,.25);
+    }
+
+    .map-text strong {
+      display: block;
+      color: white;
+      font-size: .85rem;
+    }
+
+    .map-text small {
+      color: var(--muted);
+      font-size: .72rem;
+    }
+
+    .map-state {
+      font-size: 1.1rem;
+    }
+
+    .inventory {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .55rem;
+    }
+
+    .item-slot {
+      min-height: 58px;
+      border-radius: 16px;
+      border: 1px dashed rgba(148,163,184,.24);
+      display: grid;
+      place-items: center;
+      background: rgba(15,23,42,.55);
+      color: rgba(226,232,240,.28);
+      font-size: 1.25rem;
+    }
+
+    .item-slot.filled {
+      border-style: solid;
+      color: white;
+      background: rgba(34,211,238,.09);
+      border-color: rgba(34,211,238,.23);
+      box-shadow: inset 0 0 24px rgba(34,211,238,.07);
+    }
+
+    .stats-list {
+      display: grid;
+      gap: .55rem;
+      color: var(--muted);
+      font-size: .86rem;
+    }
+
+    .stat-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      border-bottom: 1px solid rgba(148,163,184,.11);
+      padding-bottom: .45rem;
+    }
+
+    .stat-line strong {
+      color: white;
+      font-family: var(--font-mono);
+    }
+
+    .intro-grid {
+      display: grid;
+      grid-template-columns: 1fr .82fr;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .intro-visual {
+      min-height: 290px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(57,255,20,.18), transparent 8rem),
+        linear-gradient(135deg, #030712, #172554);
+      display: grid;
+      place-items: center;
+    }
+
+    .core-orb {
+      position: relative;
+      width: 165px;
+      height: 165px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.9), transparent 11%),
+        radial-gradient(circle, rgba(57,255,20,.38), rgba(34,211,238,.16) 36%, rgba(2,6,23,.9) 68%);
+      border: 2px solid rgba(57,255,20,.35);
+      box-shadow: 0 0 55px rgba(57,255,20,.22), inset 0 0 34px rgba(0,0,0,.48);
+      animation: pulseCore 2.4s ease-in-out infinite;
+    }
+
+    .core-orb::before,
+    .core-orb::after {
+      content: "";
+      position: absolute;
+      inset: -26px;
+      border-radius: inherit;
+      border: 1px dashed rgba(34,211,238,.3);
+      animation: spin 12s linear infinite;
+    }
+
+    .core-orb::after {
+      inset: -48px;
+      border-color: rgba(139,92,246,.25);
+      animation-duration: 18s;
+      animation-direction: reverse;
+    }
+
+    @keyframes pulseCore {
+      0%,100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.04); filter: brightness(1.16); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .end-screen {
+      text-align: center;
+      padding: clamp(1rem, 3vw, 1.6rem);
+      min-height: 430px;
+      display: grid;
+      place-items: center;
+    }
+
+    .end-icon {
+      font-size: 5rem;
+      filter: drop-shadow(0 0 30px rgba(34,211,238,.26));
+      margin-bottom: .6rem;
+    }
+
+    .end-title {
+      margin: 0;
+      color: white;
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: .95;
+      font-weight: 1000;
+      letter-spacing: -0.05em;
+    }
+
+    .end-text {
+      max-width: 620px;
+      margin: 1rem auto;
+      color: #cbd5e1;
+      line-height: 1.65;
+    }
+
+    .score-card {
+      width: min(720px, 100%);
+      margin: 1rem auto 0;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: rgba(2,6,23,.48);
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: .7rem;
+    }
+
+    .score-cell {
+      border-radius: 18px;
+      background: rgba(255,255,255,.06);
+      padding: .9rem .5rem;
+    }
+
+    .score-cell small {
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: .64rem;
+      letter-spacing: .12em;
+      font-weight: 900;
+    }
+
+    .score-cell strong {
+      display: block;
+      color: white;
+      font-size: 1.45rem;
+      margin-top: .25rem;
+      font-family: var(--font-mono);
+    }
+
+    .submit-status {
+      margin-top: 1rem;
+      color: #cffafe;
+      font-weight: 800;
+      font-size: .92rem;
+    }
+
+    .shake { animation: shake .42s ease-in-out; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%,60% { transform: translateX(-14px); }
+      40%,80% { transform: translateX(14px); }
+    }
+
+    .alarm { animation: alarmFlash .6s ease-in-out 2; }
+
+    @keyframes alarmFlash {
+      0%,100% { box-shadow: 0 28px 90px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.06); }
+      50% { box-shadow: 0 0 0 3px rgba(239,68,68,.42), 0 30px 90px rgba(239,68,68,.18); }
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 980px) {
+      .stage { grid-template-columns: 1fr; }
+      .side-panel {
+        min-height: auto;
+        order: -1;
+      }
+      .main-panel { min-height: auto; }
+      .mission-map { grid-template-columns: repeat(2, 1fr); }
+      .intro-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        min-height: auto;
+      }
+      .status-row {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .stage { width: min(100% - 1rem, 1180px); }
+      .panel-header { flex-direction: column; }
+      .door-gauge {
+        width: 92px;
+        height: 92px;
+      }
+      .options-grid { grid-template-columns: 1fr; }
+      .mission-map { grid-template-columns: 1fr; }
+      .score-card { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="screen">
+    <div class="noise-layer"></div>
+    <div class="lights-layer" id="lights-layer"></div>
+    <div class="math-layer" aria-hidden="true">
+      <span class="math-symbol" style="left:7%;top:18%;--duration:9s;--delay:-2s;--x:28px;--y:-35px;--rot:12deg;">\(f'(x)\)</span>
+      <span class="math-symbol" style="left:78%;top:16%;--duration:11s;--delay:-3s;--x:-32px;--y:30px;--rot:-18deg;">\(\frac{dy}{dx}\)</span>
+      <span class="math-symbol" style="left:12%;top:72%;--duration:12s;--delay:-5s;--x:44px;--y:24px;--rot:22deg;">\(\Delta x\)</span>
+      <span class="math-symbol" style="left:64%;top:76%;--duration:10s;--delay:-4s;--x:24px;--y:-30px;--rot:-10deg;">\(\lim\)</span>
+      <span class="math-symbol" style="left:42%;top:38%;--duration:8s;--delay:-6s;--x:-18px;--y:28px;--rot:8deg;">\(mx+b\)</span>
+    </div>
+    <div class="crt-layer"></div>
+
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-badge">☣</div>
+          <div>
+            <small>Unidad Educativa Emiliano Hinostroza</small>
+            <strong>Escape Room · Protocolo Derivadas</strong>
+          </div>
+        </div>
+
+        <div class="status-row">
+          <div class="hud-pill score" id="score-display">⭐ Nota: --</div>
+          <div class="hud-pill ok" id="locks-display">🔐 0 / 6</div>
+          <div class="hud-pill" id="mode-display">⏳ Sin límite</div>
+          <button class="sound-toggle" id="sound-toggle" type="button">🔊 Sonido</button>
+        </div>
+      </header>
+
+      <main class="stage">
+        <section class="main-panel" id="game-container">
+          <div class="panel-header">
+            <div>
+              <div class="mission-kicker" id="mission-kicker">🧬 Sistema central en espera</div>
+              <h1 class="mission-title" id="main-title">Búnker 3-BGU: Alerta de Derivadas</h1>
+              <p class="mission-subtitle" id="main-subtitle">
+                Estás frente al panel de control de un búnker. No hay límite de tiempo: tu nota depende del número de intentos en cada cerradura.
+              </p>
+            </div>
+            <div class="door-gauge" id="door-gauge" style="--progress:0">
+              <span id="gauge-text">0%</span>
+            </div>
+          </div>
+
+          <div class="scene">
+            <div class="scene-visual" id="scene-visual" aria-hidden="true">
+              <div class="zombie-shadow one"></div>
+              <div class="zombie-shadow two"></div>
+              <div class="zombie-shadow three"></div>
+              <div class="bunker-door">
+                <div class="door-lock" id="door-lock">🔒</div>
+              </div>
+            </div>
+
+            <section id="intro" class="mission-card active">
+              <div class="mission-body">
+                <div class="intro-grid">
+                  <div>
+                    <div class="terminal-line">
+                      &gt; PROTOCOLO DE EVACUACIÓN ACTIVADO<br>
+                      &gt; Nivel de amenaza: CRÍTICO<br>
+                      &gt; Requisito: resolver 6 cerraduras matemáticas<br>
+                      &gt; Tiempo: SIN LÍMITE
+                    </div>
+                    <p class="lock-desc">
+                      La horda está golpeando la puerta blindada. El sistema central abrirá el túnel de evacuación cuando resuelvas los 6 retos de derivadas.
+                    </p>
+                    <p class="lock-desc">
+                      Condición de calificación por cerradura: primer intento = <strong>10</strong>, segundo intento = <strong>9</strong>, tercer intento = <strong>8</strong>, cuarto intento o más = <strong>7</strong>.
+                    </p>
+                    <p class="lock-desc">
+                      El avance se guarda automáticamente. Si sales por error, al volver continuarás desde la cerradura donde te quedaste.
+                    </p>
+                    <div class="action-row">
+                      <button class="primary-btn" type="button" onclick="startGame()">🚀 Iniciar protocolo</button>
+                      <button class="secondary-btn" type="button" onclick="showBriefing()">📡 Ver briefing</button>
+                    </div>
+                  </div>
+                  <div class="intro-visual">
+                    <div class="core-orb"></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div id="missions-container"></div>
+
+            <section id="victory" class="mission-card">
+              <div class="end-screen">
+                <div>
+                  <div class="end-icon">🚁</div>
+                  <h2 class="end-title">¡Escape exitoso!</h2>
+                  <p class="end-text">
+                    Has desbloqueado las 6 esclusas. El sistema registrará tu desempeño en la hoja <strong>Unidad 2</strong>.
+                  </p>
+                  <div class="score-card">
+                    <div class="score-cell"><small>Nota final</small><strong id="final-score">--</strong></div>
+                    <div class="score-cell"><small>Nivel</small><strong id="final-level">--</strong></div>
+                    <div class="score-cell"><small>Errores</small><strong id="final-errors">0</strong></div>
+                    <div class="score-cell"><small>Intentos</small><strong id="final-attempts">0</strong></div>
+                  </div>
+                  <p class="submit-status" id="submit-status">Preparando envío de resultados...</p>
+                  <div class="action-row" style="justify-content:center;margin-top:1.2rem">
+                    <button class="primary-btn" type="button" onclick="restartGame()">🔁 Jugar otra vez</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div class="feedback" id="feedback-text">
+              Esperando inicio del protocolo...
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-panel">
+          <div class="side-card">
+            <h3>🗺️ Mapa de esclusas</h3>
+            <div class="mission-map" id="mission-map"></div>
+          </div>
+
+          <div class="side-card">
+            <h3>🎒 Inventario desbloqueado</h3>
+            <div class="inventory" id="inventory"></div>
+          </div>
+
+          <div class="side-card">
+            <h3>📊 Estado de misión</h3>
+            <div class="stats-list">
+              <div class="stat-line"><span>Intentos totales</span><strong id="attempts-stat">0</strong></div>
+              <div class="stat-line"><span>Errores totales</span><strong id="errors-stat">0</strong></div>
+              <div class="stat-line"><span>Pistas usadas</span><strong id="hints-stat">0</strong></div>
+              <div class="stat-line"><span>Promedio actual</span><strong id="avg-stat">--</strong></div>
+              <div class="stat-line"><span>Modo</span><strong>Sin tiempo</strong></div>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_URL =
+      "https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec";
+
+    const SHEET_NAME = "Unidad 2";
+    const GAME_STATE_KEY = "ueeh_escape_derivadas_unidad2_estado_v1";
+    const TOTAL_MISSIONS = 6;
+
+    const missions = [
+      {
+        id: 1,
+        name: "Ventilación",
+        title: "Cerradura 1: Escotilla de Ventilación",
+        description: "El sistema revisa si reconoces la derivada de una función lineal simple.",
+        module: "MÓDULO VENTILACIÓN · Derivada de \\(mx+b\\)",
+        label: "Calcula el código de apertura",
+        equation: "Dada la función: \\[f(x)=8x-15\\] Halla el valor de \\(f'(3)\\).",
+        options: [
+          { value: "3", label: "\\(3\\)" },
+          { value: "8", label: "\\(8\\)" },
+          { value: "-15", label: "\\(-15\\)" },
+          { value: "0", label: "\\(0\\)" }
+        ],
+        correct: "8",
+        hint: "La derivada de \\(mx+b\\) es \\(m\\), la pendiente. No depende del punto donde se evalúa.",
+        reward: "🧪"
+      },
+      {
+        id: 2,
+        name: "Bomba de Agua",
+        title: "Cerradura 2: Bomba de Agua",
+        description: "La presión del agua decrece. Determina la rapidez de cambio.",
+        module: "SISTEMA HIDRÁULICO · Pendiente negativa detectada",
+        label: "Calcula el código de presión",
+        equation: "Dada la función: \\[f(x)=-4x+12\\] Halla el valor de \\(f'(5)\\).",
+        options: [
+          { value: "5", label: "\\(5\\)" },
+          { value: "12", label: "\\(12\\)" },
+          { value: "8", label: "\\(8\\)" },
+          { value: "-4", label: "\\(-4\\)" }
+        ],
+        correct: "-4",
+        hint: "Observa el coeficiente que acompaña a \\(x\\). Ese coeficiente es la derivada de la función lineal.",
+        reward: "💧"
+      },
+      {
+        id: 3,
+        name: "Generador",
+        title: "Cerradura 3: Generador Principal",
+        description: "Dos circuitos interactúan. Usa regla del producto o multiplica primero.",
+        module: "GENERADOR · Producto de funciones lineales",
+        label: "Calcula el voltaje diferencial",
+        equation: "Dada la función: \\[f(x)=(3x+2)(2x-1)\\] Halla el valor de \\(f'(1)\\).",
+        options: [
+          { value: "12", label: "\\(12\\)" },
+          { value: "13", label: "\\(13\\)" },
+          { value: "5", label: "\\(5\\)" },
+          { value: "10", label: "\\(10\\)" }
+        ],
+        correct: "13",
+        hint: "Puedes multiplicar primero: \\((3x+2)(2x-1)=6x^2+x-2\\). Luego deriva y evalúa en \\(x=1\\).",
+        reward: "⚡"
+      },
+      {
+        id: 4,
+        name: "Filtro",
+        title: "Cerradura 4: Filtro de Toxinas",
+        description: "Los fluidos se dividen en tuberías. Aplica la regla del cociente.",
+        module: "FILTRO · Cociente de funciones",
+        label: "Calcula la lectura del filtro",
+        equation: "Dada la función: \\[f(x)=\\frac{6x}{x+2}\\] Halla el valor de \\(f'(1)\\).",
+        options: [
+          { value: "4/3", label: "\\(\\frac{4}{3}\\)" },
+          { value: "2", label: "\\(2\\)" },
+          { value: "3/4", label: "\\(\\frac{3}{4}\\)" },
+          { value: "6", label: "\\(6\\)" }
+        ],
+        correct: "4/3",
+        hint: "Regla del cociente: \\(\\frac{u}{v}\\Rightarrow\\frac{u'v-uv'}{v^2}\\). Luego sustituye \\(x=1\\).",
+        reward: "🧬"
+      },
+      {
+        id: 5,
+        name: "Arsenal",
+        title: "Cerradura 5: Puerta del Arsenal",
+        description: "Una constante multiplica a un binomio lineal. Desbloquea la reserva.",
+        module: "ARSENAL · Constante por función lineal",
+        label: "Calcula el código del arsenal",
+        equation: "Dada la función: \\[f(x)=5(4x-3)\\] Halla el valor de \\(f'(2)\\).",
+        options: [
+          { value: "5", label: "\\(5\\)" },
+          { value: "20", label: "\\(20\\)" },
+          { value: "2", label: "\\(2\\)" },
+          { value: "15", label: "\\(15\\)" }
+        ],
+        correct: "20",
+        hint: "Distribuye primero: \\(5(4x-3)=20x-15\\). La derivada de \\(20x-15\\) es \\(20\\).",
+        reward: "🛡️"
+      },
+      {
+        id: 6,
+        name: "Helipuerto",
+        title: "Cerradura 6: Acceso al Helipuerto",
+        description: "La puerta final requiere una última división de funciones lineales.",
+        module: "HELIPUERTO · Última verificación diferencial",
+        label: "Calcula el código de evacuación",
+        equation: "Dada la función: \\[f(x)=\\frac{2x-1}{x+1}\\] Halla el valor de \\(f'(0)\\).",
+        options: [
+          { value: "1", label: "\\(1\\)" },
+          { value: "-1", label: "\\(-1\\)" },
+          { value: "3", label: "\\(3\\)" },
+          { value: "0", label: "\\(0\\)" }
+        ],
+        correct: "3",
+        hint: "Usa \\(u=2x-1\\) y \\(v=x+1\\). Entonces \\(u'=2\\), \\(v'=1\\). Evalúa en \\(x=0\\).",
+        reward: "🚁"
+      }
+    ];
+
+    let audioCtx = null;
+    let currentMission = 0;
+    let unlockedLocks = 0;
+    let totalAttempts = 0;
+    let errors = 0;
+    let hints = 0;
+    let soundEnabled = true;
+    let gameStarted = false;
+    let resultSubmitted = false;
+
+    let attemptsByMission = {};
+    let scoresByMission = {};
+    let solvedMissions = {};
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    document.addEventListener("mousemove", (event) => {
+      const x = `${(event.clientX / window.innerWidth) * 100}%`;
+      const y = `${(event.clientY / window.innerHeight) * 100}%`;
+      document.documentElement.style.setProperty("--mx", x);
+      document.documentElement.style.setProperty("--my", y);
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderMissionCards();
+      renderMissionMap();
+      renderInventory();
+
+      const restored = loadGameState();
+
+      if (restored) {
+        restoreVisualState();
+        setFeedback("🔁 Avance recuperado. Continúa desde donde te quedaste.", "info");
+      }
+
+      updateHud();
+      renderMath();
+      $("#sound-toggle").addEventListener("click", toggleSound);
+    });
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, duration = 0.18, type = "sine", volume = 0.08, delay = 0) {
+      if (!soundEnabled) return;
+      initAudio();
+
+      const start = audioCtx.currentTime + delay;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(volume, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + duration);
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+
+      if (type === "click") playTone(520, 0.08, "square", 0.04);
+
+      if (type === "correct") {
+        playTone(660, 0.13, "sine", 0.08);
+        playTone(880, 0.16, "sine", 0.07, 0.11);
+        playTone(1175, 0.18, "sine", 0.06, 0.23);
+      }
+
+      if (type === "wrong") {
+        playTone(180, 0.18, "sawtooth", 0.11);
+        playTone(90, 0.28, "sawtooth", 0.09, 0.18);
+      }
+
+      if (type === "hint") {
+        playTone(420, 0.08, "triangle", 0.05);
+        playTone(520, 0.08, "triangle", 0.045, 0.12);
+      }
+
+      if (type === "win") {
+        [523.25, 659.25, 783.99, 1046.5].forEach((note, index) => {
+          playTone(note, 0.38, "sine", 0.09, index * 0.13);
+        });
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      $("#sound-toggle").textContent = soundEnabled ? "🔊 Sonido" : "🔇 Silencio";
+
+      if (soundEnabled) {
+        initAudio();
+        playSound("click");
+      }
+
+      saveGameState();
+    }
+
+    function renderMissionCards() {
+      const container = $("#missions-container");
+
+      container.innerHTML = missions.map((mission) => `
+        <section id="m${mission.id}" class="mission-card">
+          <div class="mission-head">
+            <div>
+              <h2 class="lock-title">${mission.title}</h2>
+              <p class="lock-desc">${mission.description}</p>
+            </div>
+            <div class="lock-badge">${String(mission.id).padStart(2, "0")}</div>
+          </div>
+
+          <div class="mission-body">
+            <div class="terminal-line">&gt; ${mission.module}</div>
+
+            <div class="math-expr">
+              <small>${mission.label}</small>
+              ${mission.equation}
+            </div>
+
+            <div class="terminal-line">
+              Intentos en esta cerradura: <strong id="mission-attempts-${mission.id}">0</strong> ·
+              Puntaje si respondes ahora: <strong id="mission-current-score-${mission.id}">10</strong>
+            </div>
+
+            <div class="options-grid">
+              ${mission.options.map((option) => `
+                <button
+                  class="option-btn"
+                  type="button"
+                  data-mission="${mission.id}"
+                  data-value="${option.value}"
+                  onclick="checkAnswer(${mission.id}, '${option.value}', this)"
+                >
+                  ${option.label}
+                </button>
+              `).join("")}
+            </div>
+
+            <div class="action-row">
+              <button class="secondary-btn" type="button" onclick="showHint(${mission.id})">
+                💡 Solicitar pista
+              </button>
+            </div>
+          </div>
+        </section>
+      `).join("");
+    }
+
+    function startGame() {
+      initAudio();
+      playSound("click");
+
+      if (!gameStarted && currentMission === 0 && unlockedLocks === 0) {
+        currentMission = 1;
+      }
+
+      gameStarted = true;
+      showScreen(`m${currentMission || 1}`);
+      setHeaderForMission(currentMission || 1);
+      setFeedback("🔓 Cerradura activada. Selecciona el código correcto.", "warn");
+      updateHud();
+      renderMissionMap();
+      saveGameState();
+    }
+
+    function showBriefing() {
+      playSound("hint");
+      setFeedback("📡 Briefing: primer intento = 10, segundo = 9, tercero = 8, cuarto o más = 7. No hay límite de tiempo.", "warn");
+    }
+
+    function restoreVisualState() {
+      if (unlockedLocks >= TOTAL_MISSIONS) {
+        showScreen("victory");
+        return;
+      }
+
+      if (gameStarted && currentMission > 0) {
+        showScreen(`m${currentMission}`);
+        setHeaderForMission(currentMission);
+      } else {
+        showScreen("intro");
+      }
+
+      Object.keys(solvedMissions).forEach((missionId) => {
+        if (solvedMissions[missionId]) {
+          markMissionButtonsSolved(Number(missionId));
+        }
+      });
+
+      updateMissionAttemptLabels();
+      renderMissionMap();
+      renderInventory();
+    }
+
+    function setHeaderForMission(number) {
+      const mission = missions.find((item) => item.id === number);
+      if (!mission) return;
+
+      $("#mission-kicker").textContent = `🔐 Cerradura ${number} de ${TOTAL_MISSIONS}`;
+      $("#main-title").textContent = mission.name;
+      $("#main-subtitle").textContent = "Resuelve el desafío matemático. Puedes intentar las veces necesarias, pero la nota baja según el número de intentos.";
+      $("#door-lock").textContent = solvedMissions[number] ? "🔓" : "🔒";
+    }
+
+    function checkAnswer(missionId, selectedVal, button) {
+      if (!gameStarted) return;
+      if (solvedMissions[missionId]) return;
+
+      const mission = missions.find((item) => item.id === missionId);
+      if (!mission) return;
+
+      playSound("click");
+
+      attemptsByMission[missionId] = (attemptsByMission[missionId] || 0) + 1;
+      totalAttempts += 1;
+
+      const currentAttempt = attemptsByMission[missionId];
+      const currentScore = scoreForAttempt(currentAttempt);
+
+      updateMissionAttemptLabels();
+
+      const isCorrect = normalize(selectedVal) === normalize(mission.correct);
+
+      if (isCorrect) {
+        button.classList.add("correct");
+        playSound("correct");
+
+        solvedMissions[missionId] = true;
+        scoresByMission[missionId] = currentScore;
+        unlockedLocks = Math.max(unlockedLocks, missionId);
+        $("#door-lock").textContent = "🔓";
+
+        setFeedback(`✅ Código aceptado. Cerradura ${missionId} desbloqueada con ${currentScore}/10.`, "ok");
+
+        markMissionButtonsSolved(missionId);
+        updateHud();
+        renderMissionMap();
+        renderInventory();
+        saveGameState();
+
+        setTimeout(() => {
+          if (missionId < TOTAL_MISSIONS) {
+            currentMission = missionId + 1;
+            showScreen(`m${currentMission}`);
+            setHeaderForMission(currentMission);
+            setFeedback(`🧭 Nueva ruta abierta: cerradura ${currentMission}.`, "warn");
+            saveGameState();
+          } else {
+            endGame();
+          }
+        }, 1150);
+
+        return;
+      }
+
+      button.classList.add("wrong");
+      errors += 1;
+      playSound("wrong");
+
+      $("#game-container").classList.add("shake", "alarm");
+      setFeedback(`❌ Código rechazado. Este fue tu intento ${currentAttempt}. Si aciertas ahora tu puntaje será ${scoreForAttempt(currentAttempt + 1)}/10.`, "err");
+
+      updateHud();
+      renderMissionMap();
+      saveGameState();
+
+      setTimeout(() => {
+        $("#game-container").classList.remove("shake", "alarm");
+        button.classList.remove("wrong");
+      }, 1200);
+    }
+
+    function markMissionButtonsSolved(missionId) {
+      $$(`#m${missionId} .option-btn`).forEach((btn) => {
+        btn.disabled = true;
+
+        const mission = missions.find((item) => item.id === missionId);
+        if (mission && normalize(btn.dataset.value) === normalize(mission.correct)) {
+          btn.classList.add("correct");
+        }
+      });
+    }
+
+    function showHint(missionId) {
+      if (!gameStarted) return;
+
+      const mission = missions.find((item) => item.id === missionId);
+      if (!mission) return;
+
+      hints += 1;
+      playSound("hint");
+      setFeedback(`💡 Ayuda del sistema: ${mission.hint}`, "warn");
+      updateHud();
+      saveGameState();
+      renderMath($("#feedback-text"));
+    }
+
+    function scoreForAttempt(attemptNumber) {
+      if (attemptNumber <= 1) return 10;
+      if (attemptNumber === 2) return 9;
+      if (attemptNumber === 3) return 8;
+      return 7;
+    }
+
+    function calculateCurrentAverage() {
+      const solvedScores = Object.values(scoresByMission).map(Number).filter((value) => !Number.isNaN(value));
+
+      if (solvedScores.length === 0) return null;
+
+      const total = solvedScores.reduce((sum, score) => sum + score, 0);
+      return total / solvedScores.length;
+    }
+
+    function endGame() {
+      gameStarted = false;
+      currentMission = TOTAL_MISSIONS;
+      unlockedLocks = TOTAL_MISSIONS;
+      playSound("win");
+
+      const summary = buildResultSummary();
+
+      $("#main-title").textContent = "Ruta de evacuación abierta";
+      $("#main-subtitle").textContent = "El sistema aceptó las seis claves. Preparando registro de resultados.";
+      $("#mission-kicker").textContent = "🚁 Protocolo completado";
+      $("#door-lock").textContent = "🚁";
+
+      $("#final-score").textContent = summary.notaFinal.toFixed(2);
+      $("#final-level").textContent = summary.nivel;
+      $("#final-errors").textContent = String(summary.erroresEjercicios);
+      $("#final-attempts").textContent = String(summary.intentos);
+
+      showScreen("victory");
+      setFeedback("🏆 Escape completado. Derivadas validadas con éxito.", "ok");
+      updateHud();
+      renderMissionMap();
+      renderInventory();
+      clearGameState();
+      submitResultToSheets(summary);
+    }
+
+    function buildResultSummary() {
+      const scores = missions.map((mission) => Number(scoresByMission[mission.id] || 7));
+      const notaFinal = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+      const porcentajeFinal = Math.round(notaFinal * 10);
+      const nivel = notaFinal >= 9 ? "Excelente" : notaFinal >= 8 ? "Logrado" : "En proceso";
+      const estado = notaFinal >= 7 ? "Aprobado" : "Requiere refuerzo";
+      const attemptsDetail = missions
+        .map((mission) => `C${mission.id}: ${attemptsByMission[mission.id] || 0} intento(s), ${scoresByMission[mission.id] || 7}/10`)
+        .join(" | ");
+
+      return {
+        notaFinal,
+        porcentajeFinal,
+        nivel,
+        estado,
+        intentos: totalAttempts,
+        ejerciciosResueltos: TOTAL_MISSIONS,
+        erroresEjercicios: errors,
+        pistasUsadas: hints,
+        observacion:
+          `Escape Room de Derivadas completado. ${attemptsDetail}. Pistas usadas: ${hints}.`
+      };
+    }
+
+    function submitResultToSheets(summary) {
+      if (resultSubmitted) return;
+
+      resultSubmitted = true;
+
+      const statusEl = $("#submit-status");
+      if (statusEl) statusEl.textContent = "Enviando resultados al registro...";
+
+      const student = getStudentData();
+
+      const payload = {
+        hoja: SHEET_NAME,
+        nombre: student.nombre,
+        curso: student.curso,
+        paralelo: student.paralelo,
+        tema: "Introducción a las Derivadas",
+        tipoActividad: "Gamificación - Escape Room Derivadas",
+        numeroEjercicios: String(summary.ejerciciosResueltos),
+        puntajeInicial: summary.notaFinal.toFixed(2),
+        promedioInicial: summary.notaFinal.toFixed(2),
+        recuperacionHabilitada: summary.notaFinal < 7 ? "SI" : "NO",
+        promedioRecuperacion: "",
+        notaFinal: summary.notaFinal.toFixed(2),
+        porcentajeFinal: String(summary.porcentajeFinal),
+        nivel: summary.nivel,
+        estado: summary.estado,
+        fechaLimite: "",
+        observacion: summary.observacion
+      };
+
+      submitByHiddenForm(payload);
+
+      setTimeout(() => {
+        if (statusEl) {
+          statusEl.textContent = "Resultado enviado a Google Sheets en la hoja Unidad 2.";
+        }
+      }, 1200);
+    }
+
+    function submitByHiddenForm(payload) {
+      const iframeName = `escape-derivadas-submit-frame-${Date.now()}`;
+
+      const iframe = document.createElement("iframe");
+      iframe.name = iframeName;
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+
+      const form = document.createElement("form");
+      form.method = "GET";
+      form.action = APPS_SCRIPT_URL;
+      form.target = iframeName;
+      form.style.display = "none";
+
+      Object.entries(payload).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value ?? "";
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+
+      setTimeout(() => {
+        form.remove();
+        iframe.remove();
+      }, 5000);
+    }
+
+    function getStudentData() {
+      return {
+        nombre:
+          localStorage.getItem("ueeh_student_name") ||
+          localStorage.getItem("studentName") ||
+          "Estudiante",
+        curso:
+          localStorage.getItem("ueeh_student_grade") ||
+          localStorage.getItem("studentGrade") ||
+          "3ro BGU",
+        paralelo:
+          localStorage.getItem("ueeh_student_parallel") ||
+          localStorage.getItem("studentParallel") ||
+          "A"
+      };
+    }
+
+    function restartGame() {
+      clearGameState();
+
+      currentMission = 0;
+      unlockedLocks = 0;
+      totalAttempts = 0;
+      errors = 0;
+      hints = 0;
+      gameStarted = false;
+      resultSubmitted = false;
+      attemptsByMission = {};
+      scoresByMission = {};
+      solvedMissions = {};
+
+      $$(".option-btn").forEach((btn) => {
+        btn.disabled = false;
+        btn.classList.remove("correct", "wrong");
+      });
+
+      $("#main-title").textContent = "Búnker 3-BGU: Alerta de Derivadas";
+      $("#main-subtitle").textContent = "Estás frente al panel de control de un búnker. No hay límite de tiempo: tu nota depende del número de intentos en cada cerradura.";
+      $("#mission-kicker").textContent = "🧬 Sistema central en espera";
+      $("#door-lock").textContent = "🔒";
+
+      showScreen("intro");
+      setFeedback("Esperando inicio del protocolo...", "");
+      updateHud();
+      updateMissionAttemptLabels();
+      renderMissionMap();
+      renderInventory();
+      playSound("click");
+    }
+
+    function updateHud() {
+      const average = calculateCurrentAverage();
+
+      $("#score-display").textContent = average === null ? "⭐ Nota: --" : `⭐ Nota: ${average.toFixed(2)}`;
+      $("#locks-display").textContent = `🔐 ${unlockedLocks} / ${TOTAL_MISSIONS}`;
+      $("#mode-display").textContent = "⏳ Sin límite";
+      $("#door-gauge").style.setProperty("--progress", Math.round((unlockedLocks / TOTAL_MISSIONS) * 100));
+      $("#gauge-text").textContent = `${Math.round((unlockedLocks / TOTAL_MISSIONS) * 100)}%`;
+      $("#attempts-stat").textContent = String(totalAttempts);
+      $("#errors-stat").textContent = String(errors);
+      $("#hints-stat").textContent = String(hints);
+      $("#avg-stat").textContent = average === null ? "--" : average.toFixed(2);
+    }
+
+    function updateMissionAttemptLabels() {
+      missions.forEach((mission) => {
+        const attemptsEl = $(`#mission-attempts-${mission.id}`);
+        const scoreEl = $(`#mission-current-score-${mission.id}`);
+        const currentAttempts = attemptsByMission[mission.id] || 0;
+
+        if (attemptsEl) attemptsEl.textContent = String(currentAttempts);
+
+        if (scoreEl) {
+          scoreEl.textContent = solvedMissions[mission.id]
+            ? `${scoresByMission[mission.id]}/10`
+            : `${scoreForAttempt(currentAttempts + 1)}/10`;
+        }
+      });
+    }
+
+    function showScreen(id) {
+      $$(".mission-card").forEach((card) => card.classList.remove("active"));
+      const target = document.getElementById(id);
+      if (target) target.classList.add("active");
+      renderMath(target || document.body);
+    }
+
+    function setFeedback(message, type) {
+      const feedback = $("#feedback-text");
+      feedback.className = "feedback";
+      if (type) feedback.classList.add(type);
+      feedback.innerHTML = message;
+      renderMath(feedback);
+    }
+
+    function normalize(value) {
+      return String(value).trim().toLowerCase().replace(/\s+/g, "");
+    }
+
+    function renderMissionMap() {
+      const map = $("#mission-map");
+
+      map.innerHTML = missions.map((mission) => {
+        const done = Boolean(solvedMissions[mission.id]);
+        const active = currentMission === mission.id && gameStarted;
+        const stateIcon = done ? "✅" : active ? "🟡" : "🔒";
+        const scoreText = done ? `${scoresByMission[mission.id]}/10` : "pendiente";
+
+        return `
+          <div class="map-item ${done ? "done" : ""} ${active ? "active" : ""}">
+            <div class="map-lock">${mission.id}</div>
+            <div class="map-text">
+              <strong>${mission.name}</strong>
+              <small>${done ? `desbloqueada · ${scoreText}` : active ? "en curso" : "bloqueada"}</small>
+            </div>
+            <div class="map-state">${stateIcon}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderInventory() {
+      const inventory = $("#inventory");
+
+      inventory.innerHTML = missions.map((mission) => {
+        const filled = Boolean(solvedMissions[mission.id]);
+        return `<div class="item-slot ${filled ? "filled" : ""}">${filled ? mission.reward : "?"}</div>`;
+      }).join("");
+    }
+
+    function saveGameState() {
+      const state = {
+        currentMission,
+        unlockedLocks,
+        totalAttempts,
+        errors,
+        hints,
+        soundEnabled,
+        gameStarted,
+        attemptsByMission,
+        scoresByMission,
+        solvedMissions,
+        savedAt: new Date().toISOString()
+      };
+
+      try {
+        localStorage.setItem(GAME_STATE_KEY, JSON.stringify(state));
+      } catch {
+        // Si localStorage falla, el juego sigue funcionando.
+      }
+    }
+
+    function loadGameState() {
+      try {
+        const rawState = localStorage.getItem(GAME_STATE_KEY);
+        if (!rawState) return false;
+
+        const state = JSON.parse(rawState);
+        if (!state || typeof state !== "object") return false;
+
+        currentMission = Number(state.currentMission || 0);
+        unlockedLocks = Number(state.unlockedLocks || 0);
+        totalAttempts = Number(state.totalAttempts || 0);
+        errors = Number(state.errors || 0);
+        hints = Number(state.hints || 0);
+        soundEnabled = state.soundEnabled !== false;
+        gameStarted = Boolean(state.gameStarted);
+        attemptsByMission = state.attemptsByMission || {};
+        scoresByMission = state.scoresByMission || {};
+        solvedMissions = state.solvedMissions || {};
+        resultSubmitted = false;
+
+        $("#sound-toggle").textContent = soundEnabled ? "🔊 Sonido" : "🔇 Silencio";
+
+        return true;
+      } catch {
+        clearGameState();
+        return false;
+      }
+    }
+
+    function clearGameState() {
+      try {
+        localStorage.removeItem(GAME_STATE_KEY);
+      } catch {
+        // No interrumpir la app.
+      }
+    }
+
+    function renderMath(element = document.body) {
+      if (window.MathJax?.typesetPromise) {
+        window.MathJax.typesetClear?.([element]);
+        window.MathJax.typesetPromise([element]).catch(() => {});
+      }
+    }
+  </script>
+</body>
+</html>
