@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Derivada – Cálculo Diferencial · 3.° BGU</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+  startup: { typeset: false }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --or: #F47C20; --or-l: #FFF3E8; --or-d: #D96A12;
+  --nv: #0D1B2A; --sl: #1E293B; --mu: #64748B;
+  --bd: #E2E8F0; --lt: #F8FAFC; --wh: #fff;
+  --c1: #2563EB; --c1l: #EFF6FF; --c1b: #BFDBFE;
+  --c2: #7C3AED; --c2l: #F5F3FF; --c2b: #DDD6FE;
+  --c3: #059669; --c3l: #ECFDF5; --c3b: #A7F3D0;
+  --c4: #D97706; --c4l: #FFFBEB; --c4b: #FDE68A;
+  --c5: #DC2626; --c5l: #FEF2F2; --c5b: #FECACA;
+  --re: #166534; --rel: #F0FDF4; --reb: #86EFAC;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #DDE4EE;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--sl);
+}
+
+/* ── HEADER ── */
+.hdr {
+  background: var(--nv);
+  height: 54px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  position: relative;
+  box-shadow: 0 2px 12px rgba(13,27,42,.4);
+}
+.hdr-brand .school {
+  font-size: 9px; font-weight: 700; color: #64748B;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  display: block; line-height: 1;
+}
+.hdr-brand .subj {
+  font-size: 14px; font-weight: 800; color: #fff; line-height: 1.3;
+}
+.hdr-brand .subj em { color: var(--or); font-style: normal; font-weight: 500; }
+
+.moment-badge {
+  padding: 4px 14px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+}
+.mb-ant { background: rgba(251,146,60,.12); color: #FB923C; border: 1px solid rgba(251,146,60,.25); }
+.mb-con { background: rgba(96,165,250,.12); color: #60A5FA; border: 1px solid rgba(96,165,250,.25); }
+.mb-sol { background: rgba(74,222,128,.12); color: #4ADE80; border: 1px solid rgba(74,222,128,.25); }
+
+.progress-wrap { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,.07); }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--or), #FBB347); transition: width .5s ease; border-radius: 0 2px 2px 0; }
+
+/* ── MAIN ── */
+.main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  overflow: hidden;
+  position: relative;
+}
+.bg-deco {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.bg-deco span {
+  position: absolute; font-size: 100px; font-weight: 900;
+  color: rgba(148,163,184,.045); font-family: 'JetBrains Mono', monospace;
+  user-select: none;
+}
+
+/* ── SLIDE ── */
+.slide-card {
+  width: 100%; max-width: 920px;
+  height: 100%; max-height: 510px;
+  background: var(--wh);
+  border-radius: 18px;
+  box-shadow: 0 8px 48px rgba(13,27,42,.14), 0 2px 8px rgba(13,27,42,.07);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* slide entry animation */
+@keyframes sEnter { from { opacity:0; transform: translateY(10px) scale(.985); } to { opacity:1; transform:none; } }
+.slide-card { animation: sEnter .35s cubic-bezier(.4,0,.2,1); }
+
+.slide-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+.slide-body::-webkit-scrollbar { width: 5px; }
+.slide-body::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+
+/* ── FOOTER ── */
+.ftr {
+  background: var(--wh);
+  border-top: 1px solid var(--bd);
+  height: 54px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 8px;
+}
+.ftr-dua { display: flex; gap: 5px; flex-wrap: wrap; min-width: 0; }
+.dua-tag {
+  padding: 3px 8px; border-radius: 5px; font-size: 9px;
+  font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border: 1px solid;
+}
+.dt-c { background: #F0FDF4; color: #15803D; border-color: #86EFAC; }
+.dt-r { background: #F5F3FF; color: #6D28D9; border-color: #C4B5FD; }
+.dt-a { background: #EFF6FF; color: #1D4ED8; border-color: #93C5FD; }
+
+.ftr-right { display: flex; align-items: center; gap: 8px; }
+.nav-info { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+.nav-count { font-size: 13px; font-weight: 700; color: var(--sl); }
+.step-badge {
+  font-size: 10px; font-weight: 700; color: var(--or);
+  background: var(--or-l); padding: 1px 7px; border-radius: 10px;
+  border: 1px solid #FED7AA; display: none;
+}
+.btn-nav {
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.btn-nav:disabled { opacity: .3; cursor: not-allowed; }
+.btn-prev { background: #F1F5F9; color: var(--mu); }
+.btn-prev:hover:not(:disabled) { background: var(--bd); }
+.btn-next { background: var(--or); color: white; box-shadow: 0 3px 10px rgba(244,124,32,.3); }
+.btn-next:hover:not(:disabled) { background: var(--or-d); transform: scale(1.06); }
+
+.btn-reveal {
+  height: 32px; padding: 0 13px;
+  background: var(--or-l); border: 1.5px solid var(--or);
+  border-radius: 8px; color: var(--or);
+  font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: all .2s; display: none; align-items: center; gap: 5px;
+  white-space: nowrap;
+}
+.btn-reveal:hover { background: var(--or); color: white; }
+.btn-reveal.done { background: var(--rel); border-color: var(--reb); color: var(--re); cursor: default; }
+.btn-reveal.done:hover { background: var(--rel); color: var(--re); }
+
+/* ═══════════════════════════════════════
+   SLIDE TYPES
+═══════════════════════════════════════ */
+
+/* ── TITLE SLIDE ── */
+.s-title {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%; padding: 32px 40px; text-align: center;
+  background: linear-gradient(145deg, #0D1B2A 0%, #1a3454 55%, #0D1B2A 100%);
+  position: relative; overflow: hidden;
+}
+.s-title::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 60% at 70% 30%, rgba(244,124,32,.08) 0%, transparent 70%);
+}
+.s-title .t-emoji { font-size: 52px; margin-bottom: 14px; position: relative; }
+.s-title .t-label { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--or); margin-bottom: 8px; position: relative; }
+.s-title h1 { font-size: 44px; font-weight: 900; color: white; line-height: 1.1; margin-bottom: 10px; position: relative; }
+.s-title h1 span { color: var(--or); }
+.s-title .t-sub { font-size: 14px; color: #94A3B8; max-width: 480px; line-height: 1.55; position: relative; }
+.s-title .t-pills { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; justify-content: center; position: relative; }
+.t-pill { padding: 5px 14px; background: rgba(244,124,32,.12); border: 1px solid rgba(244,124,32,.3); border-radius: 20px; font-size: 11px; color: #FB923C; font-weight: 600; }
+
+/* ── CONCEPT SLIDE ── */
+.s-concept { padding: 28px 36px; display: flex; flex-direction: column; gap: 16px; }
+.sec-label {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--or);
+}
+.sec-label::before { content:''; width:20px; height:2px; background:var(--or); flex-shrink:0; }
+.s-concept h2 { font-size: 26px; font-weight: 800; color: var(--nv); line-height: 1.2; }
+.body-text { font-size: 14px; color: var(--mu); line-height: 1.65; }
+.formula-box {
+  background: var(--lt); border: 1px solid var(--bd);
+  border-left: 4px solid var(--or); border-radius: 10px;
+  padding: 14px 18px; font-size: 17px; text-align: center;
+  overflow-x: auto;
+}
+.formula-dark {
+  background: linear-gradient(135deg, var(--nv), #1a3454);
+  border-radius: 14px; padding: 22px; text-align: center; color: white;
+}
+.formula-dark .fd-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #60A5FA; font-weight: 700; margin-bottom: 6px; }
+.formula-dark .fd-math { font-size: 18px; }
+.callout {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: #FFF3E8; border: 1px solid #FED7AA;
+  border-radius: 10px; padding: 12px 16px;
+}
+.callout .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.callout p { font-size: 13px; color: #92400E; line-height: 1.5; }
+.notation-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.notation-chip {
+  background: var(--or-l); border: 1px solid #FED7AA;
+  border-radius: 7px; padding: 5px 13px;
+  font-size: 13px; color: var(--sl);
+  font-family: 'JetBrains Mono', monospace;
+}
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.info-card {
+  background: var(--lt); border: 1px solid var(--bd); border-radius: 10px;
+  padding: 12px 14px;
+}
+.info-card .ic-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--mu); margin-bottom: 4px; }
+.info-card .ic-val { font-size: 14px; font-weight: 600; color: var(--sl); }
+
+/* ── GRAPH SLIDE ── */
+.s-graph { display: flex; flex-direction: column; height: 100%; }
+.graph-hdr { padding: 14px 28px 10px; flex-shrink: 0; }
+.graph-hdr h2 { font-size: 20px; font-weight: 800; color: var(--nv); }
+.graph-body { flex: 1; display: flex; gap: 18px; padding: 0 18px 14px; overflow: hidden; }
+.graph-left { flex: 1.3; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.graph-right { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+#graph-canvas {
+  width: 100%; border-radius: 10px;
+  border: 1px solid var(--bd); background: #FAFBFC; display: block;
+  cursor: default;
+}
+.graph-slider-row { display: flex; flex-direction: column; gap: 4px; }
+.slider-label { font-size: 11px; font-weight: 600; color: var(--mu); display: flex; justify-content: space-between; }
+.slider-label span:last-child { color: var(--or); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+input[type=range] { width: 100%; accent-color: var(--or); cursor: pointer; height: 6px; border-radius: 3px; }
+.slider-hints { display: flex; justify-content: space-between; font-size: 9px; color: var(--mu); margin-top: 1px; }
+
+.slope-card {
+  background: var(--nv); border-radius: 10px; padding: 12px 14px;
+}
+.slope-card .sc-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #64748B; margin-bottom: 3px; }
+.slope-card .sc-val { font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace; transition: color .3s; }
+.slope-card .sc-info { font-size: 11px; color: #60A5FA; margin-top: 3px; }
+
+.insight-list { display: flex; flex-direction: column; gap: 6px; }
+.insight-item {
+  display: flex; gap: 8px; align-items: center;
+  background: var(--lt); border: 1px solid var(--bd);
+  border-radius: 8px; padding: 7px 10px;
+  font-size: 12px; line-height: 1.4; color: var(--sl);
+}
+.insight-item .dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ── EXAMPLE SLIDE ── */
+.ex-hdr {
+  background: linear-gradient(130deg, var(--nv) 0%, #1a3454 100%);
+  padding: 16px 28px; display: flex; align-items: center; gap: 16px;
+  flex-shrink: 0;
+}
+.ex-num-badge {
+  width: 46px; height: 46px; background: var(--or); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900; color: white; flex-shrink: 0;
+}
+.ex-titles { flex: 1; }
+.ex-titles .ex-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #64748B; display: block; }
+.ex-titles .ex-func { font-size: 19px; font-weight: 800; color: white; }
+.ex-method {
+  padding: 4px 12px; background: rgba(244,124,32,.15);
+  border: 1px solid rgba(244,124,32,.3); border-radius: 20px;
+  font-size: 10px; font-weight: 700; color: #FB923C; white-space: nowrap;
+}
+
+.ex-body { padding: 16px 28px; display: flex; flex-direction: column; gap: 12px; }
+
+.enunciado {
+  background: #F8F9FB; border: 1px solid var(--bd);
+  border-radius: 9px; padding: 11px 15px;
+  font-size: 13.5px; color: var(--mu); line-height: 1.55;
+}
+.enunciado strong { color: var(--sl); }
+
+/* ── STEPS ── */
+.step-item {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity .45s cubic-bezier(.4,0,.2,1), transform .45s cubic-bezier(.4,0,.2,1);
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.step-item.on { opacity: 1; transform: none; }
+
+.step-track { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.step-dot {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+.step-line { width: 2px; flex: 1; min-height: 16px; margin-top: 4px; }
+
+.sd1 { background: var(--c1); color: white; } .sl1 { background: var(--c1b); }
+.sd2 { background: var(--c2); color: white; } .sl2 { background: var(--c2b); }
+.sd3 { background: var(--c3); color: white; } .sl3 { background: var(--c3b); }
+.sd4 { background: var(--c4); color: white; } .sl4 { background: var(--c4b); }
+.sd5 { background: var(--c5); color: white; } .sl5 { background: var(--c5b); }
+.sdr { background: var(--re); color: white; }
+
+.step-content { flex: 1; padding-bottom: 6px; }
+.step-tag {
+  display: inline-block; font-size: 9px; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 10px; margin-bottom: 4px;
+}
+.st1 { background: var(--c1l); color: var(--c1); }
+.st2 { background: var(--c2l); color: var(--c2); }
+.st3 { background: var(--c3l); color: var(--c3); }
+.st4 { background: var(--c4l); color: var(--c4); }
+.st5 { background: var(--c5l); color: var(--c5); }
+.str { background: var(--rel); color: var(--re); }
+
+.step-desc { font-size: 13px; color: var(--mu); line-height: 1.5; margin-bottom: 7px; }
+.step-formula {
+  background: var(--lt); border: 1px solid var(--bd);
+  border-radius: 8px; padding: 9px 14px;
+  font-size: 15px; text-align: center; overflow-x: auto;
+}
+.sf1 { border-left: 3px solid var(--c1); }
+.sf2 { border-left: 3px solid var(--c2); }
+.sf3 { border-left: 3px solid var(--c3); }
+.sf4 { border-left: 3px solid var(--c4); }
+.sf5 { border-left: 3px solid var(--c5); }
+
+.result-box {
+  background: linear-gradient(135deg, #14532D, #166534);
+  border-radius: 12px; padding: 14px 20px; text-align: center;
+}
+.result-box .rb-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #86EFAC; margin-bottom: 4px; }
+.result-box .rb-formula { font-size: 20px; color: white; }
+
+.step-note {
+  font-size: 11.5px; color: #94A3B8; font-style: italic;
+  margin-top: 5px; padding-left: 6px; border-left: 2px solid var(--bd);
+  line-height: 1.45;
+}
+
+/* ── QUIZ SLIDE ── */
+.s-quiz { padding: 24px 36px; display: flex; flex-direction: column; gap: 18px; height: 100%; }
+.s-quiz h2 { font-size: 24px; font-weight: 800; color: var(--nv); }
+.quiz-q { font-size: 16px; font-weight: 700; color: var(--sl); line-height: 1.45; }
+.quiz-opts { display: flex; flex-direction: column; gap: 9px; }
+.qopt {
+  border: 2px solid var(--bd); border-radius: 10px;
+  padding: 11px 16px; background: var(--wh);
+  cursor: pointer; font-size: 13.5px; font-weight: 500;
+  text-align: left; transition: all .2s; width: 100%; color: var(--sl);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.qopt:hover:not(:disabled) { border-color: var(--or); background: var(--or-l); transform: translateX(5px); }
+.qopt.q-correct { border-color: #22C55E; background: #F0FDF4; color: #15803D; }
+.qopt.q-wrong { border-color: var(--c5); background: var(--c5l); color: var(--c5); }
+.quiz-fb {
+  padding: 12px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+  display: none; animation: fadeIn .3s ease;
+}
+.quiz-fb.show { display: block; }
+.qfb-ok { background: #F0FDF4; color: #15803D; border: 1px solid #86EFAC; }
+.qfb-no { background: var(--c5l); color: var(--c5); border: 1px solid var(--c5b); }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+/* ── PRACTICE SLIDE ── */
+.s-practice { padding: 26px 36px; display: flex; flex-direction: column; gap: 16px; }
+.s-practice h2 { font-size: 24px; font-weight: 800; color: var(--nv); }
+.ex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ex-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--lt); border: 1px solid var(--bd);
+  border-radius: 9px; padding: 10px 14px;
+}
+.ex-card .ec-n {
+  width: 28px; height: 28px; background: var(--or); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: white; flex-shrink: 0;
+}
+.ex-card .ec-f { font-size: 15px; }
+.practice-tip {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--or-l); border: 1px solid #FED7AA;
+  border-radius: 10px; padding: 11px 15px;
+}
+.practice-tip .pt-icon { font-size: 18px; flex-shrink: 0; }
+.practice-tip p { font-size: 13px; color: #92400E; }
+
+/* ── REFLECT SLIDE ── */
+.s-reflect {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%; padding: 36px;
+  text-align: center;
+  background: linear-gradient(145deg, #0D1B2A, #1a3454);
+}
+.s-reflect .r-emoji { font-size: 50px; margin-bottom: 14px; }
+.s-reflect h2 { font-size: 30px; font-weight: 900; color: white; margin-bottom: 16px; }
+.r-questions { display: flex; flex-direction: column; gap: 9px; max-width: 580px; margin-bottom: 18px; }
+.r-q {
+  display: flex; gap: 10px; align-items: flex-start; text-align: left;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 9px; padding: 10px 14px;
+}
+.r-q .rq-icon { color: var(--or); font-size: 16px; font-weight: 900; flex-shrink: 0; margin-top: 1px; }
+.r-q p { font-size: 13px; color: #CBD5E1; line-height: 1.5; }
+.r-msg {
+  background: rgba(244,124,32,.1); border: 1px solid rgba(244,124,32,.25);
+  border-radius: 10px; padding: 12px 20px; max-width: 500px;
+}
+.r-msg p { font-size: 13px; color: #FB923C; }
+
+/* ── TEACHER NOTE ── */
+.teacher-note {
+  background: #F8F9FB; border-top: 1px solid var(--bd);
+  padding: 8px 18px; display: flex; gap: 8px; align-items: flex-start;
+  flex-shrink: 0;
+}
+.teacher-note span { font-size: 14px; }
+.teacher-note p { font-size: 11px; color: var(--mu); }
+.teacher-note p strong { color: var(--sl); }
+
+/* ── 4PASOS SPECIAL ── */
+.s-4pasos { padding: 16px 28px 12px; display: flex; flex-direction: column; gap: 12px; }
+.s-4pasos h2 { font-size: 24px; font-weight: 800; color: var(--nv); }
+</style>
+</head>
+<body>
+
+<!-- ══════ HEADER ══════ -->
+<header class="hdr">
+  <div class="hdr-brand">
+    <span class="school">U.E. Emiliano Hinostroza</span>
+    <span class="subj">Cálculo Diferencial <em>· 3.° BGU</em></span>
+  </div>
+  <div id="moment-badge" class="moment-badge mb-ant">Anticipación</div>
+  <div class="progress-wrap"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
+</header>
+
+<!-- ══════ MAIN ══════ -->
+<main class="main">
+  <div class="bg-deco">
+    <span style="top:6%;left:4%">f′(x)</span>
+    <span style="bottom:12%;right:4%">Δx</span>
+    <span style="top:42%;left:62%">lim</span>
+    <span style="bottom:6%;left:22%">dy/dx</span>
+  </div>
+  <div class="slide-card" id="slide-card">
+    <div class="slide-body" id="slide-body"><!-- content --></div>
+  </div>
+</main>
+
+<!-- ══════ FOOTER ══════ -->
+<footer class="ftr">
+  <div class="ftr-dua" id="dua-wrap"></div>
+  <div class="ftr-right">
+    <button class="btn-nav btn-prev" id="btn-prev" onclick="go(-1)">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="nav-info">
+      <span class="nav-count"><span id="sl-num">1</span> / <span id="sl-tot">1</span></span>
+      <span class="step-badge" id="step-badge"></span>
+    </div>
+    <button class="btn-reveal" id="btn-reveal" onclick="revealStep()">
+      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      Revelar Paso
+    </button>
+    <button class="btn-nav btn-next" id="btn-next" onclick="go(1)">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  SLIDE DATA
+// ═══════════════════════════════════════════════════════════
+const SLIDES = [
+
+// 0 ─ PORTADA
+{
+  moment:"Anticipación", dua:["c"],
+  type:"title",
+  emoji:"📐",
+  label:"Cálculo Diferencial · Capítulo 2",
+  title:"La <span>Derivada</span>",
+  sub:"Definición, Interpretación Geométrica y Regla de los Cuatro Pasos",
+  pills:["Definición por límite","Interpretación geométrica","4 Ejemplos completos"],
+  note:"Abrir con la pregunta: ¿a qué velocidad exacta va un auto en un instante dado? Eso es lo que calcula la derivada."
+},
+
+// 1 ─ SABERES PREVIOS
+{
+  moment:"Anticipación", dua:["r"],
+  type:"concept",
+  label:"Saberes Previos",
+  h2:"¿Qué es un Incremento?",
+  blocks:[
+    {t:"text", c:"Antes de entender la derivada, repasemos el concepto de <strong>incremento</strong>. Usamos la letra griega Δ (delta) para indicar un cambio en una magnitud."},
+    {t:"formula", c:"\\[ \\Delta x = x_2 - x_1 \\qquad \\Delta y = y_2 - y_1 \\]"},
+    {t:"notation", chips:["Δx → incremento en x","Δy → incremento en y","Δy / Δx → razón de cambio"]},
+    {t:"callout", icon:"🔗", c:"Cuando Δx se hace <strong>infinitamente pequeño (→ 0)</strong>, la razón de cambio se transforma en la <strong>derivada</strong>, el cambio instantáneo."}
+  ],
+  note:"Recordar la pendiente de una recta: \\(m = \\dfrac{\\Delta y}{\\Delta x}\\). La derivada generaliza esto a curvas."
+},
+
+// 2 ─ INTERPRETACIÓN GEOMÉTRICA (GRÁFICO INTERACTIVO)
+{
+  moment:"Anticipación", dua:["r"],
+  type:"graph",
+  label:"Interpretación Geométrica",
+  h2:"Secante → Tangente: Visualización Interactiva",
+  note:"Mover el slider de Δx = 2 hacia 0. Observar cómo la pendiente de la secante se acerca a 3.00 (pendiente de la tangente en P)."
+},
+
+// 3 ─ DEFINICIÓN FORMAL
+{
+  moment:"Construcción", dua:["r"],
+  type:"concept",
+  label:"Definición Formal",
+  h2:"La Derivada de una Función",
+  blocks:[
+    {t:"text", c:"Sea \\(f(x)\\) una función. Se define su <strong>derivada</strong> \\(f'(x)\\) como el siguiente límite:"},
+    {t:"formula-dark", label:"Definición Formal", c:"\\[ f'(x) = \\lim_{\\Delta x \\to 0} \\frac{f(x+\\Delta x) - f(x)}{\\Delta x} \\]"},
+    {t:"text", c:"Para toda \\(x\\) donde el límite exista. La derivada en un punto es la <strong>pendiente de la recta tangente</strong> a la curva en ese punto."},
+    {t:"notation", chips:["y′","f′(x)","\\(\\dfrac{dy}{dx}\\)","\\(D_x y\\)"]}
+  ],
+  note:"La notación dy/dx se lee 'derivada de y con respecto a x'. Todos estos símbolos representan lo mismo."
+},
+
+// 4 ─ REGLA DE LOS 4 PASOS (step-by-step)
+{
+  moment:"Construcción", dua:["r"],
+  type:"steps4",
+  label:"Método Sistemático",
+  h2:"Regla de los Cuatro Pasos",
+  intro:"Sea \\(y = f(x)\\). Para hallar la derivada usando la definición, aplicamos estos 4 pasos en orden:",
+  steps:[
+    { n:1, tag:"Paso 1", desc:"Sustituir \\(x\\) por \\((x + \\Delta x)\\) en la función:", formula:"\\[ y + \\Delta y = f(x + \\Delta x) \\]", td:"sd1", tl:"sl1", tt:"st1", tf:"sf1" },
+    { n:2, tag:"Paso 2", desc:"Calcular el incremento \\(\\Delta y\\) restando \\(f(x)\\):", formula:"\\[ \\Delta y = f(x + \\Delta x) - f(x) \\]", td:"sd2", tl:"sl2", tt:"st2", tf:"sf2" },
+    { n:3, tag:"Paso 3", desc:"Calcular la <em>razón de cambio</em> dividiendo entre \\(\\Delta x\\):", formula:"\\[ \\frac{\\Delta y}{\\Delta x} = \\frac{f(x+\\Delta x) - f(x)}{\\Delta x} \\]", td:"sd3", tl:"sl3", tt:"st3", tf:"sf3" },
+    { n:4, tag:"Paso 4", desc:"Calcular el <strong>límite</strong> cuando \\(\\Delta x \\to 0\\) — esta es la derivada:", formula:"\\[ \\frac{dy}{dx} = \\lim_{\\Delta x \\to 0} \\frac{\\Delta y}{\\Delta x} = \\lim_{\\Delta x \\to 0} \\frac{f(x+\\Delta x) - f(x)}{\\Delta x} \\]", td:"sd4", tl:"sl4", tt:"st4", tf:"sf4" }
+  ],
+  note:"Practicar los 4 pasos con un ejemplo simple primero. Los siguientes ejemplos aplican este procedimiento paso a paso."
+},
+
+// 5 ─ EJEMPLO 1
+{
+  moment:"Construcción", dua:["r"],
+  type:"example",
+  exN:1, exF:"f(x) = 5x − 6", exM:"Regla de los 4 Pasos",
+  enunc:"<strong>Encuentra</strong> la derivada de \\(f(x) = 5x - 6\\) aplicando la Regla de los Cuatro Pasos.",
+  steps:[
+    { tag:"Paso 1", desc:"Sustituimos \\(x\\) por \\((x + \\Delta x)\\) en la función original:", formula:"\\[ y + \\Delta y = 5(x + \\Delta x) - 6 \\]", td:"sd1",tl:"sl1",tt:"st1",tf:"sf1" },
+    { tag:"Paso 2", desc:"Calculamos \\(\\Delta y = f(x+\\Delta x) - f(x)\\), restando la función original:", formula:"\\[ \\Delta y = \\big[5(x+\\Delta x) - 6\\big] - (5x - 6) = 5x + 5\\Delta x - 6 - 5x + 6 = 5\\Delta x \\]", td:"sd2",tl:"sl2",tt:"st2",tf:"sf2" },
+    { tag:"Paso 3", desc:"Dividimos entre \\(\\Delta x\\) (razón de cambio):", formula:"\\[ \\frac{\\Delta y}{\\Delta x} = \\frac{5\\Delta x}{\\Delta x} = 5 \\]", td:"sd3",tl:"sl3",tt:"st3",tf:"sf3" },
+    { tag:"Paso 4", desc:"Calculamos el límite cuando \\(\\Delta x \\to 0\\):", formula:"\\[ \\frac{dy}{dx} = \\lim_{\\Delta x \\to 0} \\frac{\\Delta y}{\\Delta x} = \\lim_{\\Delta x \\to 0} 5 = 5 \\]", td:"sd4",tl:"sl4",tt:"st4",tf:"sf4" },
+    { tag:"✓ Resultado", desc:"La derivada de la función lineal \\(f(x) = 5x - 6\\) es:", formula:"\\[ f'(x) = 5 \\]", isResult:true, note:"La derivada de cualquier función lineal ax + b es su pendiente a. La constante desaparece." }
+  ],
+  note:"Este ejemplo es sencillo intencionalmente. La constante −6 desaparece en el Paso 2 porque se cancela."
+},
+
+// 6 ─ EJEMPLO 2
+{
+  moment:"Construcción", dua:["r"],
+  type:"example",
+  exN:2, exF:"y = 7x² − 5x + 9", exM:"Definición de la Derivada",
+  enunc:"<strong>Aplica</strong> la definición y determina la derivada de \\(y = 7x^2 - 5x + 9\\).",
+  steps:[
+    { tag:"Definición", desc:"Planteamos la derivada directamente con la definición:", formula:"\\[ \\frac{dy}{dx} = \\lim_{\\Delta x \\to 0} \\frac{\\big[7(x+\\Delta x)^2 - 5(x+\\Delta x) + 9\\big] - (7x^2 - 5x + 9)}{\\Delta x} \\]", td:"sd1",tl:"sl1",tt:"st1",tf:"sf1" },
+    { tag:"Expandir", desc:"Expandimos \\((x+\\Delta x)^2 = x^2 + 2x\\Delta x + (\\Delta x)^2\\) y distribuimos:", formula:"\\[ = \\lim_{\\Delta x \\to 0} \\frac{7x^2 + 14x\\Delta x + 7(\\Delta x)^2 - 5x - 5\\Delta x + 9 - 7x^2 + 5x - 9}{\\Delta x} \\]", td:"sd2",tl:"sl2",tt:"st2",tf:"sf2" },
+    { tag:"Cancelar", desc:"Los términos \\(7x^2\\), \\(-5x\\) y \\(9\\) se cancelan mutuamente:", formula:"\\[ = \\lim_{\\Delta x \\to 0} \\frac{14x\\Delta x + 7(\\Delta x)^2 - 5\\Delta x}{\\Delta x} \\]", td:"sd3",tl:"sl3",tt:"st3",tf:"sf3" },
+    { tag:"Factorizar Δx", desc:"Factorizamos \\(\\Delta x\\) en el numerador y lo cancelamos con el denominador:", formula:"\\[ = \\lim_{\\Delta x \\to 0} \\frac{\\Delta x(14x + 7\\Delta x - 5)}{\\Delta x} = \\lim_{\\Delta x \\to 0}(14x + 7\\Delta x - 5) \\]", td:"sd4",tl:"sl4",tt:"st4",tf:"sf4" },
+    { tag:"✓ Resultado", desc:"Aplicamos el límite haciendo \\(\\Delta x = 0\\):", formula:"\\[ \\frac{dy}{dx} = 14x - 5 \\]", isResult:true, note:"Verificación rápida: derivada de 7x² → 14x (baja exponente, multiplica). Derivada de −5x → −5. Constante 9 → 0." }
+  ],
+  note:"La clave está en la expansión del binomio. Los términos sin Δx siempre se cancelan entre sí."
+},
+
+// 7 ─ EJEMPLO 3 · PARTE A
+{
+  moment:"Construcción", dua:["r"],
+  type:"example",
+  exN:"3A", exF:"f(x) = (2x+1)/(x−5)", exM:"Definición · Función Racional",
+  enunc:"<strong>Encuentra</strong> la derivada de \\(f(x) = \\dfrac{2x+1}{x-5}\\) aplicando la definición. (Parte A: planteamiento y denominador común)",
+  steps:[
+    { tag:"f(x+Δx)", desc:"Calculamos \\(f(x+\\Delta x)\\) sustituyendo \\(x\\) por \\((x+\\Delta x)\\):", formula:"\\[ f(x+\\Delta x) = \\frac{2(x+\\Delta x)+1}{(x+\\Delta x)-5} = \\frac{2x+2\\Delta x+1}{x+\\Delta x-5} \\]", td:"sd1",tl:"sl1",tt:"st1",tf:"sf1" },
+    { tag:"Δy = f(x+Δx)−f(x)", desc:"Planteamos la diferencia \\(\\Delta y\\):", formula:"\\[ \\Delta y = \\frac{2x+2\\Delta x+1}{x+\\Delta x-5} - \\frac{2x+1}{x-5} \\]", td:"sd2",tl:"sl2",tt:"st2",tf:"sf2" },
+    { tag:"Denominador Común", desc:"Combinamos con denominador común \\((x+\\Delta x-5)(x-5)\\):", formula:"\\[ \\Delta y = \\frac{(2x+2\\Delta x+1)(x-5) - (2x+1)(x+\\Delta x-5)}{(x+\\Delta x-5)(x-5)} \\]", td:"sd3",tl:"sl3",tt:"st3",tf:"sf3" },
+    { tag:"Expandir Numerador", desc:"Expandimos ambos productos en el numerador:", formula:"\\[ \\text{Num} = \\underbrace{2x^2-10x+2x\\Delta x-10\\Delta x+x-5}_{(2x+2\\Delta x+1)(x-5)} - \\underbrace{(2x^2-10x+x+2x\\Delta x+\\Delta x-5)}_{(2x+1)(x+\\Delta x-5)} \\]", td:"sd4",tl:"sl4",tt:"st4",tf:"sf4" },
+    { tag:"Simplificar", desc:"Todos los términos sin \\(\\Delta x\\) se cancelan. Solo queda:", formula:"\\[ \\text{Num} = -10\\Delta x - \\Delta x = -11\\Delta x \\]", td:"sd5",tl:"sl5",tt:"st5",tf:"sf5", note:"Los términos 2x², −9x, −5 están en ambos productos y se cancelan perfectamente." }
+  ],
+  note:"Ejercicio algebraicamente intenso. Ir despacio expandiendo. Los términos sin Δx siempre se eliminan."
+},
+
+// 8 ─ EJEMPLO 3 · PARTE B
+{
+  moment:"Construcción", dua:["r"],
+  type:"example",
+  exN:"3B", exF:"f(x) = (2x+1)/(x−5)", exM:"Continuación — Límite Final",
+  enunc:"<strong>Continuación:</strong> Ya sabemos que el numerador simplificado es \\(-11\\Delta x\\). Ahora calculamos el límite.",
+  steps:[
+    { tag:"Razón de Cambio", desc:"Dividimos todo entre \\(\\Delta x\\):", formula:"\\[ \\frac{\\Delta y}{\\Delta x} = \\frac{-11\\Delta x}{\\Delta x \\cdot (x+\\Delta x-5)(x-5)} = \\frac{-11}{(x+\\Delta x-5)(x-5)} \\]", td:"sd1",tl:"sl1",tt:"st1",tf:"sf1" },
+    { tag:"Aplicar el Límite", desc:"Calculamos el límite cuando \\(\\Delta x \\to 0\\):", formula:"\\[ \\frac{dy}{dx} = \\lim_{\\Delta x \\to 0} \\frac{-11}{(x+\\Delta x-5)(x-5)} = \\frac{-11}{(x-5)(x-5)} \\]", td:"sd2",tl:"sl2",tt:"st2",tf:"sf2" },
+    { tag:"✓ Resultado", desc:"La derivada de la función racional es:", formula:"\\[ f'(x) = \\frac{-11}{(x-5)^2} \\]", isResult:true, note:"Dominio: x ≠ 5. Nota cómo el signo es negativo, indicando que f es decreciente en todo su dominio." }
+  ],
+  note:"Destacar que el límite se aplica simplemente haciendo Δx = 0, ya que el Δx del numerador ya se canceló."
+},
+
+// 9 ─ EJEMPLO 4
+{
+  moment:"Construcción", dua:["r"],
+  type:"example",
+  exN:4, exF:"y = √x", exM:"Definición · Técnica de Racionalización",
+  enunc:"<strong>Determina</strong> la derivada de \\(y = \\sqrt{x}\\) aplicando la definición. Se deberá <em>racionalizar</em> la expresión.",
+  steps:[
+    { tag:"Definición", desc:"Planteamos la derivada directamente:", formula:"\\[ \\frac{dy}{dx} = \\lim_{\\Delta x \\to 0} \\frac{\\sqrt{x+\\Delta x} - \\sqrt{x}}{\\Delta x} \\]", td:"sd1",tl:"sl1",tt:"st1",tf:"sf1", note:"Problema: no podemos cancelar Δx directamente. Necesitamos racionalizar." },
+    { tag:"Racionalizar", desc:"Multiplicamos numerador y denominador por el conjugado \\(\\left(\\sqrt{x+\\Delta x}+\\sqrt{x}\\right)\\):", formula:"\\[ = \\lim_{\\Delta x \\to 0} \\frac{\\left(\\sqrt{x+\\Delta x} - \\sqrt{x}\\right)\\left(\\sqrt{x+\\Delta x}+\\sqrt{x}\\right)}{\\Delta x\\left(\\sqrt{x+\\Delta x}+\\sqrt{x}\\right)} \\]", td:"sd2",tl:"sl2",tt:"st2",tf:"sf2" },
+    { tag:"Diferencia de Cuadrados", desc:"El numerador aplica \\((a-b)(a+b) = a^2 - b^2\\):", formula:"\\[ = \\lim_{\\Delta x \\to 0} \\frac{(x+\\Delta x) - x}{\\Delta x\\left(\\sqrt{x+\\Delta x}+\\sqrt{x}\\right)} = \\lim_{\\Delta x \\to 0} \\frac{\\Delta x}{\\Delta x\\left(\\sqrt{x+\\Delta x}+\\sqrt{x}\\right)} \\]", td:"sd3",tl:"sl3",tt:"st3",tf:"sf3" },
+    { tag:"Cancelar Δx", desc:"Cancelamos \\(\\Delta x\\) del numerador y denominador:", formula:"\\[ = \\lim_{\\Delta x \\to 0} \\frac{1}{\\sqrt{x+\\Delta x}+\\sqrt{x}} \\]", td:"sd4",tl:"sl4",tt:"st4",tf:"sf4" },
+    { tag:"✓ Resultado", desc:"Aplicamos el límite haciendo \\(\\Delta x \\to 0\\):", formula:"\\[ \\frac{dy}{dx} = \\frac{1}{\\sqrt{x}+\\sqrt{x}} = \\frac{1}{2\\sqrt{x}} \\]", isResult:true, note:"Verificación: √x = x^(1/2). Por regla de la potencia: (1/2)·x^(−1/2) = 1/(2√x). ✓" }
+  ],
+  note:"La racionalización es la técnica estrella para raíces. Sin ella, el Δx del denominador no se puede cancelar."
+},
+
+// 10 ─ QUIZ
+{
+  moment:"Consolidación", dua:["c"],
+  type:"quiz",
+  label:"Verifica tu Aprendizaje",
+  h2:"¿Cuánto comprendiste?",
+  question:"Usando la Regla de los 4 Pasos, ¿cuál es la derivada de \\(f(x) = 3x + 7\\)?",
+  opts:[
+    { text:"A)  f′(x) = 3x", ok:false, fb:"Incorrecto. Al dividir Δy/Δx en el Paso 3, el término Δx de 3Δx se cancela con el denominador, quedando solo 3." },
+    { text:"B)  f′(x) = 3", ok:true, fb:"¡Excelente! La derivada de ax + b siempre es a, que es la pendiente de la recta. La constante +7 desaparece en el Paso 2." },
+    { text:"C)  f′(x) = 7", ok:false, fb:"No. El 7 es la constante independiente. En el Paso 2 aparece como (+7 − 7 = 0). No contribuye a la derivada." },
+    { text:"D)  f′(x) = 3x + 7", ok:false, fb:"No. Eso es la función original. La derivada mide el cambio, no el valor de la función." }
+  ],
+  note:"Dar 2 minutos para responder individualmente antes de revelar. Reforzar el concepto con el Ejemplo 1."
+},
+
+// 11 ─ CIERRE
+{
+  moment:"Consolidación", dua:["c"],
+  type:"reflect",
+  emoji:"🌟",
+  h2:"¡Gran Trabajo Hoy!",
+  questions:[
+    "¿En qué paso de la Regla de los 4 Pasos tuviste mayor dificultad?",
+    "Explica con tus propias palabras: ¿qué es una derivada y qué mide?",
+    "¿Qué conexión encuentras entre la pendiente de una recta y la derivada de una función?"
+  ],
+  msg:"La práctica constante es la clave del Cálculo. Cada ejercicio que resuelves fortalece tu comprensión.",
+  note:"Cierre metacognitivo: pedir que escriban en su cuaderno UNA cosa aprendida y UNA duda que les quedó."
+}
+
+]; // end SLIDES
+
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let ci = 0;   // current slide index
+let cs = 0;   // current step revealed count
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+function render(idx){
+  const s = SLIDES[idx];
+  cs = 0;
+
+  // header badge
+  const badgeEl = document.getElementById('moment-badge');
+  const bcls = { "Anticipación":"mb-ant", "Construcción":"mb-con", "Consolidación":"mb-sol" };
+  badgeEl.className = "moment-badge " + (bcls[s.moment]||"mb-ant");
+  badgeEl.textContent = s.moment;
+
+  // progress
+  document.getElementById('progress-fill').style.width = `${((idx+1)/SLIDES.length)*100}%`;
+
+  // counters
+  document.getElementById('sl-num').textContent = idx + 1;
+  document.getElementById('sl-tot').textContent = SLIDES.length;
+
+  // DUA tags
+  const duaMap = { c:{cls:"dt-c",lbl:"DUA: Compromiso"}, r:{cls:"dt-r",lbl:"DUA: Representación"}, a:{cls:"dt-a",lbl:"DUA: Acción"} };
+  document.getElementById('dua-wrap').innerHTML = s.dua.map(d=>`<span class="dua-tag ${duaMap[d].cls}">${duaMap[d].lbl}</span>`).join('');
+
+  // rebuild slide
+  const body = document.getElementById('slide-body');
+  body.innerHTML = buildHTML(s);
+
+  // re-animate slide card
+  const card = document.getElementById('slide-card');
+  card.style.animation = 'none';
+  void card.offsetWidth;
+  card.style.animation = 'sEnter .35s cubic-bezier(.4,0,.2,1)';
+
+  // step / nav logic
+  updateFooter(s);
+
+  // typeset
+  typesetEl(body, s);
+
+  // graph init
+  if(s.type === 'graph') setTimeout(()=>{ initGraph(); },80);
+}
+
+function buildHTML(s){
+  switch(s.type){
+    case 'title':   return tTitle(s);
+    case 'concept': return tConcept(s);
+    case 'graph':   return tGraph(s);
+    case 'steps4':  return tSteps4(s);
+    case 'example': return tExample(s);
+    case 'quiz':    return tQuiz(s);
+    case 'practice':return tPractice(s);
+    case 'reflect': return tReflect(s);
+    default: return '<div style="padding:40px">Slide</div>';
+  }
+}
+
+function typesetEl(container, s){
+  if(!window.MathJax) return;
+  if(s.steps){
+    // Only typeset non-step parts first
+    const nonStep = container.querySelectorAll('.ex-hdr, .enunciado, .teacher-note, .s-4pasos > *:not(.step-item)');
+    const arr = Array.from(nonStep);
+    if(arr.length) MathJax.typesetPromise(arr).catch(e=>e);
+  } else {
+    MathJax.typesetPromise([container]).catch(e=>e);
+  }
+}
+
+// ── BUILDERS ──────────────────────────────────────
+function tTitle(s){
+  return `
+  <div class="s-title">
+    <div class="t-emoji">${s.emoji}</div>
+    <div class="t-label">${s.label}</div>
+    <h1>${s.title}</h1>
+    <p class="t-sub">${s.sub}</p>
+    <div class="t-pills">${s.pills.map(p=>`<span class="t-pill">${p}</span>`).join('')}</div>
+  </div>
+  ${tNote(s.note)}`;
+}
+
+function tConcept(s){
+  const blocksHTML = s.blocks.map(b=>{
+    if(b.t==='text') return `<p class="body-text">${b.c}</p>`;
+    if(b.t==='formula') return `<div class="formula-box">${b.c}</div>`;
+    if(b.t==='formula-dark') return `<div class="formula-dark"><div class="fd-label">${b.label||''}</div><div class="fd-math">${b.c}</div></div>`;
+    if(b.t==='callout') return `<div class="callout"><span class="icon">${b.icon}</span><p>${b.c}</p></div>`;
+    if(b.t==='notation') return `<div class="notation-row">${b.chips.map(c=>`<span class="notation-chip">${c}</span>`).join('')}</div>`;
+    return '';
+  }).join('');
+  return `
+  <div class="s-concept">
+    <div><div class="sec-label">${s.label}</div><h2>${s.h2}</h2></div>
+    ${blocksHTML}
+  </div>
+  ${tNote(s.note)}`;
+}
+
+function tGraph(s){
+  return `
+  <div class="s-graph">
+    <div class="graph-hdr">
+      <div class="sec-label" style="font-size:9px;">${s.label}</div>
+      <h2>${s.h2}</h2>
+    </div>
+    <div class="graph-body">
+      <div class="graph-left">
+        <canvas id="graph-canvas" width="460" height="290"></canvas>
+        <div class="graph-slider-row">
+          <div class="slider-label">
+            <span>Controlar Δx:</span>
+            <span id="dx-val">Δx = 1.50</span>
+          </div>
+          <input type="range" id="dx-slider" min="3" max="200" value="150" step="1" oninput="onSlider(this.value)">
+          <div class="slider-hints"><span>← Δx → 0 (tangente)</span><span>Δx grande →</span></div>
+        </div>
+      </div>
+      <div class="graph-right">
+        <div class="slope-card">
+          <div class="sc-label">Pendiente de la Secante PQ</div>
+          <div class="sc-val" id="sec-slope" style="color:var(--or)">—</div>
+          <div class="sc-info">Pendiente tangente en P (Δx→0): <strong>3.00</strong></div>
+        </div>
+        <div class="insight-list">
+          <div class="insight-item">
+            <div class="dot" style="background:#2563EB"></div>
+            <span>Punto <strong>P</strong> fijo en \\(x_0=1.5,\\; f(x_0)=2.25\\) sobre \\(y=x^2\\)</span>
+          </div>
+          <div class="insight-item">
+            <div class="dot" style="background:var(--or)"></div>
+            <span>Punto <strong>Q</strong> se mueve según el valor de Δx</span>
+          </div>
+          <div class="insight-item">
+            <div class="dot" style="background:var(--c3)"></div>
+            <span>Al reducir Δx, <strong>secante → tangente</strong> y la pendiente → 3</span>
+          </div>
+          <div class="insight-item">
+            <div class="dot" style="background:var(--c2)"></div>
+            <span>La <strong>derivada</strong> es el valor límite de la pendiente de la secante</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  ${tNote(s.note)}`;
+}
+
+function tSteps4(s){
+  const stepsHTML = s.steps.map((st,i)=>`
+    <div class="step-item" id="step-${i}">
+      <div class="step-track">
+        <div class="step-dot ${st.td}">${st.n}</div>
+        ${i<s.steps.length-1?`<div class="step-line ${st.tl}"></div>`:''}
+      </div>
+      <div class="step-content">
+        <div class="step-tag ${st.tt}">${st.tag}</div>
+        <div class="step-desc">${st.desc}</div>
+        <div class="step-formula ${st.tf}">${st.formula}</div>
+        ${st.note?`<p class="step-note">${st.note}</p>`:''}
+      </div>
+    </div>`).join('');
+  return `
+  <div class="s-4pasos">
+    <div><div class="sec-label">${s.label}</div><h2>${s.h2}</h2></div>
+    <p class="body-text" style="margin-bottom:4px">${s.intro}</p>
+    ${stepsHTML}
+  </div>
+  ${tNote(s.note)}`;
+}
+
+function tExample(s){
+  const stepsHTML = s.steps.map((st,i)=>{
+    if(st.isResult){
+      return `
+      <div class="step-item" id="step-${i}">
+        <div class="step-track">
+          <div class="step-dot sdr" style="font-size:10px;">✓</div>
+        </div>
+        <div class="step-content">
+          <div class="step-tag str">${st.tag}</div>
+          <div class="step-desc">${st.desc}</div>
+          <div class="result-box">
+            <div class="rb-label">Derivada encontrada</div>
+            <div class="rb-formula">${st.formula}</div>
+          </div>
+          ${st.note?`<p class="step-note">💡 ${st.note}</p>`:''}
+        </div>
+      </div>`;
+    }
+    return `
+    <div class="step-item" id="step-${i}">
+      <div class="step-track">
+        <div class="step-dot ${st.td}">${i+1}</div>
+        ${i<s.steps.length-1?`<div class="step-line ${st.tl}"></div>`:''}
+      </div>
+      <div class="step-content">
+        <div class="step-tag ${st.tt}">${st.tag}</div>
+        <div class="step-desc">${st.desc}</div>
+        <div class="step-formula ${st.tf}">${st.formula}</div>
+        ${st.note?`<p class="step-note">💡 ${st.note}</p>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="ex-hdr">
+    <div class="ex-num-badge">${s.exN}</div>
+    <div class="ex-titles">
+      <span class="ex-label">Ejemplo ${s.exN}</span>
+      <div class="ex-func">\\(${s.exF}\\)</div>
+    </div>
+    <span class="ex-method">${s.exM}</span>
+  </div>
+  <div class="ex-body">
+    <div class="enunciado">${s.enunc}</div>
+    ${stepsHTML}
+  </div>
+  ${tNote(s.note)}`;
+}
+
+function tQuiz(s){
+  const optsHTML = s.opts.map((o,i)=>`
+    <button class="qopt" onclick="doQuiz(this,${o.ok},'${escQ(o.fb)}')">
+      ${o.text}
+    </button>`).join('');
+  return `
+  <div class="s-quiz">
+    <div><div class="sec-label">${s.label}</div><h2>${s.h2}</h2></div>
+    <div class="quiz-q">${s.question}</div>
+    <div class="quiz-opts">${optsHTML}</div>
+    <div id="quiz-fb" class="quiz-fb"></div>
+  </div>
+  ${tNote(s.note)}`;
+}
+
+function tPractice(s){
+  const exHTML = s.exs.map(e=>`
+    <div class="ex-card">
+      <div class="ec-n">${e.n}</div>
+      <div class="ec-f">${e.f}</div>
+    </div>`).join('');
+  return `
+  <div class="s-practice">
+    <div><div class="sec-label">${s.label}</div><h2>${s.h2}</h2></div>
+    <p class="body-text">${s.sub}</p>
+    <div class="ex-grid">${exHTML}</div>
+    <div class="practice-tip">
+      <span class="pt-icon">✍️</span>
+      <p>${s.tip}</p>
+    </div>
+  </div>
+  ${tNote(s.note)}`;
+}
+
+function tReflect(s){
+  const qHTML = s.questions.map(q=>`
+    <div class="r-q">
+      <span class="rq-icon">→</span>
+      <p>${q}</p>
+    </div>`).join('');
+  return `
+  <div class="s-reflect">
+    <div class="r-emoji">${s.emoji}</div>
+    <h2>${s.h2}</h2>
+    <div class="r-questions">${qHTML}</div>
+    <div class="r-msg"><p>${s.msg}</p></div>
+  </div>
+  ${tNote(s.note)}`;
+}
+
+function tNote(note){
+  if(!note) return '';
+  return `<div class="teacher-note"><span>💡</span><p><strong>Nota docente:</strong> ${note}</p></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  STEP REVEAL LOGIC
+// ═══════════════════════════════════════════════════════════
+function updateFooter(s){
+  const hasSteps = !!(s.steps && s.steps.length>0);
+  const revBtn = document.getElementById('btn-reveal');
+  const stepBadge = document.getElementById('step-badge');
+  const btnNext = document.getElementById('btn-next');
+  const btnPrev = document.getElementById('btn-prev');
+
+  btnPrev.disabled = ci === 0;
+
+  if(hasSteps){
+    revBtn.style.display = 'flex';
+    revBtn.className = 'btn-reveal';
+    revBtn.innerHTML = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg> Revelar Paso`;
+    stepBadge.style.display = 'block';
+    stepBadge.textContent = `Paso 0 / ${s.steps.length}`;
+    btnNext.disabled = true;
+  } else {
+    revBtn.style.display = 'none';
+    stepBadge.style.display = 'none';
+    btnNext.disabled = ci >= SLIDES.length - 1;
+  }
+}
+
+function revealStep(){
+  const s = SLIDES[ci];
+  if(!s.steps || cs >= s.steps.length) return;
+
+  const el = document.getElementById(`step-${cs}`);
+  if(el){
+    el.classList.add('on');
+    setTimeout(()=>{
+      el.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 120);
+    if(window.MathJax) MathJax.typesetPromise([el]).catch(e=>e);
+  }
+
+  cs++;
+  document.getElementById('step-badge').textContent = `Paso ${cs} / ${s.steps.length}`;
+
+  const revBtn = document.getElementById('btn-reveal');
+  if(cs >= s.steps.length){
+    revBtn.className = 'btn-reveal done';
+    revBtn.innerHTML = `✓ Completado`;
+    document.getElementById('btn-next').disabled = ci >= SLIDES.length - 1;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function go(dir){
+  const next = ci + dir;
+  if(next < 0 || next >= SLIDES.length) return;
+  ci = next;
+  render(ci);
+  document.getElementById('slide-body').scrollTop = 0;
+}
+
+// Keyboard
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight' || e.key==='ArrowDown'){
+    const s = SLIDES[ci];
+    if(s.steps && cs < s.steps.length) revealStep();
+    else go(1);
+  }
+  if(e.key==='ArrowLeft' || e.key==='ArrowUp') go(-1);
+  if(e.key===' ') { e.preventDefault(); revealStep(); }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  QUIZ
+// ═══════════════════════════════════════════════════════════
+function escQ(str){ return str.replace(/'/g,"\\'"); }
+
+function doQuiz(btn, ok, fb){
+  const cont = btn.closest('.quiz-opts');
+  cont.querySelectorAll('.qopt').forEach(b=>{ b.disabled=true; b.style.opacity='0.55'; });
+  btn.style.opacity='1';
+  btn.classList.add(ok?'q-correct':'q-wrong');
+  const fbEl = document.getElementById('quiz-fb');
+  fbEl.className = 'quiz-fb show ' + (ok?'qfb-ok':'qfb-no');
+  fbEl.innerHTML = (ok?'✅ ':'❌ ') + fb;
+  if(window.MathJax) MathJax.typesetPromise([fbEl]).catch(e=>e);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INTERACTIVE GRAPH
+// ═══════════════════════════════════════════════════════════
+function onSlider(val){
+  const dx = val / 100;
+  drawGraph(dx);
+  document.getElementById('dx-val').textContent = 'Δx = ' + dx.toFixed(2);
+  const slopeEl = document.getElementById('sec-slope');
+  if(slopeEl){
+    // slope of secant for f(x) = x², P at x0=1.5
+    // m_sec = 2*x0 + Δx = 3 + Δx
+    const m = 3 + dx;
+    slopeEl.textContent = m.toFixed(4);
+    const diff = Math.abs(m - 3);
+    slopeEl.style.color = diff < 0.08 ? '#4ADE80' : diff < 0.5 ? '#FBB347' : 'var(--or)';
+  }
+}
+
+function initGraph(){
+  onSlider(150);
+  const right = document.querySelector('.graph-right');
+  if(right && window.MathJax) MathJax.typesetPromise([right]).catch(e=>e);
+}
+
+function drawGraph(deltaX){
+  const canvas = document.getElementById('graph-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+
+  // coordinate system
+  const ox = 85;   // origin canvas x
+  const oy = 248;  // origin canvas y
+  const sc = 58;   // scale pixels per unit
+
+  const cx = mx => ox + mx * sc;
+  const cy = my => oy - my * sc;
+
+  // clear
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#F8FAFC';
+  ctx.fillRect(0, 0, W, H);
+
+  // grid
+  ctx.strokeStyle = '#E8EEF5';
+  ctx.lineWidth = 1;
+  for(let gx = -1; gx <= 6; gx++){
+    ctx.beginPath(); ctx.moveTo(cx(gx),8); ctx.lineTo(cx(gx),H-8); ctx.stroke();
+  }
+  for(let gy = 0; gy <= 5; gy++){
+    ctx.beginPath(); ctx.moveTo(8,cy(gy)); ctx.lineTo(W-8,cy(gy)); ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(10,cy(0)); ctx.lineTo(W-12,cy(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx(0),H-10); ctx.lineTo(cx(0),10); ctx.stroke();
+
+  // arrows
+  ctx.fillStyle = '#334155';
+  ctx.beginPath(); ctx.moveTo(W-10,cy(0)); ctx.lineTo(W-18,cy(0)-4); ctx.lineTo(W-18,cy(0)+4); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx(0),10); ctx.lineTo(cx(0)-4,18); ctx.lineTo(cx(0)+4,18); ctx.closePath(); ctx.fill();
+
+  // axis labels
+  ctx.fillStyle = '#475569'; ctx.font = 'bold 13px Plus Jakarta Sans';
+  ctx.textAlign = 'left'; ctx.fillText('x', W-18, cy(0)-7);
+  ctx.textAlign = 'center'; ctx.fillText('y', cx(0)+9, 18);
+  ctx.fillStyle = '#94A3B8'; ctx.font = '11px Plus Jakarta Sans';
+  ctx.fillText('O', cx(0)-14, cy(0)+13);
+
+  // tick labels
+  ctx.fillStyle = '#94A3B8'; ctx.font = '10px Plus Jakarta Sans';
+  for(let tx=1; tx<=5; tx++){
+    ctx.textAlign='center'; ctx.fillText(tx, cx(tx), cy(0)+13);
+    ctx.beginPath(); ctx.moveTo(cx(tx),cy(0)-3); ctx.lineTo(cx(tx),cy(0)+3);
+    ctx.strokeStyle='#94A3B8'; ctx.lineWidth=1; ctx.stroke();
+  }
+  for(let ty=1; ty<=4; ty++){
+    ctx.textAlign='right'; ctx.fillText(ty, cx(0)-5, cy(ty)+3);
+    ctx.beginPath(); ctx.moveTo(cx(0)-3,cy(ty)); ctx.lineTo(cx(0)+3,cy(ty));
+    ctx.strokeStyle='#94A3B8'; ctx.lineWidth=1; ctx.stroke();
+  }
+
+  // ── Parabola f(x) = x² ──
+  ctx.beginPath(); ctx.strokeStyle='#2563EB'; ctx.lineWidth=2.2;
+  let fst=true;
+  for(let xv=-0.3; xv<=4.0; xv+=0.015){
+    const yv=xv*xv;
+    const px2=cx(xv), py2=cy(yv);
+    if(py2<5||py2>H-5) continue;
+    if(fst){ctx.moveTo(px2,py2);fst=false;} else ctx.lineTo(px2,py2);
+  }
+  ctx.stroke();
+
+  // curve label
+  ctx.fillStyle='#2563EB'; ctx.font='italic 12px Plus Jakarta Sans';
+  ctx.textAlign='left'; ctx.fillText('y = x²', cx(2.7)+3, cy(2.7*2.7)-5);
+
+  // fixed point P at x0=1.5
+  const x0=1.5, y0=x0*x0;  // y0=2.25
+  const px_=cx(x0), py_=cy(y0);
+
+  // moving Q
+  const x1=x0+deltaX, y1=x1*x1;
+  const qx=cx(x1), qy=cy(y1);
+
+  // Δx annotation
+  if(deltaX>0.08){
+    ctx.strokeStyle='#CBD5E1'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(qx,qy); ctx.lineTo(qx,py_); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px_,py_); ctx.lineTo(qx,py_); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#94A3B8'; ctx.font='10px JetBrains Mono';
+    ctx.textAlign='center'; ctx.fillText('Δx',(px_+qx)/2, py_+14);
+    ctx.textAlign='right';  ctx.fillText('Δy', qx-5, (py_+qy)/2+4);
+  }
+
+  // tangent line at P (slope = 2*x0 = 3)
+  const ts=3;
+  const tx1=x0-1.1, tx2=x0+1.3;
+  ctx.beginPath(); ctx.strokeStyle='rgba(37,99,235,0.55)'; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+  ctx.moveTo(cx(tx1),cy(y0+ts*(tx1-x0)));
+  ctx.lineTo(cx(tx2),cy(y0+ts*(tx2-x0)));
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // secant line extended
+  const ms=(y1-y0)/(x1-x0);  // = x0+x1 = 3+deltaX for parabola
+  const sx1=x0-0.6, sx2=x1+0.5;
+  ctx.beginPath(); ctx.strokeStyle='#F47C20'; ctx.lineWidth=2.2;
+  ctx.moveTo(cx(sx1),cy(y0+ms*(sx1-x0)));
+  ctx.lineTo(cx(sx2),cy(y0+ms*(sx2-x0)));
+  ctx.stroke();
+
+  // Q dot
+  ctx.beginPath(); ctx.arc(qx,qy,5.5,0,Math.PI*2);
+  ctx.fillStyle='#F47C20'; ctx.fill();
+  ctx.strokeStyle='white'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='#F47C20'; ctx.font='bold 11px Plus Jakarta Sans';
+  ctx.textAlign='left'; ctx.fillText('Q', qx+7, qy-4);
+
+  // P dot
+  ctx.beginPath(); ctx.arc(px_,py_,6.5,0,Math.PI*2);
+  ctx.fillStyle='#2563EB'; ctx.fill();
+  ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#2563EB'; ctx.font='bold 11px Plus Jakarta Sans';
+  ctx.textAlign='right'; ctx.fillText('P', px_-9, py_-7);
+
+  // ── LEGEND ──
+  const lx=W-136, ly=12, lw=128, lh=52;
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  ctx.beginPath();
+  ctx.roundRect(lx,ly,lw,lh,6);
+  ctx.fill();
+  ctx.strokeStyle='#E2E8F0'; ctx.lineWidth=1; ctx.stroke();
+
+  ctx.strokeStyle='rgba(37,99,235,.55)'; ctx.lineWidth=2; ctx.setLineDash([5,3]);
+  ctx.beginPath(); ctx.moveTo(lx+8,ly+16); ctx.lineTo(lx+26,ly+16); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#475569'; ctx.font='10px Plus Jakarta Sans'; ctx.textAlign='left';
+  ctx.fillText('Recta tangente (Lt)', lx+30, ly+19);
+
+  ctx.strokeStyle='#F47C20'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(lx+8,ly+34); ctx.lineTo(lx+26,ly+34); ctx.stroke();
+  ctx.fillStyle='#475569';
+  ctx.fillText('Recta secante (L)', lx+30, ly+37);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+render(0);
+</script>
+</body>
+</html>
