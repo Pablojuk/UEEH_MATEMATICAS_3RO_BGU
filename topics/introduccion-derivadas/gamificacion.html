@@ -946,6 +946,10 @@
       font-family: var(--font-mono);
     }
 
+    .envio-enviando { background:#fff3cd; color:#856404; padding:10px; border-radius:6px; margin-top:10px; }
+    .envio-ok       { background:#d1e7dd; color:#0f5132; padding:10px; border-radius:6px; margin-top:10px; }
+    .envio-error    { background:#f8d7da; color:#842029; padding:10px; border-radius:6px; margin-top:10px; }
+
     .submit-status {
       margin-top: 1rem;
       color: #cffafe;
@@ -1117,8 +1121,10 @@
                     <div class="score-cell"><small>Intentos</small><strong id="final-attempts">0</strong></div>
                   </div>
                   <p class="submit-status" id="submit-status">Preparando envío de resultados...</p>
+                  <div id="estado-envio" style="display:none"></div>
+                  <button id="btn-reintentar" style="display:none" onclick="reintentarEnvio()">Reintentar envío</button>
                   <div class="action-row" style="justify-content:center;margin-top:1.2rem">
-                    <button class="secondary-btn" id="retry-submit-btn" type="button" onclick="retrySubmit()" style="display:none">📤 Reintentar envío</button>
+                    <button class="secondary-btn" id="retry-submit-btn" type="button" onclick="reintentarEnvio()" style="display:none">📤 Reintentar envío</button>
                     <button class="primary-btn" type="button" onclick="restartGame()">🔁 Jugar otra vez</button>
                   </div>
                 </div>
@@ -1663,40 +1669,55 @@
       return `${SHEET_NAME}-${tipoActividad}-${limpio}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     }
 
-    function enviarPorJSONP(payload, timeoutMs = 12000) {
-      return new Promise((resolve) => {
-        const callbackName = `ueehSheetsCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-        const params = new URLSearchParams({ ...payload, callback: callbackName });
-        const script = document.createElement("script");
-        const timer = setTimeout(() => {
-          cleanup();
-          resolve({ ok: false, confirmado: false, error: "Tiempo de espera agotado." });
-        }, timeoutMs);
-
-        function cleanup() {
-          clearTimeout(timer);
-          delete window[callbackName];
-          script.remove();
-        }
-
-        window[callbackName] = (response) => {
-          cleanup();
-          if (response && response.ok) {
-            resolve({ ok: true, confirmado: true, ...response });
-          } else {
-            resolve({ ok: false, confirmado: false, error: response?.error || "Error del Apps Script." });
-          }
-        };
-
-        script.onerror = () => {
-          cleanup();
-          resolve({ ok: false, confirmado: false, error: "No se pudo cargar el script JSONP." });
-        };
-
-        script.src = `${APPS_SCRIPT_URL}?${params.toString()}`;
-        document.body.appendChild(script);
-      });
+    function validarDatosEstudiante(nombre, curso, paralelo) {
+      const errores = [];
+      const nombreLimpio = (nombre || "").trim().toLowerCase();
+      if (!nombreLimpio || nombreLimpio === "pablo juca") errores.push("Debes ingresar tu nombre completo.");
+      if (!curso || curso.trim() === "") errores.push("Debes seleccionar tu curso.");
+      if (!paralelo || paralelo.trim() === "") errores.push("Debes seleccionar tu paralelo.");
+      return errores;
     }
+
+    function enviarNota(datos, onSuccess, onError) {
+      const errores = validarDatosEstudiante(datos.nombre, datos.curso, datos.paralelo);
+      if (errores.length > 0) {
+        onError(errores.join(" "));
+        return;
+      }
+      const callbackName = "jsonp_cb_" + Date.now() + "_" + Math.floor(Math.random() * 9999);
+      const script = document.createElement("script");
+      const params = new URLSearchParams();
+      Object.keys(datos).forEach((k) => {
+        if (datos[k] !== undefined && datos[k] !== null) params.append(k, datos[k]);
+      });
+      params.append("callback", callbackName);
+      const timeout = setTimeout(function () {
+        cleanup();
+        onError("Tiempo de espera agotado (15s). Verifica tu conexión e intenta de nuevo.");
+      }, 15000);
+      window[callbackName] = function (response) {
+        cleanup();
+        if (response && response.ok === true) onSuccess(response);
+        else {
+          const msg = response && response.error ? response.error : "El servidor no confirmó el registro.";
+          onError(msg);
+        }
+      };
+      function cleanup() {
+        clearTimeout(timeout);
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+      script.onerror = function () {
+        cleanup();
+        onError("No se pudo conectar con el servidor. Verifica tu internet.");
+      };
+      script.src = APPS_SCRIPT_URL + "?" + params.toString();
+      document.head.appendChild(script);
+    }
+    function mostrarEnviando() { const el = document.getElementById("estado-envio"); el.innerHTML = "⏳ Enviando nota, por favor espera..."; el.className = "envio-enviando"; el.style.display = "block"; document.getElementById("btn-reintentar").style.display = "none"; }
+    function mostrarExito(sheet, row) { const el = document.getElementById("estado-envio"); el.innerHTML = "✓ Nota registrada correctamente.<br><small>Hoja: <strong>" + sheet + "</strong> | Fila: <strong>" + row + "</strong></small>"; el.className = "envio-ok"; el.style.display = "block"; document.getElementById("btn-reintentar").style.display = "none"; }
+    function mostrarError(msg) { const el = document.getElementById("estado-envio"); el.innerHTML = "✗ " + msg; el.className = "envio-error"; el.style.display = "block"; document.getElementById("btn-reintentar").style.display = "inline-block"; }
 
     async function submitResultToSheets(summary) {
       if (resultSubmitted) return;
@@ -1736,7 +1757,7 @@
         fechaCliente: new Date().toISOString()
       };
 
-      const response = await enviarPorJSONP(payload);
+      mostrarEnviando();
 
       const unit2GameSummary = {
         tipoActividad: "Gamificación",
@@ -1753,28 +1774,19 @@
         idEnvio: payload.idEnvio
       };
 
-      if (response.ok && response.confirmado) {
-        resultSubmitted = true;
-        localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify({
-          ...unit2GameSummary,
-          enviadoSheets: true,
-          pendienteEnvio: false,
-          hojaSheets: response.hoja,
-          filaSheets: response.fila,
-          idEnvio: payload.idEnvio
-        }));
+      enviarNota(payload, function(response){
+        resultSubmitted=true;
+        localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify({ ...unit2GameSummary, enviadoSheets:true, pendienteEnvio:false, hojaSheets:response.sheet, filaSheets:response.row, idEnvio:payload.idEnvio }));
         clearGameState();
-        if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_2, fila ${response.fila}.`;
-      } else {
-        resultSubmitted = false;
-        localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify({
-          ...unit2GameSummary,
-          enviadoSheets: false,
-          pendienteEnvio: true
-        }));
+        mostrarExito(response.sheet, response.row);
+        if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_2, fila ${response.row}.`;
+      }, function(msg){
+        resultSubmitted=false;
+        localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify({ ...unit2GameSummary, enviadoSheets:false, pendienteEnvio:true }));
+        mostrarError(msg);
         if (statusEl) statusEl.textContent = "No se pudo enviar. Puedes reintentar.";
         if (retryBtn) retryBtn.style.display = "inline-flex";
-      }
+      });
     }
 
     function getStudentData() {
@@ -1794,7 +1806,7 @@
       };
     }
 
-    function retrySubmit() {
+    function reintentarEnvio() {
       if (lastSummary) submitResultToSheets(lastSummary);
     }
 
