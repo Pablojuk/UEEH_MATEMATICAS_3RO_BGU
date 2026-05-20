@@ -50,3 +50,15 @@ export function obtenerResultadoGamificacion() {
   const raw = localStorage.getItem(KEYS.gameResults);
   return raw ? JSON.parse(raw) : null;
 }
+
+export function limpiarDatosLocales() {
+  [
+    "ueeh_student_name",
+    "ueeh_student_grade",
+    "ueeh_student_parallel",
+    KEYS.student,
+    KEYS.progress,
+    KEYS.lastSubmission,
+    KEYS.gameResults
+  ].forEach((key) => localStorage.removeItem(key));
+}
