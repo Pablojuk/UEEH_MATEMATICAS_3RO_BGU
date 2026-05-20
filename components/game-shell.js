@@ -2,11 +2,9 @@ import {
   guardarResultadoGamificacion,
   obtenerResultadoGamificacion
 } from "../core/storage.js";
+import { enviarDatosAGoogleSheets, SHEETS } from "../core/sheets-api.js";
 
-const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec";
-
-const SHEET_NAME = "Resultados";
+const SHEET_NAME = SHEETS.unidad1.gamificacion;
 const GAME_STATE_KEY = "ueeh_memorama_ecuaciones_estado_v1";
 
 const exerciseBank = [
@@ -104,6 +102,7 @@ let exercisesSolved = 0;
 let exerciseScores = [];
 let availableExercises = [...exerciseBank];
 let resultSubmitted = false;
+let lastSummary = null;
 
 /** Nota por ejercicio según intento en que acertó (solo respuestas algebraicas). */
 function scoreFromExerciseAttempts(attemptNumber) {
@@ -281,6 +280,14 @@ export function crearGameShell() {
         </button>
 
         <button
+          id="game-retry-submit-btn"
+          class="mt-3 w-full px-6 py-3 rounded-xl bg-white border border-[#F47C20] text-[#F47C20] text-sm font-bold transition-colors hidden"
+          type="button"
+        >
+          Reintentar envío
+        </button>
+
+        <button
           id="game-play-again-btn"
           class="mt-3 w-full px-6 py-3 rounded-xl bg-[#1E293B] hover:bg-[#313849] text-white text-sm font-bold transition-colors"
           type="button"
@@ -331,6 +338,7 @@ function resetState() {
   exerciseScores = [];
   availableExercises = [...exerciseBank];
   resultSubmitted = false;
+  lastSummary = null;
 
   clearGameState();
 }
@@ -363,6 +371,9 @@ function bindGameEvents() {
     resetState();
     createBoard();
     updateStats();
+  });
+  document.getElementById("game-retry-submit-btn")?.addEventListener("click", () => {
+    if (lastSummary) submitResultToSheets(lastSummary);
   });
 }
 
@@ -722,6 +733,7 @@ function finalizeGame({ completedAll = true } = {}) {
   isBoardLocked = true;
 
   const summary = buildResultSummary({ completedAll });
+  lastSummary = summary;
 
   guardarResultadoGamificacion(summary);
 
@@ -789,16 +801,10 @@ function buildResultSummary({ completedAll = true } = {}) {
   };
 }
 
-function submitResultToSheets(summary) {
+async function submitResultToSheets(summary) {
   if (resultSubmitted) return;
-
-  resultSubmitted = true;
-
   const statusEl = document.getElementById("game-submit-status");
-
-  if (statusEl) {
-    statusEl.textContent = "Enviando resultados al registro...";
-  }
+  if (statusEl) statusEl.textContent = "Enviando resultados...";
 
   const student = getStudentData();
 
@@ -822,49 +828,32 @@ function submitResultToSheets(summary) {
     observacion: `${summary.observacion} Intentos promedio en ejercicios: ${summary.intentosPromedioEjercicios}. Intentos del memorama (no califican): ${summary.intentosMemorama}.`
   };
 
-  submitByHiddenForm(payload);
-
+  const response = await enviarDatosAGoogleSheets(payload);
   const stored = obtenerResultadoGamificacion() || summary;
-  guardarResultadoGamificacion({ ...stored, enviadoSheets: true });
 
-  setTimeout(() => {
+  if (response.ok && response.confirmado) {
+    resultSubmitted = true;
+    guardarResultadoGamificacion({
+      ...stored,
+      enviadoSheets: true,
+      pendienteEnvio: false,
+      hojaSheets: response.hoja,
+      filaSheets: response.fila,
+      idEnvio: response.idEnvio
+    });
     if (statusEl) {
-      statusEl.textContent = "Resultado enviado. Puedes revisar el registro en tu hoja de cálculo.";
+      statusEl.textContent = `Resultado enviado correctamente a la hoja ${response.hoja}, fila ${response.fila}.`;
     }
-  }, 1200);
-}
+    document.getElementById("game-retry-submit-btn")?.classList.add("hidden");
+    return;
+  }
 
-function submitByHiddenForm(payload) {
-  const iframeName = `game-submit-frame-${Date.now()}`;
-
-  const iframe = document.createElement("iframe");
-  iframe.name = iframeName;
-  iframe.style.display = "none";
-  document.body.appendChild(iframe);
-
-  const form = document.createElement("form");
-  form.method = "GET";
-  form.action = APPS_SCRIPT_URL;
-  form.target = iframeName;
-  form.style.display = "none";
-
-  Object.entries(payload).forEach(([key, value]) => {
-    const input = document.createElement("input");
-
-    input.type = "hidden";
-    input.name = key;
-    input.value = value ?? "";
-
-    form.appendChild(input);
-  });
-
-  document.body.appendChild(form);
-  form.submit();
-
-  setTimeout(() => {
-    form.remove();
-    iframe.remove();
-  }, 5000);
+  resultSubmitted = false;
+  guardarResultadoGamificacion({ ...stored, pendienteEnvio: true, enviadoSheets: false });
+  if (statusEl) {
+    statusEl.textContent = "No se pudo enviar. Revisa la conexión e intenta nuevamente.";
+  }
+  document.getElementById("game-retry-submit-btn")?.classList.remove("hidden");
 }
 
 function getStudentData() {

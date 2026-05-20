@@ -2,7 +2,7 @@ import { renderView, bindClick } from "./navigation.js";
 import { createSlideViewer } from "../components/slide-viewer.js";
 import { crearHtmlLessonViewer } from "../components/html-lesson-viewer.js";
 import { slidesPlantillaTema } from "../topics/plantilla-tema/content.js";
-import { obtenerDatosEstudiante, guardarDatosEstudiante } from "./storage.js";
+import { obtenerDatosEstudiante, guardarDatosEstudiante, limpiarDatosLocales } from "./storage.js";
 import { crearGameShell, activarGameShell } from "../components/game-shell.js";
 import { crearResultPanel } from "../components/result-panel.js";
 import { crearFeedbackBox } from "../components/feedback-box.js";
@@ -22,9 +22,9 @@ function getStoredStudent() {
   const savedParallel = localStorage.getItem("ueeh_student_parallel");
 
   return {
-    nombre: savedName || appStudent?.nombre || "Pablo Juca",
+    nombre: savedName || appStudent?.nombre || "",
     curso: savedGrade || appStudent?.curso || "3ro BGU",
-    paralelo: savedParallel || appStudent?.paralelo || "A"
+    paralelo: savedParallel || appStudent?.paralelo || ""
   };
 }
 
@@ -508,6 +508,9 @@ function renderStudentDataModal() {
         </div>
 
         <div class="p-6 bg-neutral-50 border-t border-neutral-100 flex gap-3 justify-end">
+          <button id="btn-clear-student-data" class="px-5 py-2.5 rounded-full bg-white border border-red-200 hover:bg-red-50 text-sm font-semibold text-red-700 transition-colors">
+            Cambiar estudiante / limpiar datos
+          </button>
           <button id="btn-cancel-data" class="px-5 py-2.5 rounded-full bg-white border border-neutral-200 hover:bg-neutral-100 text-sm font-semibold text-moodle-text-gray transition-colors">
             Cancelar
           </button>
@@ -708,6 +711,16 @@ function bindDashboardEvents() {
   });
 
   bindClick("#btn-cancel-data", () => closeModal("student-data-modal"));
+  bindClick("#btn-clear-student-data", () => {
+    limpiarDatosLocales();
+    showToast("Datos limpiados. Ingresa la información del estudiante.");
+    const nameInput = document.getElementById("student-name");
+    const gradeInput = document.getElementById("student-grade");
+    const parallelInput = document.getElementById("student-parallel");
+    if (nameInput) nameInput.value = "";
+    if (gradeInput) gradeInput.value = "3ro BGU";
+    if (parallelInput) parallelInput.value = "";
+  });
   bindClick("#btn-start-activity", startActivity);
 
   ["#student-name", "#student-grade", "#student-parallel"].forEach((selector) => {
@@ -879,5 +892,9 @@ function goToResults() {
 }
 
 export function iniciarApp() {
+  const shouldReset = new URLSearchParams(window.location.search).get("reset") === "1";
+  if (shouldReset) {
+    limpiarDatosLocales();
+  }
   goToDashboard();
 }
