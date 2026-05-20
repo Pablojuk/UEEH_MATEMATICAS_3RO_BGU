@@ -89,3 +89,14 @@ Construir una mini app educativa moderna que permita:
 ---
 
 Para más detalle técnico y explicación en lenguaje sencillo, revisa `docs/arquitectura.md`.
+
+## Deploy de Google Apps Script
+1. Colocar el ID real del Google Sheet en `SPREADSHEET_ID`.
+2. Ir a **Implementar > Nueva implementación**.
+3. Tipo: **Aplicación web**.
+4. Ejecutar como: **Yo**.
+5. Quién tiene acceso: **Cualquier persona**.
+6. Implementar.
+7. Autorizar permisos.
+8. Copiar la URL `/exec`.
+9. Si cambia la URL, actualizar `APPS_SCRIPT_URL` en `core/sheets-api.js` y en los HTML autónomos.

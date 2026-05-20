@@ -33,11 +33,13 @@ export function crearResultPanel() {
     ? "Escala: 1.er intento = 10, 2.º = 9, 3.º = 8, 4.º o más = 7. Promedio de ejercicios (el memorama no califica)."
     : "";
 
-  const sheetStatus = gameResults?.enviadoSheets
-    ? "Registrado en Google Sheets"
-    : gameResults
-      ? "Guardado localmente"
-      : "Pendiente de envío";
+  const sheetStatus = gameResults?.enviadoSheets && gameResults?.filaSheets
+    ? `Registrado en Google Sheets · hoja ${gameResults.hojaSheets} · fila ${gameResults.filaSheets}`
+    : gameResults?.pendienteEnvio
+      ? "Pendiente de envío"
+      : gameResults
+        ? "Guardado localmente, sin confirmación"
+        : "Pendiente de envío";
 
   const rows = [
     ["Gamificación", gamificationScore],
