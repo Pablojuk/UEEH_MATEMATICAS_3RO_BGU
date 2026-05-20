@@ -946,6 +946,10 @@
       font-family: var(--font-mono);
     }
 
+    .envio-enviando { background:#fff3cd; color:#856404; padding:10px; border-radius:6px; margin-top:10px; }
+    .envio-ok       { background:#d1e7dd; color:#0f5132; padding:10px; border-radius:6px; margin-top:10px; }
+    .envio-error    { background:#f8d7da; color:#842029; padding:10px; border-radius:6px; margin-top:10px; }
+
     .submit-status {
       margin-top: 1rem;
       color: #cffafe;
@@ -1117,7 +1121,10 @@
                     <div class="score-cell"><small>Intentos</small><strong id="final-attempts">0</strong></div>
                   </div>
                   <p class="submit-status" id="submit-status">Preparando envío de resultados...</p>
+                  <div id="estado-envio" style="display:none"></div>
+                  <button id="btn-reintentar" style="display:none" onclick="reintentarEnvio()">Reintentar envío</button>
                   <div class="action-row" style="justify-content:center;margin-top:1.2rem">
+                    <button class="secondary-btn" id="retry-submit-btn" type="button" onclick="reintentarEnvio()" style="display:none">📤 Reintentar envío</button>
                     <button class="primary-btn" type="button" onclick="restartGame()">🔁 Jugar otra vez</button>
                   </div>
                 </div>
@@ -1284,6 +1291,7 @@
     let soundEnabled = true;
     let gameStarted = false;
     let resultSubmitted = false;
+    let lastSummary = null;
 
     let attemptsByMission = {};
     let scoresByMission = {};
@@ -1607,6 +1615,7 @@
       playSound("win");
 
       const summary = buildResultSummary();
+      lastSummary = summary;
 
       $("#main-title").textContent = "Ruta de evacuación abierta";
       $("#main-subtitle").textContent = "El sistema aceptó las seis claves. Preparando registro de resultados.";
@@ -1623,7 +1632,6 @@
       updateHud();
       renderMissionMap();
       renderInventory();
-      clearGameState();
       submitResultToSheets(summary);
     }
 
@@ -1651,18 +1659,83 @@
       };
     }
 
-    function submitResultToSheets(summary) {
+    function crearIdEnvio(nombre, tipoActividad) {
+      const limpio = String(nombre || "estudiante")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .slice(0, 40);
+      return `${SHEET_NAME}-${tipoActividad}-${limpio}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+
+    function validarDatosEstudiante(nombre, curso, paralelo) {
+      const errores = [];
+      const nombreLimpio = (nombre || "").trim().toLowerCase();
+      if (!nombreLimpio || nombreLimpio === "pablo juca") errores.push("Debes ingresar tu nombre completo.");
+      if (!curso || curso.trim() === "") errores.push("Debes seleccionar tu curso.");
+      if (!paralelo || paralelo.trim() === "") errores.push("Debes seleccionar tu paralelo.");
+      return errores;
+    }
+
+    function enviarNota(datos, onSuccess, onError) {
+      const errores = validarDatosEstudiante(datos.nombre, datos.curso, datos.paralelo);
+      if (errores.length > 0) {
+        onError(errores.join(" "));
+        return;
+      }
+      const callbackName = "jsonp_cb_" + Date.now() + "_" + Math.floor(Math.random() * 9999);
+      const script = document.createElement("script");
+      const params = new URLSearchParams();
+      Object.keys(datos).forEach((k) => {
+        if (datos[k] !== undefined && datos[k] !== null) params.append(k, datos[k]);
+      });
+      params.append("callback", callbackName);
+      const timeout = setTimeout(function () {
+        cleanup();
+        onError("Tiempo de espera agotado (15s). Verifica tu conexión e intenta de nuevo.");
+      }, 15000);
+      window[callbackName] = function (response) {
+        cleanup();
+        if (response && response.ok === true) onSuccess(response);
+        else {
+          const msg = response && response.error ? response.error : "El servidor no confirmó el registro.";
+          onError(msg);
+        }
+      };
+      function cleanup() {
+        clearTimeout(timeout);
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+      script.onerror = function () {
+        cleanup();
+        onError("No se pudo conectar con el servidor. Verifica tu internet.");
+      };
+      script.src = APPS_SCRIPT_URL + "?" + params.toString();
+      document.head.appendChild(script);
+    }
+    function mostrarEnviando() { const el = document.getElementById("estado-envio"); el.innerHTML = "⏳ Enviando nota, por favor espera..."; el.className = "envio-enviando"; el.style.display = "block"; document.getElementById("btn-reintentar").style.display = "none"; }
+    function mostrarExito(sheet, row) { const el = document.getElementById("estado-envio"); el.innerHTML = "✓ Nota registrada correctamente.<br><small>Hoja: <strong>" + sheet + "</strong> | Fila: <strong>" + row + "</strong></small>"; el.className = "envio-ok"; el.style.display = "block"; document.getElementById("btn-reintentar").style.display = "none"; }
+    function mostrarError(msg) { const el = document.getElementById("estado-envio"); el.innerHTML = "✗ " + msg; el.className = "envio-error"; el.style.display = "block"; document.getElementById("btn-reintentar").style.display = "inline-block"; }
+
+    async function submitResultToSheets(summary) {
       if (resultSubmitted) return;
 
-      resultSubmitted = true;
-
       const statusEl = $("#submit-status");
+      const retryBtn = $("#retry-submit-btn");
       if (statusEl) statusEl.textContent = "Enviando resultados al registro...";
+      if (retryBtn) retryBtn.style.display = "none";
 
       const student = getStudentData();
+      if (!student.nombre || !student.curso || !student.paralelo) {
+        if (statusEl) statusEl.textContent = "Faltan datos del estudiante (nombre, curso y paralelo).";
+        return;
+      }
 
       const payload = {
         hoja: SHEET_NAME,
+        idEnvio: crearIdEnvio(student.nombre, "gamificacion"),
         nombre: student.nombre,
         curso: student.curso,
         paralelo: student.paralelo,
@@ -1678,10 +1751,13 @@
         nivel: summary.nivel,
         estado: summary.estado,
         fechaLimite: "",
-        observacion: summary.observacion
+        observacion: summary.observacion,
+        userAgent: navigator.userAgent || "",
+        urlOrigen: location.href || "",
+        fechaCliente: new Date().toISOString()
       };
 
-      submitByHiddenForm(payload);
+      mostrarEnviando();
 
       const unit2GameSummary = {
         tipoActividad: "Gamificación",
@@ -1694,46 +1770,23 @@
         intentos: summary.intentos,
         erroresEjercicios: summary.erroresEjercicios,
         observacion: summary.observacion,
-        fecha: new Date().toISOString()
+        fecha: new Date().toISOString(),
+        idEnvio: payload.idEnvio
       };
-      localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify(unit2GameSummary));
 
-      setTimeout(() => {
-        if (statusEl) {
-          statusEl.textContent = "Resultado enviado a Google Sheets en la hoja Gami_Uni_2.";
-        }
-      }, 1200);
-    }
-
-    function submitByHiddenForm(payload) {
-      const iframeName = `escape-derivadas-submit-frame-${Date.now()}`;
-
-      const iframe = document.createElement("iframe");
-      iframe.name = iframeName;
-      iframe.style.display = "none";
-      document.body.appendChild(iframe);
-
-      const form = document.createElement("form");
-      form.method = "GET";
-      form.action = APPS_SCRIPT_URL;
-      form.target = iframeName;
-      form.style.display = "none";
-
-      Object.entries(payload).forEach(([key, value]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = value ?? "";
-        form.appendChild(input);
+      enviarNota(payload, function(response){
+        resultSubmitted=true;
+        localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify({ ...unit2GameSummary, enviadoSheets:true, pendienteEnvio:false, hojaSheets:response.sheet, filaSheets:response.row, idEnvio:payload.idEnvio }));
+        clearGameState();
+        mostrarExito(response.sheet, response.row);
+        if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_2, fila ${response.row}.`;
+      }, function(msg){
+        resultSubmitted=false;
+        localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify({ ...unit2GameSummary, enviadoSheets:false, pendienteEnvio:true }));
+        mostrarError(msg);
+        if (statusEl) statusEl.textContent = "No se pudo enviar. Puedes reintentar.";
+        if (retryBtn) retryBtn.style.display = "inline-flex";
       });
-
-      document.body.appendChild(form);
-      form.submit();
-
-      setTimeout(() => {
-        form.remove();
-        iframe.remove();
-      }, 5000);
     }
 
     function getStudentData() {
@@ -1741,7 +1794,7 @@
         nombre:
           localStorage.getItem("ueeh_student_name") ||
           localStorage.getItem("studentName") ||
-          "Estudiante",
+          "",
         curso:
           localStorage.getItem("ueeh_student_grade") ||
           localStorage.getItem("studentGrade") ||
@@ -1751,6 +1804,10 @@
           localStorage.getItem("studentParallel") ||
           "A"
       };
+    }
+
+    function reintentarEnvio() {
+      if (lastSummary) submitResultToSheets(lastSummary);
     }
 
     function restartGame() {
