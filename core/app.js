@@ -781,6 +781,22 @@ function goToSlides() {
   viewer.repaint();
 }
 
+function setupFullscreenButton() {
+  const btn = document.getElementById("btn-fullscreen-lesson");
+  const iframe = document.getElementById("lesson-iframe");
+  if (btn && iframe) {
+    btn.addEventListener("click", () => {
+      if (iframe.requestFullscreen) {
+        iframe.requestFullscreen();
+      } else if (iframe.webkitRequestFullscreen) {
+        iframe.webkitRequestFullscreen();
+      } else if (iframe.msRequestFullscreen) {
+        iframe.msRequestFullscreen();
+      }
+    });
+  }
+}
+
 function goToDerivadasSlides() {
   localStorage.setItem("ueeh_unidad2_presentation_viewed", "true");
   renderView(
@@ -794,6 +810,7 @@ function goToDerivadasSlides() {
   );
 
   bindClick("#btn-back-dashboard", () => goToDashboard());
+  setupFullscreenButton();
 }
 
 function goToDerivadasGame() {
@@ -808,12 +825,14 @@ function goToDerivadasGame() {
   );
 
   bindClick("#btn-back-dashboard", () => goToDashboard());
+  setupFullscreenButton();
 }
 
 function goToDerivadasHomework() {
   renderView(
     layout(
       "Trabajo para la Casa · Introducción a las Derivadas",
+
       crearHtmlLessonViewer({
         src: "./topics/introduccion-derivadas/deber.html",
         title: "Deber interactivo | Derivadas Unidad 2"
@@ -822,6 +841,7 @@ function goToDerivadasHomework() {
   );
 
   bindClick("#btn-back-dashboard", () => goToDashboard());
+  setupFullscreenButton();
 }
 
 
