@@ -384,7 +384,7 @@ function renderDerivativesUnitModal() {
 
           <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
             <div class="flex items-start gap-4">
-              <img src="./assets/img/derivadas-homework.jpg" alt="Gamificación" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
+              <img src="./assets/img/derivadas-game.png" alt="Gamificación" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
               <div class="space-y-1">
                 <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
                 <p class="text-moodle-text-gray text-xs leading-relaxed">
@@ -401,7 +401,7 @@ function renderDerivativesUnitModal() {
 
           <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
             <div class="flex items-start gap-4">
-              <img src="./assets/img/derivadas-game.png" alt="Trabajo para la Casa" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
+              <img src="./assets/img/derivadas-homework.jpg" alt="Trabajo para la Casa" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
               <div class="space-y-1">
                 <h4 class="text-base font-bold text-moodle-text-blue">Trabajo para la Casa</h4>
                 <p class="text-moodle-text-gray text-xs leading-relaxed">
