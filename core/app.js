@@ -367,7 +367,7 @@ function renderDerivativesUnitModal() {
         <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 bg-neutral-50/50">
           <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
             <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-orange-50 text-moodle-orange flex items-center justify-center text-2xl shrink-0">📽️</div>
+              <img src="./assets/img/derivadas-slides.png" alt="Presentación" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
               <div class="space-y-1">
                 <h4 class="text-base font-bold text-moodle-text-blue">Presentación de la Clase</h4>
                 <p class="text-moodle-text-gray text-xs leading-relaxed">
@@ -384,7 +384,7 @@ function renderDerivativesUnitModal() {
 
           <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
             <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center text-2xl shrink-0">🎮</div>
+              <img src="./assets/img/derivadas-game.png" alt="Gamificación" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
               <div class="space-y-1">
                 <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
                 <p class="text-moodle-text-gray text-xs leading-relaxed">
@@ -401,7 +401,7 @@ function renderDerivativesUnitModal() {
 
           <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
             <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0">🏠</div>
+              <img src="./assets/img/derivadas-homework.jpg" alt="Trabajo para la Casa" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
               <div class="space-y-1">
                 <h4 class="text-base font-bold text-moodle-text-blue">Trabajo para la Casa</h4>
                 <p class="text-moodle-text-gray text-xs leading-relaxed">
@@ -418,7 +418,7 @@ function renderDerivativesUnitModal() {
 
           <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
             <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">📊</div>
+              <img src="./assets/img/derivadas-results.png" alt="Resultados" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
               <div class="space-y-1">
                 <h4 class="text-base font-bold text-moodle-text-blue">Resultados de las Actividades</h4>
                 <p class="text-moodle-text-gray text-xs leading-relaxed">
