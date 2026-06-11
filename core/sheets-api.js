@@ -3,7 +3,8 @@ export const APPS_SCRIPT_URL =
 
 export const SHEETS = {
   unidad1: { gamificacion: "Gami_Uni_1", deber: "Deb_Uni_1" },
-  unidad2: { gamificacion: "Gami_Uni_2", deber: "Deb_Uni_2" }
+  unidad2: { gamificacion: "Gami_Uni_2", deber: "Deb_Uni_2" },
+  unidad3: { gamificacion: "Gami_Uni_3", deber: "Deb_Uni_3" }
 };
 
 export function crearPayloadBase(datos = {}) {
