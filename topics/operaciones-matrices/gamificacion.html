@@ -725,6 +725,7 @@ body { min-height: 100dvh; }
         <div class="summary-item"><div class="s-val" id="sumLevels">4</div><div class="s-lab">Niveles</div></div>
         <div class="summary-item"><div class="s-val" id="sumPercent">0%</div><div class="s-lab">Precisión</div></div>
         <div class="summary-item"><div class="s-val" id="sumStars">⭐⭐</div><div class="s-lab">Estrellas</div></div>
+      </div>
       <div class="final-message" id="finalMessage"></div>
       <div id="estado-envio" style="display:none; margin: 12px 0;"></div>
       <div id="submit-status" style="font-size:0.85rem; color:#546e7a; margin-top: 8px; font-weight: 600; text-align:center;"></div>
@@ -901,7 +902,6 @@ body { min-height: 100dvh; }
       const retryBtn = document.getElementById("retry-submit-btn");
       if (retryBtn) retryBtn.style.display = "none";
     }
-
     function mostrarError(msg) {
       const el = document.getElementById("estado-envio");
       if(el) {
@@ -911,6 +911,101 @@ body { min-height: 100dvh; }
       }
       const retryBtn = document.getElementById("retry-submit-btn");
       if (retryBtn) retryBtn.style.display = "inline-block";
+    }
+
+    const PENDING_QUEUE_KEY = "ueeh_u3_gamificacion_pending_queue";
+    const SENT_KEY = "ueeh_u3_gamificacion_enviado";
+    const MAIN_RESULT_KEY = "ueeh_unidad3_result_gamificacion";
+
+    function mostrarMensajePendiente() {
+      const el = document.getElementById("estado-envio");
+      if(el) {
+        el.innerHTML = "⏳ No hay conexión a internet. Tu resultado quedó guardado en este dispositivo y se enviará automáticamente cuando vuelva la conexión.";
+        el.className = "envio-enviando";
+        el.style.display = "block";
+      }
+      const retryBtn = document.getElementById("retry-submit-btn");
+      if (retryBtn) retryBtn.style.display = "inline-block";
+    }
+
+    function checkPendingQueue() {
+      const pendingData = localStorage.getItem(PENDING_QUEUE_KEY);
+      if (!pendingData) return;
+      if (navigator.onLine === false) return;
+
+      const payload = JSON.parse(pendingData);
+      const statusEl = document.getElementById("submit-status");
+      if (statusEl) statusEl.textContent = "Conexión recuperada. Intentando enviar tu resultado pendiente...";
+      mostrarEnviando();
+
+      enviarNota(payload, function(response) {
+        resultSubmitted = true;
+        localStorage.setItem(SENT_KEY, "true");
+        localStorage.removeItem(PENDING_QUEUE_KEY);
+
+        const mainResultVal = localStorage.getItem(MAIN_RESULT_KEY);
+        if (mainResultVal) {
+          const res = JSON.parse(mainResultVal);
+          res.enviadoSheets = true;
+          res.pendienteEnvio = false;
+          res.hojaSheets = response.sheet;
+          res.filaSheets = response.row;
+          localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify(res));
+        }
+
+        if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_3, fila ${response.row}.`;
+        mostrarExito(response.sheet, response.row);
+      }, function(msg) {
+        if (statusEl) statusEl.textContent = "Error al intentar retransmitir: " + msg;
+        mostrarError(msg);
+      });
+    }
+
+    window.addEventListener('online', checkPendingQueue);
+
+    function mostrarPantallaFinalDesdeLocalStorage() {
+      const mainResultVal = localStorage.getItem(MAIN_RESULT_KEY);
+      if (!mainResultVal) {
+        showScreen('startScreen');
+        return;
+      }
+
+      const res = JSON.parse(mainResultVal);
+      const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+
+      document.getElementById('finalScoreNum').textContent = Math.round(res.notaFinal * 8) || 0;
+      document.getElementById('sumCorrect').textContent = res.numeroEjercicios - res.erroresEjercicios || 0;
+      const pct = res.porcentajeFinal || 0;
+      document.getElementById('sumPercent').textContent = pct + '%';
+
+      const starsCount = res.starsCount || (pct >= 90 ? 3 : pct >= 60 ? 2 : 1);
+      document.getElementById('sumStars').textContent = '⭐'.repeat(starsCount);
+
+      let perfClass, perfText;
+      if(pct >= 90) { perfClass='badge-expert'; perfText='🏅 EXPERTO'; }
+      else if(pct >= 70) { perfClass='badge-achieved'; perfText='✅ LOGRADO'; }
+      else if(pct >= 40) { perfClass='badge-process'; perfText='📖 EN PROCESO'; }
+      else { perfClass='badge-review'; perfText='🔄 NECESITA REFUERZO'; }
+
+      const badge = document.getElementById('performanceBadge');
+      if (badge) {
+        badge.className = `performance-badge ${perfClass}`;
+        badge.textContent = perfText;
+      }
+
+      const btnGroup = document.querySelector('#finalScreen .btn-group');
+      if (btnGroup) {
+        const replayBtn = btnGroup.querySelector('button[onclick="restartGame()"]');
+        if (replayBtn) replayBtn.style.display = 'none';
+      }
+
+      showScreen('finalScreen');
+
+      if (pending) {
+        mostrarMensajePendiente();
+      } else {
+        mostrarExito(res.hojaSheets || SHEET_NAME, res.filaSheets || "Registrado");
+      }
     }
 
     function submitResultToSheets(summary) {
@@ -929,58 +1024,78 @@ body { min-height: 100dvh; }
 
       const payload = {
         hoja: SHEET_NAME,
-        idEnvio: crearIdEnvio(student.nombre, "gamificacion"),
+        idEnvio: (summary && summary.idEnvio) || crearIdEnvio(student.nombre, "gamificacion"),
         nombre: student.nombre,
         curso: student.curso,
         paralelo: student.paralelo,
         tema: "Operaciones con matrices",
         tipoActividad: "Gamificación - Selva Matricial",
-        numeroEjercicios: String(summary.ejerciciosResueltos),
-        puntajeInicial: summary.notaFinal.toFixed(2),
-        promedioInicial: summary.notaFinal.toFixed(2),
-        recuperacionHabilitada: summary.notaFinal < 7 ? "SI" : "NO",
+        numeroEjercicios: String(summary ? summary.ejerciciosResueltos : 8),
+        puntajeInicial: (summary ? summary.notaFinal : 0).toFixed(2),
+        promedioInicial: (summary ? summary.notaFinal : 0).toFixed(2),
+        recuperacionHabilitada: (summary ? summary.notaFinal : 0) < 7 ? "SI" : "NO",
         promedioRecuperacion: "",
-        notaFinal: summary.notaFinal.toFixed(2),
-        porcentajeFinal: String(summary.porcentajeFinal),
-        nivel: summary.nivel,
-        estado: summary.estado,
+        notaFinal: (summary ? summary.notaFinal : 0).toFixed(2),
+        porcentajeFinal: String(summary ? summary.porcentajeFinal : 0),
+        nivel: summary ? summary.nivel : "En proceso",
+        estado: summary ? summary.estado : "Completado",
         fechaLimite: "",
-        observacion: summary.observacion,
+        observacion: summary ? summary.observacion : "",
         userAgent: navigator.userAgent || "",
         urlOrigen: location.href || "",
         fechaCliente: new Date().toISOString()
       };
 
+      const starsCount = Math.max(gameState.stars.reduce((a,b)=>a+b,0),1);
+
       const unit3GameSummary = {
         tipoActividad: "Gamificación",
         tema: "Operaciones con matrices",
-        notaFinal: Number(summary.notaFinal.toFixed(2)),
-        porcentajeFinal: summary.porcentajeFinal,
-        nivel: summary.nivel,
+        notaFinal: Number((summary ? summary.notaFinal : 0).toFixed(2)),
+        porcentajeFinal: summary ? summary.porcentajeFinal : 0,
+        nivel: summary ? summary.nivel : "En proceso",
         estado: "Completado",
-        numeroEjercicios: summary.ejerciciosResueltos,
-        intentos: summary.intentos,
-        erroresEjercicios: summary.erroresEjercicios,
-        observacion: summary.observacion,
+        numeroEjercicios: summary ? summary.ejerciciosResueltos : 8,
+        intentos: summary ? summary.intentos : 8,
+        erroresEjercicios: summary ? summary.erroresEjercicios : 0,
+        observacion: summary ? summary.observacion : "",
         fecha: new Date().toISOString(),
-        idEnvio: payload.idEnvio
+        idEnvio: payload.idEnvio,
+        starsCount: starsCount
       };
+
+      if (navigator.onLine === false) {
+        localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...unit3GameSummary, enviadoSheets: false, pendienteEnvio: true }));
+        mostrarMensajePendiente();
+        return;
+      }
 
       enviarNota(payload, function(response){
         resultSubmitted=true;
-        localStorage.setItem("ueeh_unidad3_result_gamificacion", JSON.stringify({ ...unit3GameSummary, enviadoSheets:true, pendienteEnvio:false, hojaSheets:response.sheet, filaSheets:response.row, idEnvio:payload.idEnvio }));
+        localStorage.setItem(SENT_KEY, "true");
+        localStorage.removeItem(PENDING_QUEUE_KEY);
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...unit3GameSummary, enviadoSheets:true, pendienteEnvio:false, hojaSheets:response.sheet, filaSheets:response.row, idEnvio:payload.idEnvio }));
         if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_3, fila ${response.row}.`;
         mostrarExito(response.sheet, response.row);
       }, function(msg){
         resultSubmitted=false;
-        localStorage.setItem("ueeh_unidad3_result_gamificacion", JSON.stringify({ ...unit3GameSummary, enviadoSheets:false, pendienteEnvio:true }));
-        if (statusEl) statusEl.textContent = "No se pudo enviar. Puedes reintentar.";
+        localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...unit3GameSummary, enviadoSheets:false, pendienteEnvio:true }));
+        if (statusEl) statusEl.textContent = "No se pudo enviar. Se guardó para enviar cuando vuelva la conexión.";
         mostrarError(msg);
       });
     }
 
     function reintentarEnvio() {
-      if (lastSummary) submitResultToSheets(lastSummary);
+      const pendingData = localStorage.getItem(PENDING_QUEUE_KEY);
+      if (pendingData) {
+        checkPendingQueue();
+      } else if (lastSummary) {
+        submitResultToSheets(lastSummary);
+      } else {
+        mostrarError("No se encontró ningún resultado pendiente para enviar. Por favor recarga.");
+      }
     }
 
 /* =============================================
@@ -1627,7 +1742,18 @@ function spawnPointParticle(text, color='gold') {
   setTimeout(()=>p.remove(), 1200);
 }
 
-window.addEventListener('load', ()=>{ showScreen('startScreen'); });
+window.addEventListener('load', comprobarEstadoInicial);
+
+function comprobarEstadoInicial() {
+  const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+  const enviado = localStorage.getItem(SENT_KEY) === "true";
+  
+  if (pending || enviado) {
+    mostrarPantallaFinalDesdeLocalStorage();
+  } else {
+    showScreen('startScreen');
+  }
+}
 </script>
 </body>
 </html>
