@@ -1026,9 +1026,63 @@
       };
     }
 
+    const PENDING_QUEUE_KEY = "ueeh_u3_deber_pending_queue";
+    const SENT_KEY = "ueeh_u3_deber_enviado";
+    const MAIN_RESULT_KEY = "ueeh_unidad3_result_deber";
+
+    function mostrarMensajePendiente() {
+      const el = document.getElementById("estado-envio");
+      if (el) {
+        el.innerHTML = "⏳ No hay conexión a internet. Tu resultado quedó guardado en este dispositivo y se enviará automáticamente cuando vuelva la conexión.";
+        el.className = "envio-enviando";
+        el.style.display = "block";
+      }
+      showSend("No hay conexión a internet. Tu resultado quedó guardado en este dispositivo y se enviará automáticamente cuando vuelva la conexión.", "bad");
+      const retryBtn = document.getElementById("btn-reintentar");
+      if (retryBtn) retryBtn.style.display = "inline-block";
+    }
+
+    function checkPendingQueue() {
+      const pendingData = localStorage.getItem(PENDING_QUEUE_KEY);
+      if (!pendingData) return;
+      if (navigator.onLine === false) return;
+
+      const payload = JSON.parse(pendingData);
+      mostrarEnviando();
+
+      enviarNota(payload, function (response) {
+        state.sent = true;
+        localStorage.setItem(SENT_KEY, "true");
+        localStorage.setItem(STORAGE_KEY_SENT, "true");
+        localStorage.removeItem(PENDING_QUEUE_KEY);
+        localStorage.removeItem(STORAGE_KEY_PROGRESS);
+
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({
+          ...payload,
+          enviadoSheets: true,
+          pendienteEnvio: false,
+          hojaSheets: response.sheet,
+          filaSheets: response.row,
+          idEnvio: payload.idEnvio,
+          fecha: new Date().toISOString()
+        }));
+
+        mostrarExito(response.sheet, response.row);
+        showSend(`Resumen enviado correctamente a Deb_Uni_3, fila ${response.row}.`, "ok");
+        blockAll();
+      }, function (msg) {
+        mostrarError(msg);
+        showSend("No se pudo enviar todavía. El resultado seguirá guardado para intentarlo nuevamente.", "bad");
+      });
+    }
+
+    window.addEventListener('online', checkPendingQueue);
+
     function sendSummary() {
-      if (state.sent || localStorage.getItem(STORAGE_KEY_SENT) === "true") {
-        showSend("Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.", "ok");
+      const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+      const enviado = localStorage.getItem(SENT_KEY) === "true" || localStorage.getItem(STORAGE_KEY_SENT) === "true";
+      if (pending || enviado) {
+        showSend("Resumen enviado o pendiente de envío. Ya no puedes modificar ni reenviar la tarea.", "ok");
         blockAll();
         return;
       }
@@ -1040,26 +1094,41 @@
       const payload = construirPayloadDeber();
       mostrarEnviando();
 
+      if (navigator.onLine === false) {
+        state.sent = true;
+        localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...payload, enviadoSheets: false, pendienteEnvio: true, fecha: new Date().toISOString() }));
+        mostrarMensajePendiente();
+        blockAll();
+        return;
+      }
+
       enviarNota(payload, function (response) {
         state.sent = true;
+        localStorage.setItem(SENT_KEY, "true");
         localStorage.setItem(STORAGE_KEY_SENT, "true");
         localStorage.removeItem(STORAGE_KEY_PROGRESS);
-        localStorage.setItem("ueeh_unidad3_result_deber", JSON.stringify({ ...payload, enviadoSheets: true, pendienteEnvio: false, hojaSheets: response.sheet, filaSheets: response.row, idEnvio: payload.idEnvio, fecha: new Date().toISOString() }));
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...payload, enviadoSheets: true, pendienteEnvio: false, hojaSheets: response.sheet, filaSheets: response.row, idEnvio: payload.idEnvio, fecha: new Date().toISOString() }));
         mostrarExito(response.sheet, response.row);
         showSend(`Resumen enviado correctamente a Deb_Uni_3, fila ${response.row}.`, "ok");
         blockAll();
-        saveProgress();
       }, function (msg) {
-        state.sent = false;
-        localStorage.setItem("ueeh_unidad3_result_deber", JSON.stringify({ ...payload, enviadoSheets: false, pendienteEnvio: true, fecha: new Date().toISOString() }));
+        state.sent = true;
+        localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...payload, enviadoSheets: false, pendienteEnvio: true, fecha: new Date().toISOString() }));
         mostrarError(msg);
-        showSend("No se pudo enviar. Puedes reintentar.", "bad");
-        saveProgress();
+        showSend("No se pudo enviar. Tu resultado quedó guardado en este dispositivo y se enviará automáticamente cuando vuelva la conexión.", "bad");
+        blockAll();
       });
     }
 
     function reintentarEnvio() {
-      sendSummary();
+      const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+      if (pending) {
+        checkPendingQueue();
+      } else {
+        sendSummary();
+      }
     }
 
     function showSend(msg, type) {
@@ -1176,10 +1245,23 @@
         $("sideNotice").className = "notice ok show";
       }
 
-      if (localStorage.getItem(STORAGE_KEY_SENT) === "true") {
+      const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+      const enviado = localStorage.getItem(SENT_KEY) === "true" || localStorage.getItem(STORAGE_KEY_SENT) === "true";
+      if (pending || enviado) {
         state.sent = true;
-        showSend("Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.", "ok");
         blockAll();
+        if (pending) {
+          mostrarMensajePendiente();
+          checkPendingQueue();
+        } else {
+          const mainResultVal = localStorage.getItem(MAIN_RESULT_KEY);
+          if (mainResultVal) {
+            const res = JSON.parse(mainResultVal);
+            mostrarExito(res.hojaSheets || SHEET_NAME, res.filaSheets || "Registrado");
+          } else {
+            showSend("Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.", "ok");
+          }
+        }
       }
       setTimeout(typeset, 800);
     }

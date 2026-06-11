@@ -1322,6 +1322,7 @@
       updateHud();
       renderMath();
       $("#sound-toggle").addEventListener("click", toggleSound);
+      comprobarEstadoInicial();
     });
 
     function initAudio() {
@@ -1719,6 +1720,85 @@
     function mostrarExito(sheet, row) { const el = document.getElementById("estado-envio"); el.innerHTML = "✓ Nota registrada correctamente.<br><small>Hoja: <strong>" + sheet + "</strong> | Fila: <strong>" + row + "</strong></small>"; el.className = "envio-ok"; el.style.display = "block"; document.getElementById("btn-reintentar").style.display = "none"; }
     function mostrarError(msg) { const el = document.getElementById("estado-envio"); el.innerHTML = "✗ " + msg; el.className = "envio-error"; el.style.display = "block"; document.getElementById("btn-reintentar").style.display = "inline-block"; }
 
+    const PENDING_QUEUE_KEY = "ueeh_u2_gamificacion_pending_queue";
+    const SENT_KEY = "ueeh_u2_gamificacion_enviado";
+    const MAIN_RESULT_KEY = "ueeh_unidad2_result_gamificacion";
+
+    function mostrarMensajePendiente() {
+      const el = document.getElementById("estado-envio");
+      if(el) {
+        el.innerHTML = "⏳ No hay conexión a internet. Tu resultado quedó guardado en este dispositivo y se enviará automáticamente cuando vuelva la conexión.";
+        el.className = "envio-enviando";
+        el.style.display = "block";
+      }
+      const statusEl = document.getElementById("submit-status");
+      if (statusEl) statusEl.textContent = "Sin conexión. Tu resultado se enviará automáticamente cuando vuelva el internet.";
+      const retryBtn = document.getElementById("retry-submit-btn") || document.getElementById("btn-reintentar");
+      if (retryBtn) retryBtn.style.display = "inline-block";
+    }
+
+    function checkPendingQueue() {
+      const pendingData = localStorage.getItem(PENDING_QUEUE_KEY);
+      if (!pendingData) return;
+      if (navigator.onLine === false) return;
+
+      const payload = JSON.parse(pendingData);
+      const statusEl = document.getElementById("submit-status");
+      if (statusEl) statusEl.textContent = "Conexión recuperada. Intentando enviar tu resultado pendiente...";
+      mostrarEnviando();
+
+      enviarNota(payload, function(response) {
+        resultSubmitted = true;
+        localStorage.setItem(SENT_KEY, "true");
+        localStorage.removeItem(PENDING_QUEUE_KEY);
+
+        const mainResultVal = localStorage.getItem(MAIN_RESULT_KEY);
+        if (mainResultVal) {
+          const res = JSON.parse(mainResultVal);
+          res.enviadoSheets = true;
+          res.pendienteEnvio = false;
+          res.hojaSheets = response.sheet;
+          res.filaSheets = response.row;
+          localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify(res));
+        }
+
+        if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_2, fila ${response.row}.`;
+        mostrarExito(response.sheet, response.row);
+      }, function(msg) {
+        if (statusEl) statusEl.textContent = "Error al intentar retransmitir: " + msg;
+        mostrarError(msg);
+      });
+    }
+
+    window.addEventListener('online', checkPendingQueue);
+
+    function mostrarPantallaFinalDesdeLocalStorage() {
+      const mainResultVal = localStorage.getItem(MAIN_RESULT_KEY);
+      if (!mainResultVal) {
+        showScreen('intro');
+        return;
+      }
+
+      const res = JSON.parse(mainResultVal);
+      const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+
+      document.getElementById('final-score').textContent = (res.notaFinal ?? 0).toFixed(2);
+      document.getElementById('final-level').textContent = res.nivel || 'En proceso';
+      document.getElementById('final-errors').textContent = res.erroresEjercicios ?? 0;
+      document.getElementById('final-attempts').textContent = res.intentos ?? 0;
+
+      const replayBtn = document.querySelector('#victory button[onclick="restartGame()"]');
+      if (replayBtn) replayBtn.style.display = 'none';
+
+      showScreen('victory');
+
+      if (pending) {
+        mostrarMensajePendiente();
+      } else {
+        mostrarExito(res.hojaSheets || SHEET_NAME, res.filaSheets || "Registrado");
+      }
+    }
+
     async function submitResultToSheets(summary) {
       if (resultSubmitted) return;
 
@@ -1774,19 +1854,40 @@
         idEnvio: payload.idEnvio
       };
 
+      if (navigator.onLine === false) {
+        localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...unit2GameSummary, enviadoSheets: false, pendienteEnvio: true }));
+        mostrarMensajePendiente();
+        return;
+      }
+
       enviarNota(payload, function(response){
         resultSubmitted=true;
-        localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify({ ...unit2GameSummary, enviadoSheets:true, pendienteEnvio:false, hojaSheets:response.sheet, filaSheets:response.row, idEnvio:payload.idEnvio }));
+        localStorage.setItem(SENT_KEY, "true");
+        localStorage.removeItem(PENDING_QUEUE_KEY);
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...unit2GameSummary, enviadoSheets:true, pendienteEnvio:false, hojaSheets:response.sheet, filaSheets:response.row, idEnvio:payload.idEnvio }));
         clearGameState();
         mostrarExito(response.sheet, response.row);
         if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_2, fila ${response.row}.`;
       }, function(msg){
         resultSubmitted=false;
-        localStorage.setItem("ueeh_unidad2_result_gamificacion", JSON.stringify({ ...unit2GameSummary, enviadoSheets:false, pendienteEnvio:true }));
+        localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...unit2GameSummary, enviadoSheets:false, pendienteEnvio:true }));
         mostrarError(msg);
-        if (statusEl) statusEl.textContent = "No se pudo enviar. Puedes reintentar.";
+        if (statusEl) statusEl.textContent = "No se pudo enviar. Se guardó para enviar cuando vuelva la conexión.";
         if (retryBtn) retryBtn.style.display = "inline-flex";
       });
+    }
+
+    function reintentarEnvio() {
+      const pendingData = localStorage.getItem(PENDING_QUEUE_KEY);
+      if (pendingData) {
+        checkPendingQueue();
+      } else if (lastSummary) {
+        submitResultToSheets(lastSummary);
+      } else {
+        mostrarError("No se encontró ningún resultado pendiente para enviar. Por favor recarga.");
+      }
     }
 
     function getStudentData() {
@@ -1804,10 +1905,6 @@
           localStorage.getItem("studentParallel") ||
           "A"
       };
-    }
-
-    function reintentarEnvio() {
-      if (lastSummary) submitResultToSheets(lastSummary);
     }
 
     function restartGame() {

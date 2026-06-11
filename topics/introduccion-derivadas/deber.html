@@ -282,13 +282,132 @@
     function mostrarExito(sheet, row) { const el = document.getElementById('estado-envio'); el.innerHTML = '✓ Nota registrada correctamente.<br><small>Hoja: <strong>' + sheet + '</strong> | Fila: <strong>' + row + '</strong></small>'; el.className = 'envio-ok'; el.style.display = 'block'; document.getElementById('btn-reintentar').style.display = 'none'; }
     function mostrarError(msg) { const el = document.getElementById('estado-envio'); el.innerHTML = '✗ ' + msg; el.className = 'envio-error'; el.style.display = 'block'; document.getElementById('btn-reintentar').style.display = 'inline-block'; }
     function construirPayloadDeber(){ const name=(localStorage.getItem("ueeh_student_name")||$('studentName').value.trim()).trim(); const course=(localStorage.getItem("ueeh_student_grade")||$('studentCourse').value.trim()).trim(); const parallel=(localStorage.getItem("ueeh_student_parallel")||$('studentParallel').value.trim()).trim(); const initialPoints=round2(state.exercises.reduce((a,b)=>a+b.score,0)); const final=round2(state.finalGrade); const detail=state.exercises.map(s=>`E${s.id}:${s.score}/10`).join(' | '); return {hoja:SHEET_NAME,idEnvio:crearIdEnvio(name,'deber'),nombre:name,curso:course,paralelo:parallel,tema:'Introducción a las Derivadas',tipoActividad:'Deber interactivo',numeroEjercicios:'20',puntajeInicial:String(initialPoints),promedioInicial:String(state.initialAverage),recuperacionHabilitada:state.recoveryEnabled?'Sí':'No',promedioRecuperacion:state.recoveryAverage===null?'No aplica':String(state.recoveryAverage),notaFinal:String(final),porcentajeFinal:String(round2(final*10)),nivel:levelText(final),estado:'Enviado',fechaLimite:FECHA_LIMITE,observacion:observation(final),detalleEjercicios:detail,userAgent:navigator.userAgent||'',urlOrigen:location.href||'',fechaCliente:new Date().toISOString()}; }
-    async function sendSummary(){ if(state.sent||localStorage.getItem(STORAGE_KEY_SENT)==='true'){showSend('Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.','ok');blockAll();return;} if(!state.initialFinished||(state.recoveryEnabled&&!state.recoveryFinished)){showSend('Todavía falta completar la actividad o la recuperación.','bad');return;} const payload=construirPayloadDeber(); mostrarEnviando(); enviarNota(payload,function(response){ state.sent=true; localStorage.setItem(STORAGE_KEY_SENT,'true'); localStorage.removeItem(STORAGE_KEY_PROGRESS); localStorage.setItem("ueeh_unidad2_result_deber", JSON.stringify({...payload,enviadoSheets:true,pendienteEnvio:false,hojaSheets:response.sheet,filaSheets:response.row,idEnvio:payload.idEnvio,fecha:new Date().toISOString()})); mostrarExito(response.sheet, response.row); showSend(`Resumen enviado correctamente a Deb_Uni_2, fila ${response.row}.`,'ok'); blockAll(); saveProgress(); },function(msg){ state.sent=false; localStorage.setItem("ueeh_unidad2_result_deber", JSON.stringify({...payload,enviadoSheets:false,pendienteEnvio:true,fecha:new Date().toISOString()})); mostrarError(msg); showSend('No se pudo enviar. Puedes reintentar.','bad'); saveProgress(); });}
-    function reintentarEnvio(){ sendSummary(); }
+    const PENDING_QUEUE_KEY = "ueeh_u2_deber_pending_queue";
+    const SENT_KEY = "ueeh_u2_deber_enviado";
+    const MAIN_RESULT_KEY = "ueeh_unidad2_result_deber";
+
+    function mostrarMensajePendiente() {
+      const el = document.getElementById("estado-envio");
+      if (el) {
+        el.innerHTML = "⏳ No hay conexión a internet. Tu resultado quedó guardado en este dispositivo y se enviará automáticamente cuando vuelva la conexión.";
+        el.className = "envio-enviando";
+        el.style.display = "block";
+      }
+      showSend("No hay conexión a internet. Tu resultado quedó guardado en este dispositivo y se enviará automáticamente cuando vuelva la conexión.", "bad");
+      const retryBtn = document.getElementById("btn-reintentar");
+      if (retryBtn) retryBtn.style.display = "inline-block";
+    }
+
+    function checkPendingQueue() {
+      const pendingData = localStorage.getItem(PENDING_QUEUE_KEY);
+      if (!pendingData) return;
+      if (navigator.onLine === false) return;
+
+      const payload = JSON.parse(pendingData);
+      mostrarEnviando();
+
+      enviarNota(payload, function (response) {
+        state.sent = true;
+        localStorage.setItem(SENT_KEY, "true");
+        localStorage.setItem(STORAGE_KEY_SENT, "true");
+        localStorage.removeItem(PENDING_QUEUE_KEY);
+        localStorage.removeItem(STORAGE_KEY_PROGRESS);
+
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({
+          ...payload,
+          enviadoSheets: true,
+          pendienteEnvio: false,
+          hojaSheets: response.sheet,
+          filaSheets: response.row,
+          idEnvio: payload.idEnvio,
+          fecha: new Date().toISOString()
+        }));
+
+        mostrarExito(response.sheet, response.row);
+        showSend(`Resumen enviado correctamente a Deb_Uni_2, fila ${response.row}.`, "ok");
+        blockAll();
+      }, function (msg) {
+        mostrarError(msg);
+        showSend("No se pudo enviar todavía. El resultado seguirá guardado para intentarlo nuevamente.", "bad");
+      });
+    }
+
+    window.addEventListener('online', checkPendingQueue);
+
+    async function sendSummary(){
+      const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+      const enviado = localStorage.getItem(SENT_KEY) === "true" || localStorage.getItem(STORAGE_KEY_SENT) === "true";
+      if (pending || enviado) {
+        showSend("Resumen enviado o pendiente de envío. Ya no puedes modificar ni reenviar la tarea.", "ok");
+        blockAll();
+        return;
+      }
+      if(!state.initialFinished||(state.recoveryEnabled&&!state.recoveryFinished)){showSend('Todavía falta completar la actividad o la recuperación.','bad');return;}
+
+      const payload=construirPayloadDeber();
+      mostrarEnviando();
+
+      if (navigator.onLine === false) {
+        state.sent = true;
+        localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...payload, enviadoSheets: false, pendienteEnvio: true, fecha: new Date().toISOString() }));
+        mostrarMensajePendiente();
+        blockAll();
+        return;
+      }
+
+      enviarNota(payload,function(response){
+        state.sent=true;
+        localStorage.setItem(SENT_KEY, "true");
+        localStorage.setItem(STORAGE_KEY_SENT,'true');
+        localStorage.removeItem(STORAGE_KEY_PROGRESS);
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({...payload,enviadoSheets:true,pendienteEnvio:false,hojaSheets:response.sheet,filaSheets:response.row,idEnvio:payload.idEnvio,fecha:new Date().toISOString()}));
+        mostrarExito(response.sheet, response.row);
+        showSend(`Resumen enviado correctamente a Deb_Uni_2, fila ${response.row}.`,'ok');
+        blockAll();
+      },function(msg){
+        state.sent=true;
+        localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({...payload,enviadoSheets:false,pendienteEnvio:true,fecha:new Date().toISOString()}));
+        mostrarError(msg);
+        showSend("No se pudo enviar. Tu resultado quedó guardado en este dispositivo y se enviará automáticamente cuando vuelva la conexión.", "bad");
+        blockAll();
+      });
+    }
+
+    function reintentarEnvio(){
+      const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+      if (pending) {
+        checkPendingQueue();
+      } else {
+        sendSummary();
+      }
+    }
     function showSend(msg,type){const n=$('sendNotice');n.textContent=msg;n.className=`notice show ${type}`;}
     function blockAll(){document.querySelectorAll('input,button,select').forEach(el=>el.disabled=true);}
     function saveProgress(){try{const optionOrderByExercise={}; state.exercises.forEach((st)=>{ if(Array.isArray(st.mcqOptions)&&st.mcqOptions.length){ optionOrderByExercise[st.id]=st.mcqOptions.map((op)=>op.originalIndex); } }); localStorage.setItem(STORAGE_KEY_PROGRESS,JSON.stringify({version:HOMEWORK_VERSION,currentId,selectedAnswers,optionOrderByExercise,state:{...state,exercises:state.exercises.map((e)=>({id:e.id,attempts:e.attempts,closed:e.closed,score:e.score,correct:e.correct,lastCorrect:e.lastCorrect}))},studentName:$('studentName')?.value||'',studentCourse:$('studentCourse')?.value||'',studentParallel:$('studentParallel')?.value||'',savedAt:new Date().toISOString()}));}catch{}}
     function loadProgress(){try{const raw=localStorage.getItem(STORAGE_KEY_PROGRESS); if(!raw)return false; const saved=JSON.parse(raw); if(!saved||!saved.state)return false; if(saved.version!==HOMEWORK_VERSION){ localStorage.removeItem(STORAGE_KEY_PROGRESS); return false; } currentId=Number(saved.currentId||1); state.sent=Boolean(saved.state.sent); state.initialFinished=Boolean(saved.state.initialFinished); state.recoveryEnabled=Boolean(saved.state.recoveryEnabled); state.recoveryFinished=Boolean(saved.state.recoveryFinished); state.initialAverage=Number(saved.state.initialAverage||0); state.recoveryAverage=saved.state.recoveryAverage ?? null; state.finalGrade=Number(saved.state.finalGrade||0); if(Array.isArray(saved.state.exercises)){ saved.state.exercises.forEach((se)=>{ const st=getState(se.id); if(st){ st.attempts=Number(se.attempts||0); st.closed=Boolean(se.closed); st.score=Number(se.score||0); st.correct=Boolean(se.correct); st.lastCorrect=Number(se.lastCorrect||0);} }); } if(Array.isArray(saved.state.recovery)){ saved.state.recovery.forEach((sr,idx)=>{ const st=state.recovery[idx]; if(st){ st.attempts=Number(sr.attempts||0); st.closed=Boolean(sr.closed); st.score=Number(sr.score||0); st.correct=Boolean(sr.correct);} }); } Object.keys(selectedAnswers).forEach((k)=>delete selectedAnswers[k]); if(saved.selectedAnswers&&typeof saved.selectedAnswers==='object'){ Object.entries(saved.selectedAnswers).forEach(([k,v])=>{ selectedAnswers[k]=v; }); } if(saved.studentName)$('studentName').value=saved.studentName; if(saved.studentCourse)$('studentCourse').value=saved.studentCourse; if(saved.studentParallel)$('studentParallel').value=saved.studentParallel; return true;}catch{localStorage.removeItem(STORAGE_KEY_PROGRESS);return false;}}
-    function init(){ const appName=localStorage.getItem("ueeh_student_name"), appCourse=localStorage.getItem("ueeh_student_grade"), appParallel=localStorage.getItem("ueeh_student_parallel"); if(appName)$('studentName').value=appName; if(appCourse)$('studentCourse').value=appCourse; if(appParallel)$('studentParallel').value=appParallel; const recovered=loadProgress(); exercises.forEach((e)=>{ const st=getState(e.id); st.mcqOptions=buildMcqOptions(e); }); renderExerciseGrid(); renderStats(); renderExercise(); updateSummary(); if(recovered&&$('sideNotice')){ $('sideNotice').textContent='Avance recuperado. Puedes continuar desde donde te quedaste.'; $('sideNotice').className='notice ok show'; } if(localStorage.getItem(STORAGE_KEY_SENT)==='true'){state.sent=true; showSend('Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.','ok'); blockAll();} setTimeout(typeset,700);}
+    function init(){ const appName=localStorage.getItem("ueeh_student_name"), appCourse=localStorage.getItem("ueeh_student_grade"), appParallel=localStorage.getItem("ueeh_student_parallel"); if(appName)$('studentName').value=appName; if(appCourse)$('studentCourse').value=appCourse; if(appParallel)$('studentParallel').value=appParallel; const recovered=loadProgress(); exercises.forEach((e)=>{ const st=getState(e.id); st.mcqOptions=buildMcqOptions(e); }); renderExerciseGrid(); renderStats(); renderExercise(); updateSummary(); if(recovered&&$('sideNotice')){ $('sideNotice').textContent='Avance recuperado. Puedes continuar desde donde te quedaste.'; $('sideNotice').className='notice ok show'; }
+      const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+      const enviado = localStorage.getItem(SENT_KEY) === "true" || localStorage.getItem(STORAGE_KEY_SENT) === "true";
+      if (pending || enviado) {
+        state.sent = true;
+        blockAll();
+        if (pending) {
+          mostrarMensajePendiente();
+          checkPendingQueue();
+        } else {
+          const mainResultVal = localStorage.getItem(MAIN_RESULT_KEY);
+          if (mainResultVal) {
+            const res = JSON.parse(mainResultVal);
+            mostrarExito(res.hojaSheets || SHEET_NAME, res.filaSheets || "Registrado");
+          } else {
+            showSend("Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.", "ok");
+          }
+        }
+      }
+      setTimeout(typeset,700);
+    }
     document.addEventListener('DOMContentLoaded',init);
   </script>
 </body>
