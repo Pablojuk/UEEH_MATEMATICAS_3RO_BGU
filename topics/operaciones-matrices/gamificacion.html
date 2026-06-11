@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Selva Matricial – Aventura Matemática</title>
+
+<!-- MathJax para expresiones matemáticas (Corregido y optimizado) -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)'], ['$', '$']],
+    displayMath: [['\\[', '\\]']]
+  },
+  svg: { fontCache: 'global' },
+  startup: { typeset: false } // Evita renderizado prematuro
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+<style>
+/* =============================================
+   VARIABLES EDITABLES DE COLOR Y TEMA
+   ============================================= */
+:root {
+  --jungle-dark:    #1a3a2a;
+  --jungle-mid:     #2d6a4f;
+  --jungle-light:   #52b788;
+  --jungle-bright:  #95d5b2;
+  --jungle-pale:    #d8f3dc;
+  --leaf-yellow:    #e9c46a;
+  --leaf-orange:    #f4a261;
+  --leaf-red:       #e76f51;
+  --sky-blue:       #a8dadc;
+  --sky-light:      #e0f7fa;
+  --gold:           #ffd700;
+  --gold-dark:      #c8a600;
+  --white:          #ffffff;
+  --text-dark:      #1a2e1a;
+  --text-mid:       #2d5016;
+  --correct-green:  #52b788;
+  --wrong-red:      #e63946;
+  --hint-blue:      #4361ee;
+  --panel-bg:       rgba(255,255,255,0.95);
+  --shadow:         0 4px 24px rgba(0,0,0,0.18);
+  --radius:         18px;
+  --font-main:      'Segoe UI', 'Nunito', Arial, sans-serif;
+}
+
+/* =============================================
+   RESET Y BASE
+   ============================================= */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: var(--font-main);
+  background: var(--jungle-dark);
+  touch-action: none; /* Previene scroll táctil durante el juego */
+}
+body { min-height: 100dvh; }
+
+/* =============================================
+   CONTENEDOR PRINCIPAL DE PANTALLAS
+   ============================================= */
+#uiLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* =============================================
+   PANTALLAS GENERALES
+   ============================================= */
+.screen {
+  display: none;
+  width: 100%;
+  min-height: 100dvh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+.screen.active { display: flex; }
+
+/* =============================================
+   PANTALLA DE INICIO
+   ============================================= */
+#startScreen {
+  background: linear-gradient(160deg, #0d2b1a 0%, #1a3a2a 40%, #2d6a4f 100%);
+  position: relative;
+  overflow: hidden;
+}
+.jungle-bg-deco {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  overflow: hidden;
+}
+.leaf { position: absolute; font-size: clamp(2rem, 8vw, 5rem); opacity: 0.18; animation: sway 4s ease-in-out infinite; }
+.leaf:nth-child(1){ top:5%; left:3%; animation-delay:0s; }
+.leaf:nth-child(2){ top:10%; right:5%; animation-delay:0.8s; font-size: clamp(3rem,10vw,7rem); }
+.leaf:nth-child(3){ bottom:8%; left:1%; animation-delay:1.5s; }
+.leaf:nth-child(4){ bottom:12%; right:2%; animation-delay:0.4s; font-size: clamp(3rem,10vw,6rem); }
+.leaf:nth-child(5){ top:40%; left:0%; animation-delay:2s; font-size: clamp(2rem,6vw,4rem); }
+.leaf:nth-child(6){ top:55%; right:0%; animation-delay:1.2s; }
+@keyframes sway { 0%,100%{transform:rotate(-8deg) scale(1);} 50%{transform:rotate(8deg) scale(1.06);} }
+
+.start-content {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: clamp(12px, 3vw, 24px);
+  width: 100%; max-width: 480px;
+  padding: 20px 12px;
+}
+.game-logo {
+  font-size: clamp(2.2rem, 8vw, 3.8rem);
+  font-weight: 900;
+  text-align: center;
+  color: var(--leaf-yellow);
+  text-shadow: 3px 3px 0 var(--gold-dark), 0 6px 20px rgba(0,0,0,0.5);
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+.game-subtitle {
+  font-size: clamp(0.85rem, 3vw, 1.1rem);
+  color: var(--jungle-bright);
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.hero-emoji {
+  font-size: clamp(4rem, 15vw, 8rem);
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+  animation: bounce 1.2s ease-in-out infinite;
+}
+@keyframes bounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+
+.info-box {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+  padding: 12px 20px;
+  color: var(--jungle-bright);
+  font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+  text-align: center;
+  width: 100%;
+}
+.info-box strong { color: var(--leaf-yellow); }
+
+.btn-group { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+
+/* =============================================
+   BOTONES
+   ============================================= */
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 52px;
+  padding: 12px 24px;
+  border: none; border-radius: 50px;
+  font-size: clamp(0.95rem, 3vw, 1.1rem);
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.12s, box-shadow 0.12s;
+  letter-spacing: 0.5px;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.96); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--leaf-yellow), var(--leaf-orange));
+  color: var(--text-dark);
+  box-shadow: 0 4px 16px rgba(244,162,97,0.4);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(244,162,97,0.5); }
+.btn-secondary {
+  background: rgba(255,255,255,0.1);
+  color: var(--jungle-bright);
+  border: 2px solid rgba(255,255,255,0.2);
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.18); }
+.btn-success {
+  background: linear-gradient(135deg, #52b788, #2d6a4f);
+  color: white;
+  box-shadow: 0 4px 16px rgba(82,183,136,0.4);
+}
+.btn-danger {
+  background: linear-gradient(135deg, #e63946, #c1121f);
+  color: white;
+  box-shadow: 0 4px 12px rgba(230,57,70,0.4);
+}
+.btn-hint {
+  background: linear-gradient(135deg, #4361ee, #3a0ca3);
+  color: white;
+  box-shadow: 0 3px 12px rgba(67,97,238,0.4);
+  min-height: 44px;
+  font-size: clamp(0.82rem, 2.5vw, 0.95rem);
+}
+.btn-sm {
+  min-height: 44px;
+  padding: 10px 18px;
+  font-size: clamp(0.8rem, 2.5vw, 0.92rem);
+}
+
+/* =============================================
+   PANTALLA DE INSTRUCCIONES
+   ============================================= */
+#instructionsScreen {
+  background: linear-gradient(160deg, #0d2b1a, #1a3a2a);
+}
+.instructions-panel {
+  background: var(--panel-bg);
+  border-radius: var(--radius);
+  padding: clamp(16px, 4vw, 28px);
+  width: 100%; max-width: 520px;
+  box-shadow: var(--shadow);
+  color: var(--text-dark);
+}
+.instructions-panel h2 {
+  font-size: clamp(1.3rem, 4vw, 1.7rem);
+  color: var(--jungle-mid);
+  margin-bottom: 14px;
+  text-align: center;
+  font-weight: 900;
+}
+.inst-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e8f5e9;
+  font-size: clamp(0.83rem, 2.5vw, 0.95rem);
+}
+.inst-item:last-of-type { border-bottom: none; }
+.inst-icon { font-size: 1.6rem; flex-shrink: 0; }
+.inst-text strong { color: var(--jungle-mid); display: block; margin-bottom: 2px; }
+
+/* =============================================
+   HUD DEL JUEGO
+   ============================================= */
+#gameHUD {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  background: linear-gradient(90deg, rgba(13,43,26,0.95), rgba(45,106,79,0.95));
+  padding: 8px 16px;
+  padding-top: max(8px, env(safe-area-inset-top));
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  border-bottom: 2px solid var(--jungle-light);
+  flex-wrap: wrap;
+}
+#gameHUD.hidden { display: none !important; }
+.hud-block {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 0;
+}
+.hud-label {
+  font-size: clamp(0.58rem, 1.8vw, 0.72rem);
+  color: var(--jungle-bright);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+.hud-value {
+  font-size: clamp(1rem, 3.5vw, 1.3rem);
+  color: var(--leaf-yellow);
+  font-weight: 900;
+  line-height: 1;
+}
+.hud-lives { font-size: clamp(0.9rem, 3vw, 1.1rem); }
+.progress-bar-wrap {
+  flex: 1; min-width: 80px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.progress-bar-track {
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px; height: 8px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--leaf-yellow), var(--leaf-orange));
+  border-radius: 20px;
+  transition: width 0.5s ease;
+}
+
+/* =============================================
+   ZONA DE JUEGO / PLATAFORMAS
+   ============================================= */
+#gameArea {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  padding-top: 64px;
+}
+
+/* Cielo y selva de fondo */
+#skyBg {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #87CEEB 0%, #b0e2f5 35%, #c8f0c0 60%, #4a8c4f 80%, #2d5a30 100%);
+}
+.bg-tree {
+  position: absolute; bottom: 0;
+  display: flex; flex-direction: column; align-items: center;
+  pointer-events: none;
+}
+.bg-tree .trunk {
+  background: linear-gradient(180deg, #6b4226, #4a2e1a);
+  border-radius: 4px;
+}
+.bg-tree .crown {
+  position: relative; bottom: -4px;
+}
+.bg-cloud {
+  position: absolute;
+  background: rgba(255,255,255,0.85);
+  border-radius: 50px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  animation: floatCloud linear infinite;
+}
+@keyframes floatCloud { from{transform:translateX(-120%);} to{transform:translateX(110vw);} }
+
+/* Plataformas */
+.platform {
+  position: absolute;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.platform-ground {
+  background: linear-gradient(180deg, #4caf50 0%, #388e3c 30%, #5d4037 31%, #4e342e 100%);
+  border-top: 3px solid #81c784;
+  box-shadow: 0 4px 0 #2e7d32, 0 6px 12px rgba(0,0,0,0.2);
+}
+.platform-brick {
+  background: linear-gradient(180deg, #ff8f00, #e65100);
+  border: 2px solid #bf360c;
+  box-shadow: 0 3px 0 #bf360c, 0 5px 10px rgba(0,0,0,0.2);
+}
+.platform-question {
+  background: linear-gradient(180deg, var(--leaf-yellow), #f59e0b);
+  border: 2px solid #b45309;
+  box-shadow: 0 3px 0 #b45309;
+  animation: questionPulse 1.5s ease-in-out infinite;
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  color: var(--text-dark);
+  font-weight: 900;
+}
+@keyframes questionPulse {
+  0%,100%{box-shadow: 0 3px 0 #b45309, 0 0 0 rgba(253,224,71,0);}
+  50%{box-shadow: 0 3px 0 #b45309, 0 0 16px rgba(253,224,71,0.7);}
+}
+.platform-question.answered {
+  background: linear-gradient(180deg, #9e9e9e, #616161);
+  border-color: #424242;
+  box-shadow: 0 3px 0 #424242;
+  animation: none;
+}
+.platform-checkpoint {
+  background: linear-gradient(180deg, #ab47bc, #6a1b9a);
+  border: 2px solid #4a148c;
+  box-shadow: 0 3px 0 #4a148c;
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  color: white;
+  animation: starSpin 2s linear infinite;
+}
+@keyframes starSpin { 0%{filter:hue-rotate(0deg);} 100%{filter:hue-rotate(360deg);} }
+
+/* Personaje Mario-estilo */
+#hero {
+  position: absolute;
+  font-size: clamp(2.2rem, 7vw, 3.2rem);
+  z-index: 15;
+  transform-origin: bottom center;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+  line-height: 1;
+}
+
+/* Monedas y coleccionables */
+.coin {
+  position: absolute;
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  animation: coinFloat 1.5s ease-in-out infinite;
+  z-index: 14;
+}
+@keyframes coinFloat { 0%,100%{transform:translateY(0) rotate(0deg);} 50%{transform:translateY(-8px) rotate(10deg);} }
+
+/* Controles táctiles */
+#touchControls {
+  position: fixed;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 0; right: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.touch-dpad {
+  display: flex; gap: 8px;
+  pointer-events: all;
+}
+.touch-btn {
+  width: clamp(52px, 14vw, 68px);
+  height: clamp(52px, 14vw, 68px);
+  border-radius: 50%;
+  border: none;
+  font-size: clamp(1.4rem, 4vw, 1.8rem);
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(4px);
+  border: 2px solid rgba(255,255,255,0.3);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: white;
+  font-weight: 900;
+  user-select: none;
+}
+.touch-btn:active { background: rgba(255,255,255,0.35); transform: scale(0.93); }
+.touch-btn-jump {
+  background: rgba(253,224,71,0.25);
+  border-color: rgba(253,224,71,0.5);
+  pointer-events: all;
+}
+
+/* =============================================
+   MODAL DE EJERCICIO MATEMÁTICO
+   ============================================= */
+#mathModal {
+  display: none;
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,0.65);
+  align-items: center; justify-content: center;
+  padding: 12px;
+  overflow-y: auto;
+}
+#mathModal.open { display: flex; }
+.math-panel {
+  background: white;
+  border-radius: var(--radius);
+  width: 100%; max-width: 580px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+  overflow: hidden;
+  max-height: 92dvh;
+  display: flex; flex-direction: column;
+}
+.math-header {
+  background: linear-gradient(135deg, var(--jungle-mid), var(--jungle-dark));
+  color: white;
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.math-header-icon { font-size: clamp(1.6rem, 5vw, 2rem); }
+.math-header h3 {
+  font-size: clamp(1rem, 3.5vw, 1.2rem);
+  font-weight: 800;
+  flex: 1;
+}
+.math-header .level-badge {
+  background: var(--leaf-yellow);
+  color: var(--text-dark);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: clamp(0.72rem, 2vw, 0.85rem);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.math-body {
+  padding: clamp(14px, 4vw, 24px);
+  overflow-y: auto;
+  flex: 1;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.exercise-statement {
+  background: var(--jungle-pale);
+  border-left: 4px solid var(--jungle-mid);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: clamp(0.88rem, 2.8vw, 1rem);
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+.exercise-statement strong { color: var(--jungle-mid); }
+.matrix-wrap {
+  overflow-x: auto;
+  padding: 8px 0;
+  text-align: center;
+}
+/* Opciones de respuesta múltiple */
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 10px;
+}
+.option-btn {
+  background: white;
+  border: 2px solid #c8e6c9;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: clamp(0.82rem, 2.5vw, 0.95rem);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.5;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  overflow-x: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.option-btn:hover { border-color: var(--jungle-light); background: #f1f8f2; }
+.option-btn:active { transform: scale(0.97); }
+.option-btn.correct { border-color: var(--correct-green); background: #e8f5e9; }
+.option-btn.wrong { border-color: var(--wrong-red); background: #ffebee; }
+.option-btn:disabled { cursor: default; }
+
+/* Feedback */
+.feedback-box {
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+  line-height: 1.6;
+  display: none;
+}
+.feedback-box.show { display: block; }
+.feedback-correct { background: #e8f5e9; border-left: 4px solid var(--correct-green); color: #1b5e20; }
+.feedback-wrong { background: #ffebee; border-left: 4px solid var(--wrong-red); color: #b71c1c; }
+.feedback-hint { background: #e8eaf6; border-left: 4px solid var(--hint-blue); color: #1a237e; }
+
+/* Solución paso a paso */
+.step-solution {
+  background: #fffde7;
+  border: 1px solid #fdd835;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: clamp(0.82rem, 2.5vw, 0.92rem);
+  line-height: 1.7;
+  display: none;
+  overflow-x: auto;
+}
+.step-solution.show { display: block; }
+.step-solution h4 { color: #f57f17; margin-bottom: 8px; font-size: clamp(0.88rem, 2.5vw, 1rem); }
+
+/* Intentos */
+.attempts-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  flex-wrap: wrap;
+}
+.attempts-dots { display: flex; gap: 6px; }
+.attempt-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #e0e0e0;
+}
+.attempt-dot.used { background: var(--wrong-red); }
+
+.math-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e8f5e9;
+  display: flex; gap: 10px; flex-wrap: wrap;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+/* =============================================
+   PANTALLAS FINALES
+   ============================================= */
+#levelCompleteScreen, #finalScreen, #narrativeScreen {
+  background: linear-gradient(160deg, #0d2b1a, #1a3a2a);
+}
+.level-complete-panel, .final-panel, .narrative-panel {
+  background: white;
+  border-radius: var(--radius);
+  padding: clamp(20px, 5vw, 36px);
+  width: 100%; max-width: 440px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.narrative-panel { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: white; }
+.narrative-panel h2 { color: var(--leaf-yellow); margin-bottom: 12px; }
+.narrative-panel p { color: var(--jungle-bright); margin-bottom: 12px; }
+
+.lc-emoji, .final-emoji { font-size: clamp(3rem, 12vw, 5rem); margin-bottom: 8px; }
+.lc-title, .final-title { font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 900; color: var(--jungle-mid); margin-bottom: 6px; }
+.stars-row { display: flex; justify-content: center; gap: 6px; font-size: clamp(1.8rem, 6vw, 2.5rem); margin-bottom: 16px; }
+.score-chip { display: inline-block; background: var(--jungle-pale); color: var(--jungle-mid); border-radius: 20px; padding: 6px 18px; font-weight: 800; margin-bottom: 16px; }
+.final-score-big { font-size: clamp(2.5rem, 8vw, 3.5rem); font-weight: 900; color: var(--leaf-orange); line-height: 1; }
+.performance-badge { display: inline-block; border-radius: 20px; padding: 8px 22px; font-weight: 800; margin: 10px 0 14px; }
+.badge-expert { background: #e8f5e9; color: #1b5e20; border: 2px solid #4caf50; }
+.badge-achieved { background: #e3f2fd; color: #0d47a1; border: 2px solid #2196f3; }
+.badge-process { background: #fff9c4; color: #f57f17; border: 2px solid #fdd835; }
+.badge-review { background: #ffebee; color: #b71c1c; border: 2px solid #ef5350; }
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.summary-item { background: var(--jungle-pale); border-radius: 12px; padding: 10px; text-align: center; }
+.summary-item .s-val { font-size: clamp(1.2rem, 4vw, 1.5rem); font-weight: 900; color: var(--jungle-mid); }
+.summary-item .s-lab { font-size: clamp(0.72rem, 2vw, 0.82rem); color: #546e7a; text-transform: uppercase; }
+
+/* =============================================
+   NOTIFICACIONES FLOTANTES
+   ============================================= */
+#toast {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+  z-index: 100; background: rgba(30,30,30,0.9); color: white;
+  padding: 10px 24px; border-radius: 50px; font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+  font-weight: 600; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+}
+#toast.show { opacity: 1; }
+.point-particle {
+  position: fixed; font-size: 1.2rem; font-weight: 900; color: var(--gold);
+  z-index: 200; pointer-events: none; animation: particleUp 1.2s ease-out forwards;
+}
+@keyframes particleUp { 0%{opacity:1; transform:translateY(0) scale(1);} 100%{opacity:0; transform:translateY(-60px) scale(0.7);} }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 10px; }
+.envio-enviando { background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-top:12px; font-weight:600; text-align:center; }
+.envio-ok       { background:#d1e7dd; color:#0f5132; padding:10px; border-radius:8px; margin-top:12px; font-weight:600; text-align:center; }
+.envio-error    { background:#f8d7da; color:#842029; padding:10px; border-radius:8px; margin-top:12px; font-weight:600; text-align:center; }
+</style>
+</head>
+<body>
+
+<!-- =============================================
+     CAPA UI (Pantallas)
+     ============================================= -->
+<div id="uiLayer">
+  <!-- PANTALLA DE INICIO -->
+  <div id="startScreen" class="screen active">
+    <div class="jungle-bg-deco">
+      <span class="leaf">🌿</span><span class="leaf">🍃</span><span class="leaf">🌴</span>
+      <span class="leaf">🌱</span><span class="leaf">🎋</span><span class="leaf">🌾</span>
+    </div>
+    <div class="start-content">
+      <div class="game-logo">🌴 Selva Matricial 🌴</div>
+      <div class="game-subtitle">Aventura Matemática · 3° BGU</div>
+      <div class="hero-emoji">🦸</div>
+      <div class="info-box">
+        <strong>Tema:</strong> Suma y Resta de Matrices 2×2 y 3×3<br>
+        <strong>Curso:</strong> Tercero de Bachillerato General Unificado<br>
+        <strong>4 Niveles · 8 Ejercicios</strong>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="showNarrative()">🎮 ¡Iniciar Aventura!</button>
+        <button class="btn btn-secondary" onclick="showInstructions()">📖 Instrucciones</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE NARRATIVA -->
+  <div id="narrativeScreen" class="screen">
+    <div class="narrative-panel">
+      <h2>🌴 La Misión 🌴</h2>
+      <p>El sabio <strong>Mono Algebricus</strong> ha escondido el tesoro de la Selva Matricial en 4 templos sagrados.</p>
+      <p>Para abrir cada templo necesitas resolver <strong>retos de matrices</strong>. <br>¡Golpea los bloques ❓ saltando para responderlos!</p>
+      <p>🏆 Reúne monedas y demuestra que dominas las matrices.</p>
+      <div class="btn-group" style="max-width:300px; margin: 0 auto;">
+        <button class="btn btn-primary" onclick="startGame()">⚔️ ¡Comenzar!</button>
+        <button class="btn btn-secondary" onclick="showScreen('startScreen')">← Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE INSTRUCCIONES -->
+  <div id="instructionsScreen" class="screen">
+    <div class="instructions-panel">
+      <h2>📖 ¿Cómo jugar?</h2>
+      <div class="inst-item">
+        <span class="inst-icon">🎮</span>
+        <div class="inst-text"><strong>Moverse</strong> En celular: botones ← →. En PC: teclas de flecha.</div>
+      </div>
+      <div class="inst-item">
+        <span class="inst-icon">⬆️</span>
+        <div class="inst-text"><strong>Saltar</strong> Toca el botón ⬆ o presiona Espacio / flecha arriba.</div>
+      </div>
+      <div class="inst-item">
+        <span class="inst-icon">❓</span>
+        <div class="inst-text"><strong>Bloques de pregunta</strong> Salta y <b>golpea por debajo</b> los bloques dorados ❓ para resolver el ejercicio.</div>
+      </div>
+      <div class="inst-item">
+        <span class="inst-icon">🪙</span>
+        <div class="inst-text"><strong>Monedas y Bandera</strong> Atrapa las monedas saltando hacia ellas. Toca la bandera 🚩 al final para avanzar de nivel.</div>
+      </div>
+      <div class="btn-group" style="margin-top: 16px;">
+        <button class="btn btn-primary" onclick="showNarrative()">¡Entendido! 🎮</button>
+        <button class="btn btn-secondary" onclick="showScreen('startScreen')">← Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE NIVEL COMPLETADO -->
+  <div id="levelCompleteScreen" class="screen">
+    <div class="level-complete-panel">
+      <div class="lc-emoji">🎉</div>
+      <div class="lc-title" id="lcTitle">¡Nivel Completado!</div>
+      <div class="lc-subtitle" id="lcSubtitle">Has superado el templo</div>
+      <div class="stars-row" id="lcStars">⭐⭐⭐</div>
+      <div class="score-chip" id="lcScore">+20 puntos</div>
+      <div id="lcMessage" style="font-size:clamp(0.85rem,2.5vw,0.95rem);color:#546e7a;margin-bottom:16px;line-height:1.6;"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="nextLevelBtn" onclick="goNextLevel()">Siguiente Nivel →</button>
+        <button class="btn btn-secondary" onclick="restartGame()">🔄 Reiniciar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA FINAL -->
+  <div id="finalScreen" class="screen">
+    <div class="final-panel">
+      <div class="final-emoji">🏆</div>
+      <div class="final-title">¡Aventura Completada!</div>
+      <div class="final-score-big" id="finalScoreNum">0</div>
+      <div style="font-size:clamp(0.8rem,2.5vw,0.9rem);color:#546e7a;margin-bottom:8px;">puntos obtenidos</div>
+      <div class="performance-badge" id="performanceBadge">Experto</div>
+      <div class="summary-grid">
+        <div class="summary-item"><div class="s-val" id="sumCorrect">0</div><div class="s-lab">Correctas</div></div>
+        <div class="summary-item"><div class="s-val" id="sumLevels">4</div><div class="s-lab">Niveles</div></div>
+        <div class="summary-item"><div class="s-val" id="sumPercent">0%</div><div class="s-lab">Precisión</div></div>
+        <div class="summary-item"><div class="s-val" id="sumStars">⭐⭐</div><div class="s-lab">Estrellas</div></div>
+      <div class="final-message" id="finalMessage"></div>
+      <div id="estado-envio" style="display:none; margin: 12px 0;"></div>
+      <div id="submit-status" style="font-size:0.85rem; color:#546e7a; margin-top: 8px; font-weight: 600; text-align:center;"></div>
+      <button class="btn btn-secondary" id="retry-submit-btn" onclick="reintentarEnvio()" style="display:none; margin: 10px auto 14px;">🔄 Reintentar envío</button>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="restartGame()">🔄 Jugar de nuevo</button>
+        <button class="btn btn-secondary" onclick="showScreen('startScreen')">🏠 Inicio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============================================
+     HUD DEL JUEGO
+     ============================================= -->
+<div id="gameHUD" class="hidden">
+  <div class="hud-block">
+    <span class="hud-label">Nivel</span>
+    <span class="hud-value" id="hudLevel">1</span>
+  </div>
+  <div class="progress-bar-wrap">
+    <span class="hud-label" style="text-align:center;">Progreso</span>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="hudProgress" style="width:0%"></div>
+    </div>
+  </div>
+  <div class="hud-block">
+    <span class="hud-label">Puntos</span>
+    <span class="hud-value" id="hudScore">0</span>
+  </div>
+  <div class="hud-block">
+    <span class="hud-label">Vidas</span>
+    <span class="hud-value hud-lives" id="hudLives">❤️❤️❤️</span>
+  </div>
+</div>
+
+<!-- =============================================
+     ÁREA DEL JUEGO
+     ============================================= -->
+<div id="gameArea" style="display:none;">
+  <div id="skyBg"></div>
+  <!-- Plataformas dinámicas -->
+</div>
+
+<!-- CONTROLES TÁCTILES -->
+<div id="touchControls" style="display:none;">
+  <div class="touch-dpad">
+    <button class="touch-btn" id="btnLeft" aria-label="Izquierda">←</button>
+    <button class="touch-btn" id="btnRight" aria-label="Derecha">→</button>
+  </div>
+  <button class="touch-btn touch-btn-jump" id="btnJump" aria-label="Saltar">⬆</button>
+</div>
+
+<!-- =============================================
+     MODAL DE EJERCICIO MATEMÁTICO
+     ============================================= -->
+<div id="mathModal">
+  <div class="math-panel">
+    <div class="math-header">
+      <span class="math-header-icon">🧮</span>
+      <h3 id="modalTitle">Ejercicio de Matrices</h3>
+      <span class="level-badge" id="modalLevelBadge">Nivel 1</span>
+    </div>
+    <div class="math-body" id="modalBody">
+      <!-- Contenido dinámico -->
+    </div>
+    <div class="math-footer" id="modalFooter">
+      <button class="btn btn-hint btn-sm" id="btnHint" onclick="showHint()">💡 Pista (-5 pts)</button>
+      <button class="btn btn-secondary btn-sm" id="btnSolution" onclick="showSolutionStep()" style="display:none;">📝 Ver solución</button>
+      <button class="btn btn-success btn-sm" id="btnContinue" onclick="closeMathModal(true)" style="display:none; flex: 1;">Continuar Jugando ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- =============================================
+     JAVASCRIPT DEL MOTOR DEL JUEGO
+     ============================================= -->
+<script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec";
+    const SHEET_NAME = "Gami_Uni_3";
+    const GAME_STATE_KEY = "ueeh_escape_matrices_unidad3_estado_v1";
+    const TOTAL_MISSIONS = 4;
+
+    let resultSubmitted = false;
+    let lastSummary = null;
+
+    function crearIdEnvio(nombre, tipoActividad) {
+      const limpio = String(nombre || "estudiante")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .slice(0, 40);
+      return `${SHEET_NAME}-${tipoActividad}-${limpio}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+
+    function getStudentData() {
+      return {
+        nombre: localStorage.getItem("ueeh_student_name") || "",
+        curso: localStorage.getItem("ueeh_student_grade") || "3ro BGU",
+        paralelo: localStorage.getItem("ueeh_student_parallel") || ""
+      };
+    }
+
+    function validarDatosEstudiante(nombre, curso, paralelo) {
+      const errores = [];
+      const nombreLimpio = (nombre || "").trim().toLowerCase();
+      if (!nombreLimpio || nombreLimpio === "pablo juca") errores.push("Debes ingresar tu nombre completo.");
+      if (!curso || curso.trim() === "") errores.push("Debes seleccionar tu curso.");
+      if (!paralelo || paralelo.trim() === "") errores.push("Debes seleccionar tu paralelo.");
+      return errores;
+    }
+
+    function enviarNota(datos, onSuccess, onError) {
+      const errores = validarDatosEstudiante(datos.nombre, datos.curso, datos.paralelo);
+      if (errores.length > 0) {
+        onError(errores.join(" "));
+        return;
+      }
+      const callbackName = "jsonp_cb_" + Date.now() + "_" + Math.floor(Math.random() * 9999);
+      const script = document.createElement("script");
+      const params = new URLSearchParams();
+      Object.keys(datos).forEach((k) => {
+        if (datos[k] !== undefined && datos[k] !== null) params.append(k, datos[k]);
+      });
+      params.append("callback", callbackName);
+      const timeout = setTimeout(function () {
+        cleanup();
+        onError("Tiempo de espera agotado (15s). Verifica tu conexión e intenta de nuevo.");
+      }, 15000);
+      window[callbackName] = function (response) {
+        cleanup();
+        if (response && response.ok === true) onSuccess(response);
+        else {
+          const msg = response && response.error ? response.error : "El servidor no confirmó el registro.";
+          onError(msg);
+        }
+      };
+      function cleanup() {
+        clearTimeout(timeout);
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+      script.onerror = function () {
+        cleanup();
+        onError("No se pudo conectar con el servidor. Verifica tu internet.");
+      };
+      script.src = APPS_SCRIPT_URL + "?" + params.toString();
+      document.head.appendChild(script);
+    }
+
+    function mostrarEnviando() {
+      const el = document.getElementById("estado-envio");
+      if(el) {
+        el.innerHTML = "⏳ Enviando nota, por favor espera...";
+        el.className = "envio-enviando";
+        el.style.display = "block";
+      }
+      const retryBtn = document.getElementById("retry-submit-btn");
+      if (retryBtn) retryBtn.style.display = "none";
+    }
+
+    function mostrarExito(sheet, row) {
+      const el = document.getElementById("estado-envio");
+      if(el) {
+        el.innerHTML = "✓ Nota registrada correctamente.<br><small>Hoja: <strong>" + sheet + "</strong> | Fila: <strong>" + row + "</strong></small>";
+        el.className = "envio-ok";
+        el.style.display = "block";
+      }
+      const retryBtn = document.getElementById("retry-submit-btn");
+      if (retryBtn) retryBtn.style.display = "none";
+    }
+
+    function mostrarError(msg) {
+      const el = document.getElementById("estado-envio");
+      if(el) {
+        el.innerHTML = "✗ " + msg;
+        el.className = "envio-error";
+        el.style.display = "block";
+      }
+      const retryBtn = document.getElementById("retry-submit-btn");
+      if (retryBtn) retryBtn.style.display = "inline-block";
+    }
+
+    function submitResultToSheets(summary) {
+      if (resultSubmitted) return;
+
+      const statusEl = document.getElementById("submit-status");
+      if (statusEl) statusEl.textContent = "Enviando resultados al registro...";
+      mostrarEnviando();
+
+      const student = getStudentData();
+      if (!student.nombre || !student.curso || !student.paralelo) {
+        if (statusEl) statusEl.textContent = "Faltan datos del estudiante (nombre, curso y paralelo).";
+        mostrarError("Faltan datos del estudiante. Abre la actividad desde el Campus.");
+        return;
+      }
+
+      const payload = {
+        hoja: SHEET_NAME,
+        idEnvio: crearIdEnvio(student.nombre, "gamificacion"),
+        nombre: student.nombre,
+        curso: student.curso,
+        paralelo: student.paralelo,
+        tema: "Operaciones con matrices",
+        tipoActividad: "Gamificación - Selva Matricial",
+        numeroEjercicios: String(summary.ejerciciosResueltos),
+        puntajeInicial: summary.notaFinal.toFixed(2),
+        promedioInicial: summary.notaFinal.toFixed(2),
+        recuperacionHabilitada: summary.notaFinal < 7 ? "SI" : "NO",
+        promedioRecuperacion: "",
+        notaFinal: summary.notaFinal.toFixed(2),
+        porcentajeFinal: String(summary.porcentajeFinal),
+        nivel: summary.nivel,
+        estado: summary.estado,
+        fechaLimite: "",
+        observacion: summary.observacion,
+        userAgent: navigator.userAgent || "",
+        urlOrigen: location.href || "",
+        fechaCliente: new Date().toISOString()
+      };
+
+      const unit3GameSummary = {
+        tipoActividad: "Gamificación",
+        tema: "Operaciones con matrices",
+        notaFinal: Number(summary.notaFinal.toFixed(2)),
+        porcentajeFinal: summary.porcentajeFinal,
+        nivel: summary.nivel,
+        estado: "Completado",
+        numeroEjercicios: summary.ejerciciosResueltos,
+        intentos: summary.intentos,
+        erroresEjercicios: summary.erroresEjercicios,
+        observacion: summary.observacion,
+        fecha: new Date().toISOString(),
+        idEnvio: payload.idEnvio
+      };
+
+      enviarNota(payload, function(response){
+        resultSubmitted=true;
+        localStorage.setItem("ueeh_unidad3_result_gamificacion", JSON.stringify({ ...unit3GameSummary, enviadoSheets:true, pendienteEnvio:false, hojaSheets:response.sheet, filaSheets:response.row, idEnvio:payload.idEnvio }));
+        if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_3, fila ${response.row}.`;
+        mostrarExito(response.sheet, response.row);
+      }, function(msg){
+        resultSubmitted=false;
+        localStorage.setItem("ueeh_unidad3_result_gamificacion", JSON.stringify({ ...unit3GameSummary, enviadoSheets:false, pendienteEnvio:true }));
+        if (statusEl) statusEl.textContent = "No se pudo enviar. Puedes reintentar.";
+        mostrarError(msg);
+      });
+    }
+
+    function reintentarEnvio() {
+      if (lastSummary) submitResultToSheets(lastSummary);
+    }
+
+/* =============================================
+   VARIABLES IMPORTANTES RESTAURADAS
+   ============================================= */
+const USE_MATHJAX = true; // ← ESTA VARIABLE FALTABA EN LA ÚLTIMA VERSIÓN Y BLOQUEABA EL JUEGO
+
+const MAX_ATTEMPTS = 3;
+const POINTS_CORRECT_FIRST = 10;
+const POINTS_HINT_PENALTY  = 5;
+const POINTS_CORRECT_AFTER = 5;
+
+const LEVELS = [
+  {
+    id: 1, name: "Templo del Jaguar", emoji: "🐆", description: "Suma de matrices 2×2",
+    bgColors: ["#87CEEB","#b0e2f5","#c8f0c0","#4a8c4f","#2d5a30"],
+    exercises: [
+      {
+        id: "1-1", title: "Suma de Matrices 2×2 – Ejercicio 1",
+        statement: "Dadas las matrices:\n\\[ A = \\begin{pmatrix} 3 & -2 \\\\ 1 & 5 \\end{pmatrix}, \\quad B = \\begin{pmatrix} -1 & 4 \\\\ 0 & 2 \\end{pmatrix} \\]\nCalcula \\( A + B \\).",
+        type: "multiple",
+        options: [
+          { text: "\\( \\begin{pmatrix} 2 & 2 \\\\ 1 & 7 \\end{pmatrix} \\)", correct: true },
+          { text: "\\( \\begin{pmatrix} 4 & -6 \\\\ 1 & 3 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 2 & 2 \\\\ 2 & 6 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 3 & 2 \\\\ 1 & 7 \\end{pmatrix} \\)", correct: false }
+        ],
+        hint: "Suma elemento a elemento: la posición (1,1) es 3 + (-1) = 2.",
+        solution: `<h4>📐 Solución Paso a Paso</h4><p>\\[ A + B = \\begin{pmatrix} 3+(-1) & -2+4 \\\\ 1+0 & 5+2 \\end{pmatrix} = \\begin{pmatrix} 2 & 2 \\\\ 1 & 7 \\end{pmatrix} \\]</p>`,
+        correctFeedback: "¡Excelente! Has sumado correctamente cada elemento en la misma posición."
+      },
+      {
+        id: "1-2", title: "Suma de Matrices 2×2 – Ejercicio 2",
+        statement: "Dadas las matrices:\n\\[ C = \\begin{pmatrix} 7 & 0 \\\\ -3 & 6 \\end{pmatrix}, \\quad D = \\begin{pmatrix} 2 & -5 \\\\ 4 & -1 \\end{pmatrix} \\]\nCalcula \\( C + D \\).",
+        type: "multiple",
+        options: [
+          { text: "\\( \\begin{pmatrix} 9 & -5 \\\\ 1 & 5 \\end{pmatrix} \\)", correct: true },
+          { text: "\\( \\begin{pmatrix} 5 & 5 \\\\ -7 & 7 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 9 & 5 \\\\ 1 & 5 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 9 & -5 \\\\ -1 & 5 \\end{pmatrix} \\)", correct: false }
+        ],
+        hint: "Fíjate en (2,1): −3 + 4 = 1, y en (2,2): 6 + (−1) = 5.",
+        solution: `<h4>📐 Solución Paso a Paso</h4><p>\\[ C + D = \\begin{pmatrix} 7+2 & 0+(-5) \\\\ -3+4 & 6+(-1) \\end{pmatrix} = \\begin{pmatrix} 9 & -5 \\\\ 1 & 5 \\end{pmatrix} \\]</p>`,
+        correctFeedback: "¡Muy bien! Recuerda que 0 + (−5) = −5."
+      }
+    ]
+  },
+  {
+    id: 2, name: "Templo del Tucán", emoji: "🦜", description: "Resta de matrices 2×2",
+    bgColors: ["#98d8c8","#b5ead9","#d4f1e8","#5aaa8a","#2f6b5a"],
+    exercises: [
+      {
+        id: "2-1", title: "Resta de Matrices 2×2 – Ejercicio 3",
+        statement: "Dadas las matrices:\n\\[ E = \\begin{pmatrix} 5 & -2 \\\\ 3 & 8 \\end{pmatrix}, \\quad F = \\begin{pmatrix} 4 & 1 \\\\ -2 & 7 \\end{pmatrix} \\]\nCalcula \\( E - F \\).",
+        type: "multiple",
+        options: [
+          { text: "\\( \\begin{pmatrix} 1 & -3 \\\\ 5 & 1 \\end{pmatrix} \\)", correct: true },
+          { text: "\\( \\begin{pmatrix} 1 & 3 \\\\ 5 & 1 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 9 & -1 \\\\ 1 & 15 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 1 & -3 \\\\ 1 & 1 \\end{pmatrix} \\)", correct: false }
+        ],
+        hint: "Resta elemento a elemento. En (2,1): 3 − (−2) = 3 + 2 = 5.",
+        solution: `<h4>📐 Solución Paso a Paso</h4><p>\\[ E - F = \\begin{pmatrix} 5-4 & -2-1 \\\\ 3-(-2) & 8-7 \\end{pmatrix} = \\begin{pmatrix} 1 & -3 \\\\ 5 & 1 \\end{pmatrix} \\]</p>`,
+        correctFeedback: "¡Correcto! El truco clave: restar un negativo es sumar."
+      },
+      {
+        id: "2-2", title: "Resta de Matrices 2×2 – Ejercicio 4",
+        statement: "Dadas las matrices:\n\\[ G = \\begin{pmatrix} -3 & 6 \\\\ 0 & -4 \\end{pmatrix}, \\quad H = \\begin{pmatrix} 2 & -3 \\\\ 5 & 1 \\end{pmatrix} \\]\nCalcula \\( G - H \\).",
+        type: "multiple",
+        options: [
+          { text: "\\( \\begin{pmatrix} -5 & 9 \\\\ -5 & -5 \\end{pmatrix} \\)", correct: true },
+          { text: "\\( \\begin{pmatrix} -1 & 3 \\\\ -5 & -3 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} -5 & -9 \\\\ -5 & -5 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} -5 & 9 \\\\ 5 & -5 \\end{pmatrix} \\)", correct: false }
+        ],
+        hint: "En (1,1): −3 − 2 = −5; en (1,2): 6 − (−3) = 6 + 3 = 9.",
+        solution: `<h4>📐 Solución Paso a Paso</h4><p>\\[ G - H = \\begin{pmatrix} -3-2 & 6-(-3) \\\\ 0-5 & -4-1 \\end{pmatrix} = \\begin{pmatrix} -5 & 9 \\\\ -5 & -5 \\end{pmatrix} \\]</p>`,
+        correctFeedback: "¡Perfecto! Dominas la resta con negativos."
+      }
+    ]
+  },
+  {
+    id: 3, name: "Templo de la Anaconda", emoji: "🐍", description: "Suma de matrices 3×3",
+    bgColors: ["#c3e6cb","#d4edda","#e8f5e9","#388e3c","#1b5e20"],
+    exercises: [
+      {
+        id: "3-1", title: "Suma de Matrices 3×3 – Ejercicio 5",
+        statement: "Dadas las matrices:\n\\[ I = \\begin{pmatrix} 1 & 0 & -2 \\\\ 3 & 4 & 1 \\\\ -1 & 2 & 5 \\end{pmatrix}, \\quad J = \\begin{pmatrix} 0 & 2 & 3 \\\\ -1 & 5 & -2 \\\\ 4 & -3 & 1 \\end{pmatrix} \\]\nCalcula \\( I + J \\).",
+        type: "multiple",
+        options: [
+          { text: "\\( \\begin{pmatrix} 1 & 2 & 1 \\\\ 2 & 9 & -1 \\\\ 3 & -1 & 6 \\end{pmatrix} \\)", correct: true },
+          { text: "\\( \\begin{pmatrix} 1 & 2 & 1 \\\\ 2 & 9 & 1 \\\\ 3 & -1 & 6 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 1 & 2 & -1 \\\\ 2 & 9 & -1 \\\\ 3 & -1 & 6 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 1 & 2 & 1 \\\\ 4 & 9 & -1 \\\\ 3 & -1 & 6 \\end{pmatrix} \\)", correct: false }
+        ],
+        hint: "Fila 2, columna 3: 1 + (−2) = −1.",
+        solution: `<h4>📐 Solución Paso a Paso</h4><p>\\[ I + J = \\begin{pmatrix} 1+0 & 0+2 & -2+3 \\\\ 3+(-1) & 4+5 & 1+(-2) \\\\ -1+4 & 2+(-3) & 5+1 \\end{pmatrix} = \\begin{pmatrix} 1 & 2 & 1 \\\\ 2 & 9 & -1 \\\\ 3 & -1 & 6 \\end{pmatrix} \\]</p>`,
+        correctFeedback: "¡Excelente! Has manejado correctamente todos los signos."
+      },
+      {
+        id: "3-2", title: "Suma de Matrices 3×3 – Ejercicio 6",
+        statement: "Dadas las matrices:\n\\[ K = \\begin{pmatrix} 4 & -1 & 0 \\\\ 2 & 3 & -2 \\\\ 1 & -4 & 6 \\end{pmatrix}, \\quad L = \\begin{pmatrix} -2 & 5 & 1 \\\\ 0 & -3 & 4 \\\\ 3 & 2 & -5 \\end{pmatrix} \\]\nCalcula \\( K + L \\).",
+        type: "multiple",
+        options: [
+          { text: "\\( \\begin{pmatrix} 2 & 4 & 1 \\\\ 2 & 0 & 2 \\\\ 4 & -2 & 1 \\end{pmatrix} \\)", correct: true },
+          { text: "\\( \\begin{pmatrix} 2 & 4 & 1 \\\\ 2 & 0 & -2 \\\\ 4 & -2 & 1 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 6 & 4 & 1 \\\\ 2 & 0 & 2 \\\\ 4 & -2 & 1 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 2 & 4 & 1 \\\\ 2 & 0 & 2 \\\\ -2 & -2 & 1 \\end{pmatrix} \\)", correct: false }
+        ],
+        hint: "Posición (1,1): 4 + (−2) = 2.",
+        solution: `<h4>📐 Solución Paso a Paso</h4><p>\\[ K + L = \\begin{pmatrix} 4+(-2) & -1+5 & 0+1 \\\\ 2+0 & 3+(-3) & -2+4 \\\\ 1+3 & -4+2 & 6+(-5) \\end{pmatrix} = \\begin{pmatrix} 2 & 4 & 1 \\\\ 2 & 0 & 2 \\\\ 4 & -2 & 1 \\end{pmatrix} \\]</p>`,
+        correctFeedback: "¡Brillante! Notaste que 3 + (−3) = 0."
+      }
+    ]
+  },
+  {
+    id: 4, name: "Templo del Águila", emoji: "🦅", description: "Resta de matrices 3×3",
+    bgColors: ["#ffe0b2","#fff3e0","#fffde7","#f57c00","#bf360c"],
+    exercises: [
+      {
+        id: "4-1", title: "Resta de Matrices 3×3 – Ejercicio 7",
+        statement: "Dadas las matrices:\n\\[ M = \\begin{pmatrix} 2 & 4 & -1 \\\\ 5 & 0 & 3 \\\\ -2 & 1 & 6 \\end{pmatrix}, \\quad N = \\begin{pmatrix} 1 & 3 & 2 \\\\ -2 & 4 & 1 \\\\ 0 & -1 & 5 \\end{pmatrix} \\]\nCalcula \\( M - N \\).",
+        type: "multiple",
+        options: [
+          { text: "\\( \\begin{pmatrix} 1 & 1 & -3 \\\\ 7 & -4 & 2 \\\\ -2 & 2 & 1 \\end{pmatrix} \\)", correct: true },
+          { text: "\\( \\begin{pmatrix} 1 & 1 & 3 \\\\ 7 & -4 & 2 \\\\ -2 & 2 & 1 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 1 & 1 & -3 \\\\ 3 & -4 & 2 \\\\ -2 & 2 & 1 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} 1 & 1 & -3 \\\\ 7 & 4 & 2 \\\\ -2 & 2 & 1 \\end{pmatrix} \\)", correct: false }
+        ],
+        hint: "Fila 2, col 1: 5 − (−2) = 5 + 2 = 7.",
+        solution: `<h4>📐 Solución Paso a Paso</h4><p>\\[ M - N = \\begin{pmatrix} 2-1 & 4-3 & -1-2 \\\\ 5-(-2) & 0-4 & 3-1 \\\\ -2-0 & 1-(-1) & 6-5 \\end{pmatrix} = \\begin{pmatrix} 1 & 1 & -3 \\\\ 7 & -4 & 2 \\\\ -2 & 2 & 1 \\end{pmatrix} \\]</p>`,
+        correctFeedback: "¡Impresionante! Manejaste perfectamente la resta con negativos."
+      },
+      {
+        id: "4-2", title: "Resta de Matrices 3×3 – Ejercicio 8",
+        statement: "Dadas las matrices:\n\\[ O = \\begin{pmatrix} -3 & 2 & 4 \\\\ 1 & -2 & 0 \\\\ 5 & 3 & -1 \\end{pmatrix}, \\quad P = \\begin{pmatrix} 2 & -1 & 3 \\\\ 4 & 0 & -2 \\\\ -3 & 1 & 2 \\end{pmatrix} \\]\nCalcula \\( O - P \\).",
+        type: "multiple",
+        options: [
+          { text: "\\( \\begin{pmatrix} -5 & 3 & 1 \\\\ -3 & -2 & 2 \\\\ 8 & 2 & -3 \\end{pmatrix} \\)", correct: true },
+          { text: "\\( \\begin{pmatrix} -5 & 3 & 1 \\\\ -3 & -2 & -2 \\\\ 8 & 2 & -3 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} -5 & 3 & 1 \\\\ -3 & -2 & 2 \\\\ 2 & 2 & -3 \\end{pmatrix} \\)", correct: false },
+          { text: "\\( \\begin{pmatrix} -1 & 3 & 1 \\\\ -3 & -2 & 2 \\\\ 8 & 2 & -3 \\end{pmatrix} \\)", correct: false }
+        ],
+        hint: "Fila 3, col 1: 5 − (−3) = 8.",
+        solution: `<h4>📐 Solución Paso a Paso</h4><p>\\[ O - P = \\begin{pmatrix} -3-2 & 2-(-1) & 4-3 \\\\ 1-4 & -2-0 & 0-(-2) \\\\ 5-(-3) & 3-1 & -1-2 \\end{pmatrix} = \\begin{pmatrix} -5 & 3 & 1 \\\\ -3 & -2 & 2 \\\\ 8 & 2 & -3 \\end{pmatrix} \\]</p>`,
+        correctFeedback: "¡FELICITACIONES! Has completado todos los retos."
+      }
+    ]
+  }
+];
+
+let gameState = {
+  currentLevel: 0, score: 0, lives: 3, exercisesCompleted: [], correctAnswers: 0, totalAnswers: 0,
+  levelExercisesDone: 0, hintsUsed: 0, attempts: 0, hintShown: false, solutionShown: false,
+  levelStartScore: 0, activeExercise: null, stars: [0,0,0,0], isRunning: false,
+  shuffledOptions: [], // Almacena el orden aleatorio para cada ejercicio abierto
+  scoresByExercise: {}
+};
+
+let hero = {
+  x: 5, y: 0, velX: 0, velY: 0, isJumping: false, facingRight: true
+};
+
+const keys = {};
+let touchLeft = false;
+let touchRight = false;
+let animationFrameId;
+let autoCloseTimeout; // Para el cerrado automático
+
+/* =============================================
+   FUNCIONES AUXILIARES DEL MOTOR
+   ============================================= */
+// Algoritmo Fisher-Yates para barajar opciones
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/* =============================================
+   MOTOR DEL JUEGO
+   ============================================= */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById(id);
+  if(target) target.classList.add('active');
+  const inGame = (id === 'GAME');
+  document.getElementById('gameHUD').classList.toggle('hidden', !inGame);
+  document.getElementById('gameArea').style.display = inGame ? 'block' : 'none';
+  document.getElementById('touchControls').style.display = inGame ? 'flex' : 'none';
+  document.getElementById('uiLayer').style.display = inGame ? 'none' : 'flex';
+  
+  if (inGame) {
+      gameState.isRunning = true;
+      gameLoop();
+  } else {
+      gameState.isRunning = false;
+      cancelAnimationFrame(animationFrameId);
+  }
+}
+
+function startGame() {
+  gameState = { currentLevel: 0, score: 0, lives: 3, exercisesCompleted: [], correctAnswers: 0, totalAnswers: 0, levelExercisesDone: 0, hintsUsed: 0, attempts: 0, hintShown: false, solutionShown: false, levelStartScore: 0, activeExercise: null, stars: [0,0,0,0], isRunning: false, shuffledOptions: [], scoresByExercise: {} };
+  loadLevel(0);
+}
+
+function restartGame() { showScreen('startScreen'); }
+function showNarrative() { showScreen('narrativeScreen'); }
+function showInstructions() { showScreen('instructionsScreen'); }
+
+function loadLevel(levelIdx) {
+  if(levelIdx >= LEVELS.length) { showFinalScreen(); return; }
+  gameState.currentLevel = levelIdx;
+  gameState.levelExercisesDone = 0;
+  gameState.levelStartScore = gameState.score;
+  const level = LEVELS[levelIdx];
+  updateHUD();
+  buildLevelScene(level);
+  showScreen('GAME');
+  showToast(`¡Bienvenido al ${level.name}! ${level.emoji}`);
+}
+
+function buildLevelScene(level) {
+  const area = document.getElementById('gameArea');
+  const sky = document.getElementById('skyBg');
+  sky.style.background = `linear-gradient(180deg, ${level.bgColors[0]} 0%, ${level.bgColors[1]} 35%, ${level.bgColors[2]} 60%, ${level.bgColors[3]} 80%, ${level.bgColors[4]} 100%)`;
+  area.querySelectorAll('.platform,.coin,.enemy,.hero-char,.bg-cloud,.bg-tree').forEach(e=>e.remove());
+
+  // Decoraciones
+  [0,1,2].forEach(i=>{ const c = document.createElement('div'); c.className = 'bg-cloud'; c.style.cssText = `width:${60+i*30}px;height:${20+i*10}px;top:${8+i*6}%;animation-duration:${18+i*7}s;animation-delay:-${i*6}s;`; area.appendChild(c); });
+  [5,20,40,60,75,88].forEach((xPct,i) => { const tree = document.createElement('div'); tree.className = 'bg-tree'; const h = 60 + (i%3)*40; const w = 18 + (i%3)*8; tree.style.cssText = `left:${xPct}%;width:${w}px;height:${h}px;`; const crown = document.createElement('div'); crown.className = 'crown'; crown.innerHTML = '🌴'; crown.style.fontSize = `${w*1.5}px`; const trunk = document.createElement('div'); trunk.className = 'trunk'; trunk.style.cssText = `width:${w*0.3}px;height:${h*0.45}px;margin:0 auto;`; tree.appendChild(crown); tree.appendChild(trunk); area.appendChild(tree); });
+
+  // Suelo principal
+  const ground = document.createElement('div'); ground.className = 'platform platform-ground'; ground.style.cssText = 'left:0;right:0;bottom:0;height:clamp(50px,10%,80px);border-radius:0;'; area.appendChild(ground);
+
+  // Bloques de preguntas
+  const qPositions = [ {left: 30, bottom: 120}, {left: 65, bottom: 120} ];
+  qPositions.forEach((pos, idx) => {
+    const qBlock = document.createElement('div');
+    const exId = level.exercises[idx]?.id;
+    const isDone = gameState.exercisesCompleted.includes(exId);
+    qBlock.className = `platform platform-question ${isDone ? 'answered' : ''}`;
+    qBlock.id = `qblock-${idx}`;
+    qBlock.style.cssText = `left:${pos.left}%;bottom:calc(clamp(50px,10%,80px) + ${pos.bottom}px);width:45px;height:45px;font-size:1.4rem;`;
+    qBlock.innerHTML = isDone ? '✅' : '❓';
+    qBlock.dataset.posX = pos.left; 
+    qBlock.dataset.posY = pos.bottom;
+    area.appendChild(qBlock);
+  });
+
+  // Monedas
+  [20, 50, 80].forEach((xPct,i) => {
+    const coin = document.createElement('div');
+    coin.className = 'coin'; coin.id = `coin-${i}`; coin.innerHTML = '🪙';
+    coin.style.cssText = `left:${xPct}%;bottom:calc(clamp(50px,10%,80px) + 60px);animation-delay:${i*0.5}s;`;
+    coin.dataset.posX = xPct; coin.dataset.posY = 60;
+    area.appendChild(coin);
+  });
+
+  // Bandera meta
+  const flag = document.createElement('div');
+  flag.className = 'platform platform-checkpoint';
+  flag.id = 'levelFlag';
+  flag.style.cssText = 'left:90%;bottom:calc(clamp(50px,10%,80px));width:50px;height:50px;font-size:1.5rem;';
+  flag.innerHTML = '🚩';
+  area.appendChild(flag);
+
+  // Personaje principal
+  let heroDiv = document.getElementById('hero');
+  if(!heroDiv) { heroDiv = document.createElement('div'); heroDiv.id = 'hero'; heroDiv.innerHTML = '🦸'; area.appendChild(heroDiv); }
+  
+  hero.x = 5; hero.y = 0; hero.velX = 0; hero.velY = 0; hero.isJumping = false; hero.facingRight = true;
+  updateHeroRender();
+}
+
+function updateHeroRender() {
+  const heroDiv = document.getElementById('hero');
+  if(heroDiv) {
+      heroDiv.style.left = hero.x + '%';
+      heroDiv.style.bottom = `calc(clamp(50px,10%,80px) + ${hero.y}px)`;
+      heroDiv.style.transform = `scaleX(${hero.facingRight ? 1 : -1})`;
+  }
+}
+
+// BUCLE PRINCIPAL FLUIDO
+function gameLoop() {
+  if (gameState.isRunning && !document.getElementById('mathModal').classList.contains('open')) {
+      // Movimiento Horizontal (Teclas o Táctil)
+      if (keys['ArrowLeft'] || keys['KeyA'] || touchLeft) {
+          hero.x = Math.max(1, hero.x - 0.4);
+          hero.facingRight = false;
+      }
+      if (keys['ArrowRight'] || keys['KeyD'] || touchRight) {
+          hero.x = Math.min(95, hero.x + 0.4);
+          hero.facingRight = true;
+      }
+
+      // Físicas de Salto (Vertical)
+      if (hero.isJumping) {
+          hero.y += hero.velY;
+          hero.velY -= 1.2; // Gravedad realista
+          if (hero.y <= 0) {
+              hero.y = 0;
+              hero.velY = 0;
+              hero.isJumping = false;
+          }
+      }
+
+      updateHeroRender();
+      checkAutomatedCollisions();
+  }
+  animationFrameId = requestAnimationFrame(gameLoop);
+}
+
+// SISTEMA DE COLISIONES AUTOMÁTICO
+function checkAutomatedCollisions() {
+    // 1. Colisión con Monedas
+    document.querySelectorAll('.coin').forEach(coin => {
+        let cx = parseFloat(coin.dataset.posX);
+        let cy = parseFloat(coin.dataset.posY);
+        if (Math.abs(hero.x - cx) < 3 && Math.abs(hero.y - cy) < 40) {
+            addScore(2);
+            coin.remove();
+            spawnPointParticle('+2 🪙', 'gold');
+        }
+    });
+
+    // 2. Colisión con Bloques de Preguntas (GOLPEAR POR DEBAJO)
+    const level = LEVELS[gameState.currentLevel];
+    [0, 1].forEach(idx => {
+        const qBlock = document.getElementById(`qblock-${idx}`);
+        if (qBlock && !qBlock.classList.contains('answered')) {
+            let bx = parseFloat(qBlock.dataset.posX);
+            let by = parseFloat(qBlock.dataset.posY);
+            
+            if (Math.abs(hero.x - bx) < 4 && hero.y > by - 60 && hero.y < by - 10 && hero.velY > 0) {
+                hero.velY = -2; // Rebota un poco la cabeza
+                openExercise(idx);
+            }
+        }
+    });
+
+    // 3. Colisión con Bandera Meta
+    if (hero.x > 88) {
+        hero.x = 88; 
+        tryAdvanceLevel();
+    }
+}
+
+// CONTROL DE INPUTS
+function intentarSalto() {
+    if (!hero.isJumping && !document.getElementById('mathModal').classList.contains('open')) {
+        hero.isJumping = true;
+        hero.velY = 18;
+    }
+}
+
+document.addEventListener('keydown', e => { 
+    keys[e.code] = true; 
+    if(e.code==='ArrowUp' || e.code==='Space' || e.code==='KeyW') intentarSalto(); 
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+const btnL = document.getElementById('btnLeft');
+const btnR = document.getElementById('btnRight');
+const btnJ = document.getElementById('btnJump');
+
+btnL.addEventListener('pointerdown', (e) => { e.preventDefault(); touchLeft = true; });
+btnL.addEventListener('pointerup', (e) => { e.preventDefault(); touchLeft = false; });
+btnL.addEventListener('pointercancel', (e) => { e.preventDefault(); touchLeft = false; });
+btnL.addEventListener('pointerleave', (e) => { e.preventDefault(); touchLeft = false; });
+
+btnR.addEventListener('pointerdown', (e) => { e.preventDefault(); touchRight = true; });
+btnR.addEventListener('pointerup', (e) => { e.preventDefault(); touchRight = false; });
+btnR.addEventListener('pointercancel', (e) => { e.preventDefault(); touchRight = false; });
+btnR.addEventListener('pointerleave', (e) => { e.preventDefault(); touchRight = false; });
+
+btnJ.addEventListener('pointerdown', (e) => { e.preventDefault(); intentarSalto(); });
+
+/* =============================================
+   SISTEMA DE EJERCICIOS Y RENDERIZADO DE MATHJAX
+   ============================================= */
+let mathJaxPromise = Promise.resolve();
+function safeRenderMath(element) {
+    if (typeof USE_MATHJAX !== 'undefined' && USE_MATHJAX && window.MathJax && MathJax.typesetPromise) {
+        mathJaxPromise = mathJaxPromise.then(() => {
+            MathJax.typesetClear([element]);
+            return MathJax.typesetPromise([element]).catch(err => console.error("MathJax Error:", err));
+        });
+    }
+}
+
+function openExercise(exIdx) {
+  const level = LEVELS[gameState.currentLevel];
+  const exercise = level.exercises[exIdx];
+  if(!exercise) return;
+  if(gameState.exercisesCompleted.includes(exercise.id)) return;
+
+  // Pausar movimiento del héroe
+  keys['ArrowLeft'] = false; keys['ArrowRight'] = false; touchLeft = false; touchRight = false;
+  clearTimeout(autoCloseTimeout);
+
+  gameState.activeExercise = exercise;
+  gameState.attempts = 0; gameState.hintShown = false; gameState.solutionShown = false;
+  
+  // BARAJA LAS OPCIONES de forma segura sin alterar la base de datos niveles
+  gameState.shuffledOptions = shuffleArray(exercise.options);
+
+  document.getElementById('modalTitle').textContent = exercise.title;
+  document.getElementById('modalLevelBadge').textContent = `Nivel ${level.id} – ${level.emoji}`;
+
+  const body = document.getElementById('modalBody');
+  body.innerHTML = '';
+
+  const stmt = document.createElement('div'); stmt.className = 'exercise-statement';
+  stmt.innerHTML = `<div class="matrix-wrap">${exercise.statement.replace(/\n/g,'<br>')}</div>`;
+  body.appendChild(stmt);
+
+  const attRow = document.createElement('div'); attRow.className = 'attempts-row';
+  attRow.innerHTML = `<span style="font-size:0.82rem;color:#546e7a;font-weight:600;">Intentos disponibles:</span>
+    <div class="attempts-dots" id="attemptDots">${Array(MAX_ATTEMPTS).fill('<div class="attempt-dot"></div>').join('')}</div>`;
+  body.appendChild(attRow);
+
+  const grid = document.createElement('div'); grid.className = 'options-grid'; grid.id = 'optionsGrid';
+  gameState.shuffledOptions.forEach((opt, oi) => {
+    const btn = document.createElement('button'); btn.className = 'option-btn';
+    btn.innerHTML = `<div class="matrix-wrap">${String.fromCharCode(65+oi)}) ${opt.text}</div>`;
+    btn.dataset.optIdx = oi; btn.addEventListener('click', () => checkAnswer(oi));
+    grid.appendChild(btn);
+  });
+  body.appendChild(grid);
+
+  const fb = document.createElement('div'); fb.className = 'feedback-box'; fb.id = 'feedbackBox'; body.appendChild(fb);
+  const sol = document.createElement('div'); sol.className = 'step-solution'; sol.id = 'solutionBox';
+  sol.innerHTML = exercise.solution; body.appendChild(sol);
+
+  document.getElementById('btnHint').style.display = 'inline-flex';
+  document.getElementById('btnSolution').style.display = 'none';
+  document.getElementById('btnContinue').style.display = 'none';
+
+  document.getElementById('mathModal').classList.add('open');
+  safeRenderMath(body);
+}
+
+function checkAnswer(optIdx) {
+  const exercise = gameState.activeExercise;
+  const grid = document.getElementById('optionsGrid');
+  const fb = document.getElementById('feedbackBox');
+  const buttons = grid.querySelectorAll('.option-btn');
+  
+  // Utiliza el array mezclado para comprobar la respuesta correcta
+  const isCorrect = gameState.shuffledOptions[optIdx].correct;
+
+  gameState.attempts++; gameState.totalAnswers++;
+  updateAttemptDots();
+
+  if(isCorrect) {
+    gameState.correctAnswers++;
+    buttons[optIdx].classList.add('correct'); buttons.forEach(b => b.disabled = true);
+    
+    let pts = POINTS_CORRECT_FIRST;
+    if(gameState.hintShown) pts -= POINTS_HINT_PENALTY;
+    if(gameState.attempts > 1) pts = POINTS_CORRECT_AFTER;
+    pts = Math.max(pts, 2); addScore(pts);
+    gameState.scoresByExercise = gameState.scoresByExercise || {};
+    gameState.scoresByExercise[exercise.id] = pts;
+
+    fb.className = 'feedback-box feedback-correct show';
+    fb.innerHTML = `✅ <strong>¡Correcto!</strong> ${exercise.correctFeedback}<br><br><small style="color:#2e7d32; font-weight: bold;">(Volviendo a la aventura en 3 segundos...)</small>`;
+
+    gameState.exercisesCompleted.push(exercise.id); gameState.levelExercisesDone++;
+    const qBlock = document.getElementById(`qblock-${LEVELS[gameState.currentLevel].exercises.indexOf(exercise)}`);
+    if(qBlock) { qBlock.innerHTML = '✅'; qBlock.classList.add('answered'); }
+
+    document.getElementById('btnContinue').style.display = 'inline-flex';
+    document.getElementById('btnHint').style.display = 'none';
+    document.getElementById('btnSolution').style.display = 'none';
+    updateHUD(); 
+    safeRenderMath(fb);
+
+    // AUTO-CIERRE para evitar sensación de parálisis
+    autoCloseTimeout = setTimeout(() => {
+        if(document.getElementById('mathModal').classList.contains('open')) {
+            closeMathModal(true);
+        }
+    }, 3000);
+
+  } else {
+    buttons[optIdx].classList.add('wrong'); buttons[optIdx].disabled = true;
+
+    if(gameState.attempts >= MAX_ATTEMPTS) {
+      buttons.forEach(b => b.disabled = true);
+      fb.className = 'feedback-box feedback-wrong show';
+      fb.innerHTML = `❌ <strong>Sin más intentos.</strong> Revisa la solución paso a paso.`;
+      document.getElementById('btnSolution').style.display = 'inline-flex';
+      document.getElementById('btnHint').style.display = 'none';
+      
+      gameState.exercisesCompleted.push(exercise.id); gameState.levelExercisesDone++;
+      gameState.scoresByExercise = gameState.scoresByExercise || {};
+      gameState.scoresByExercise[exercise.id] = 0;
+      const qBlock = document.getElementById(`qblock-${LEVELS[gameState.currentLevel].exercises.indexOf(exercise)}`);
+      if(qBlock) { qBlock.innerHTML = '📖'; qBlock.classList.add('answered'); }
+      document.getElementById('btnContinue').style.display = 'inline-flex';
+      updateHUD();
+    } else {
+      const rem = MAX_ATTEMPTS - gameState.attempts;
+      fb.className = 'feedback-box feedback-wrong show';
+      fb.innerHTML = `❌ <strong>Incorrecto.</strong> Te quedan ${rem} intento${rem>1?'s':''}.`;
+      if(gameState.attempts === 2) document.getElementById('btnSolution').style.display = 'inline-flex';
+    }
+    safeRenderMath(fb);
+  }
+}
+
+function updateAttemptDots() { document.querySelectorAll('#attemptDots .attempt-dot').forEach((d,i)=>{ if(i < gameState.attempts) d.classList.add('used'); }); }
+
+function showHint() {
+  gameState.hintShown = true; gameState.hintsUsed++; addScore(-POINTS_HINT_PENALTY);
+  const fb = document.getElementById('feedbackBox');
+  fb.className = 'feedback-box feedback-hint show';
+  fb.innerHTML = `💡 <strong>Pista (−${POINTS_HINT_PENALTY} pts):</strong> ${gameState.activeExercise.hint}`;
+  document.getElementById('btnHint').style.display = 'none';
+  safeRenderMath(fb);
+}
+
+function showSolutionStep() {
+  const sol = document.getElementById('solutionBox'); sol.classList.add('show');
+  document.getElementById('btnSolution').style.display = 'none'; safeRenderMath(sol);
+}
+
+function closeMathModal(completed) {
+  clearTimeout(autoCloseTimeout); // limpiar timer por si cierra manual
+  document.getElementById('mathModal').classList.remove('open');
+  if(completed && gameState.levelExercisesDone >= LEVELS[gameState.currentLevel].exercises.length) {
+    setTimeout(()=>{ showToast('¡Ejercicios completados! Dirígete a la bandera 🚩'); }, 400);
+  }
+}
+
+/* =============================================
+   AVANCE DE NIVEL Y UI
+   ============================================= */
+function tryAdvanceLevel() {
+  const needed = LEVELS[gameState.currentLevel].exercises.length;
+  if(gameState.levelExercisesDone < needed) {
+    showToast(`⚠️ Resuelve los ${needed} bloques ❓ antes de pasar la bandera.`);
+    hero.x = 85; 
+    return;
+  }
+  showLevelComplete();
+}
+
+function showLevelComplete() {
+  const level = LEVELS[gameState.currentLevel];
+  const levelScore = gameState.score - gameState.levelStartScore;
+  const pct = Math.round((levelScore / (level.exercises.length * POINTS_CORRECT_FIRST)) * 100);
+  const stars = pct >= 90 ? '⭐⭐⭐' : pct >= 60 ? '⭐⭐' : '⭐';
+  gameState.stars[gameState.currentLevel] = stars.split('⭐').length - 1;
+
+  document.getElementById('lcTitle').textContent = `¡${level.name} Completado! ${level.emoji}`;
+  document.getElementById('lcSubtitle').textContent = level.description;
+  document.getElementById('lcStars').textContent = stars;
+  document.getElementById('lcScore').textContent = `+${levelScore} puntos`;
+  
+  const nextBtn = document.getElementById('nextLevelBtn');
+  if(gameState.currentLevel + 1 >= LEVELS.length) nextBtn.textContent = '🏆 Ver Resultados Finales';
+  else nextBtn.textContent = `Siguiente: ${LEVELS[gameState.currentLevel+1].name} →`;
+  
+  showScreen('levelCompleteScreen');
+}
+
+function goNextLevel() {
+  const next = gameState.currentLevel + 1;
+  if(next >= LEVELS.length) showFinalScreen();
+  else loadLevel(next);
+}
+
+function showFinalScreen() {
+  const pct = gameState.totalAnswers > 0 ? Math.round((gameState.correctAnswers / gameState.totalAnswers) * 100) : 0;
+  document.getElementById('finalScoreNum').textContent = gameState.score;
+  document.getElementById('sumCorrect').textContent = gameState.correctAnswers;
+  document.getElementById('sumPercent').textContent = pct + '%';
+  document.getElementById('sumStars').textContent = '⭐'.repeat(Math.max(gameState.stars.reduce((a,b)=>a+b,0),1));
+
+  let perfClass, perfText;
+  if(pct >= 90) { perfClass='badge-expert'; perfText='🏅 EXPERTO'; }
+  else if(pct >= 70) { perfClass='badge-achieved'; perfText='✅ LOGRADO'; }
+  else if(pct >= 40) { perfClass='badge-process'; perfText='📖 EN PROCESO'; }
+  else { perfClass='badge-review'; perfText='🔄 NECESITA REFUERZO'; }
+  
+  const badge = document.getElementById('performanceBadge');
+  badge.className = `performance-badge ${perfClass}`; badge.textContent = perfText;
+  showScreen('finalScreen');
+
+  // Calcular la nota real matemática sobre 10 basada en los 8 ejercicios
+  const exerciseIds = ["1-1", "1-2", "2-1", "2-2", "3-1", "3-2", "4-1", "4-2"];
+  let totalExercisePoints = 0;
+  exerciseIds.forEach(id => {
+    totalExercisePoints += (gameState.scoresByExercise && gameState.scoresByExercise[id]) || 0;
+  });
+  const notaFinal = totalExercisePoints / exerciseIds.length; // Max score 80 / 8 = 10
+  const porcentajeFinal = Math.round(notaFinal * 10);
+  const nivel = notaFinal >= 9 ? "Excelente" : notaFinal >= 8 ? "Logrado" : "En proceso";
+  const estado = notaFinal >= 7 ? "Aprobado" : "Requiere refuerzo";
+  
+  const attemptsDetail = exerciseIds
+    .map((id) => `${id}: ${gameState.scoresByExercise[id] || 0}/10`)
+    .join(" | ");
+
+  const summary = {
+    notaFinal,
+    porcentajeFinal,
+    nivel,
+    estado,
+    ejerciciosResueltos: exerciseIds.length,
+    erroresEjercicios: gameState.totalAnswers - gameState.correctAnswers,
+    intentos: gameState.totalAnswers,
+    observacion: `Juego Selva Matricial completado. Detalles: ${attemptsDetail}.`
+  };
+  lastSummary = summary;
+  submitResultToSheets(summary);
+}
+
+function addScore(pts) { gameState.score = Math.max(0, gameState.score + pts); updateHUD(); }
+
+function updateHUD() {
+  document.getElementById('hudLevel').textContent = LEVELS[gameState.currentLevel]?.id || 1;
+  document.getElementById('hudScore').textContent = gameState.score;
+  document.getElementById('hudProgress').style.width = Math.round((gameState.exercisesCompleted.length / LEVELS.reduce((a,l)=>a+l.exercises.length,0)) * 100)+'%';
+}
+
+let toastTimeout;
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimeout); toastTimeout = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+function spawnPointParticle(text, color='gold') {
+  const p = document.createElement('div'); p.className = 'point-particle'; p.textContent = text;
+  p.style.color = color==='gold' ? 'var(--gold)' : (color==='red' ? 'var(--wrong-red)' : 'var(--correct-green)');
+  p.style.left = (hero.x) + '%'; p.style.top = '60%'; document.body.appendChild(p);
+  setTimeout(()=>p.remove(), 1200);
+}
+
+window.addEventListener('load', ()=>{ showScreen('startScreen'); });
+</script>
+</body>
+</html>

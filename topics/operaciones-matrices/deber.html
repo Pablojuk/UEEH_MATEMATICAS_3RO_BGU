@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Deber interactivo | Operaciones de matrices</title>
+
+  <script>
+    window.MathJax = {
+      tex: { 
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root{
+      --bg1:#0f172a;
+      --bg2:#0d9488;
+      --card:#fffdf7;
+      --ink:#1e293b;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --gold:#f4b942;
+      --gold2:#ffe7a3;
+      --blue:#2563eb;
+      --cyan:#06b6d4;
+      --green:#16a34a;
+      --red:#dc2626;
+      --orange:#ea580c;
+      --purple:#7c3aed;
+      --soft:#f8fafc;
+      --shadow:0 22px 60px rgba(15,23,42,.24);
+      --radius:28px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100dvh;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:var(--ink);scroll-behavior:smooth;}
+    body{
+      background:
+        radial-gradient(circle at 10% 10%,rgba(6,182,212,.25),transparent 26%),
+        radial-gradient(circle at 88% 18%,rgba(13,148,136,.2),transparent 26%),
+        radial-gradient(circle at 50% 90%,rgba(37,99,235,.15),transparent 28%),
+        linear-gradient(135deg,var(--bg1),#0f766e 52%,#0891b2);
+      overflow-x:hidden;
+    }
+    body::before{
+      content:"";position:fixed;inset:0;pointer-events:none;opacity:.25;
+      background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);
+      background-size:40px 40px;
+    }
+
+    button,input{font-family:inherit}
+    .app{position:relative;z-index:1;min-height:100dvh;padding:clamp(10px,2vw,14px);display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom);}
+    
+    .topbar{
+      width:min(1220px,100%);margin:0 auto 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:white;
+    }
+    .brand{display:flex;align-items:center;gap:12px;font-weight:900}
+    .brandIcon{width:48px;height:48px;display:grid;place-items:center;border-radius:18px;background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);font-size:1.5rem;backdrop-filter:blur(8px)}
+    .brand small{display:block;font-weight:700;color:rgba(255,255,255,.8);margin-top:2px}
+    .topActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .tinyPill{padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.16);font-weight:850;backdrop-filter:blur(8px);font-size:0.9rem;}
+
+    .deck{
+      width:min(1220px,100%);margin:auto;flex:1;border-radius:34px;overflow:hidden;background:rgba(255,255,255,.2);box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(14px);
+    }
+    .screen{display:none;min-height:calc(100dvh - 120px);padding:clamp(16px,4vw,42px);animation:fade .4s cubic-bezier(0.16, 1, 0.3, 1) both}
+    .screen.active{display:block}
+    @keyframes fade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+    .hero{
+      display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(20px,4vw,46px);align-items:center;min-height:calc(100dvh - 200px);
+    }
+    .panel{
+      background:linear-gradient(145deg,rgba(255,253,247,.98),rgba(255,250,238,.95));border-radius:var(--radius);padding:clamp(20px,3vw,34px);box-shadow:0 14px 40px rgba(15,23,42,.15);border:1px solid rgba(255,255,255,.9);
+    }
+    .visual{
+      min-height:420px;border-radius:36px;position:relative;overflow:hidden;background:
+        radial-gradient(circle at 26% 24%,rgba(255,255,255,.9),transparent 14%),
+        radial-gradient(circle at 78% 18%,rgba(167,243,208,.8),transparent 16%),
+        linear-gradient(155deg,#0ea5e9,#0f766e 52%,#34d399 52%,#10b981);
+      box-shadow:var(--shadow);border:6px solid rgba(255,255,255,.4)
+    }
+    .visual span{position:absolute;filter:drop-shadow(0 16px 16px rgba(0,0,0,.2))}
+    .visual .one{font-size:7rem;left:12%;top:15%;animation:float 3s ease-in-out infinite}
+    .visual .two{font-size:5rem;right:15%;top:18%;animation:spin 12s linear infinite}
+    .visual .three{font-size:6.5rem;right:10%;bottom:10%;animation:pulse 2.5s ease-in-out infinite}
+    .visual .four{font-size:4rem;left:16%;bottom:16%;transform:rotate(-12deg)}
+    @keyframes float{50%{transform:translateY(-18px) rotate(-4deg)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{50%{transform:scale(1.06)}}
+
+    h1,h2,h3,p{margin-top:0}
+    h1{font-size:clamp(2.2rem,5vw,4.5rem);line-height:.95;letter-spacing:-1.4px;margin-bottom:18px;color:#0f172a}
+    h2{font-size:clamp(1.8rem,3.5vw,3rem);line-height:1.02;margin-bottom:16px;color:#0f172a}
+    h3{font-size:clamp(1.15rem,2vw,1.5rem);margin-bottom:12px;color:#0f766e}
+    p,li{font-size:clamp(1rem,1.5vw,1.15rem);line-height:1.55}
+    .lead{font-size:clamp(1.1rem,1.8vw,1.3rem);font-weight:700;color:#334155;max-width:800px}
+    .muted{color:var(--muted);font-weight:600}
+
+    .duaRow,.pillRow,.btnRow{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+    .dua{padding:9px 14px;border-radius:999px;font-weight:800;font-size:.85rem;letter-spacing:0.3px;}
+    .dua.green{background:#dcfce7;color:#166534}.dua.purple{background:#ede9fe;color:#5b21b6}.dua.blue{background:#dbeafe;color:#1d4ed8}
+    .pill{display:inline-flex;align-items:center;gap:7px;border-radius:12px;background:#f0fdfa;color:#0f766e;padding:12px 14px;font-weight:800;border:1px solid #ccfbf1}
+    
+    .btn{border:0;border-radius:18px;min-height:54px;padding:14px 24px;font-size:1.05rem;font-weight:800;cursor:pointer;transition:all .2s cubic-bezier(0.16, 1, 0.3, 1);box-shadow:0 10px 24px rgba(15,23,42,.1)}
+    .btn:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 16px 32px rgba(15,23,42,.15)}
+    .btn:active:not(:disabled){transform:translateY(0);box-shadow:0 4px 12px rgba(15,23,42,.1)}
+    .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .btn.primary{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#4a3004}
+    .btn.blue{background:linear-gradient(135deg,var(--blue),var(--cyan));color:white}
+    .btn.ghost{background:white;color:#1e293b;border:2px solid #cbd5e1}
+    .btn.red{background:linear-gradient(135deg,#ef4444,#fb7185);color:white}
+
+    .formGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:20px}
+    .field label{display:block;font-weight:800;margin-bottom:8px;color:#334155;font-size:0.95rem;}
+    .input{width:100%;border:2px solid #cbd5e1;border-radius:16px;padding:14px 16px;font-size:1.05rem;outline:none;background:white;transition:.2s ease;color:#0f172a;font-weight:600;}
+    .input:focus{border-color:#06b6d4;box-shadow:0 0 0 4px rgba(6,182,212,.15)}
+
+    .workLayout{display:grid;grid-template-columns:320px 1fr;gap:20px;min-height:calc(100dvh - 180px)}
+    .sidebar,.mainCard{background:rgba(255,253,247,.98);border-radius:28px;padding:22px;box-shadow:0 12px 32px rgba(15,23,42,.12);border:1px solid rgba(255,255,255,.9)}
+    .progressBox{margin:16px 0;padding:16px;border-radius:20px;background:#f1f5f9;border:1px solid #e2e8f0}
+    .bar{height:14px;background:#cbd5e1;border-radius:999px;overflow:hidden;margin-top:10px}.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--cyan));transition:width .4s ease}
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:16px 0}.stat{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:18px;padding:14px;text-align:center}.stat strong{display:block;font-size:1.6rem;color:#0f766e}
+    .exerciseGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px}
+    .exBtn{height:48px;border:0;border-radius:14px;background:#f1f5f9;color:#475569;font-weight:800;font-size:1.05rem;cursor:pointer;transition:all .2s ease;border:2px solid transparent;}.exBtn:hover{background:#e2e8f0;transform:translateY(-2px)}.exBtn.active{background:#2563eb;color:white;border-color:#1d4ed8;box-shadow:0 6px 16px rgba(37,99,235,.25)}.exBtn.done{background:#dcfce7;color:#166534;border-color:#86efac}.exBtn.partial{background:#fef08a;color:#854d0e;border-color:#fde047}.exBtn.fail{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+
+    .mathBox{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;background:white;border:2px solid #e2e8f0;border-radius:20px;padding:20px;margin:16px 0;font-size:1.2rem;box-shadow:inset 0 4px 10px rgba(15,23,42,.03)}
+    .tag{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;background:#eef2ff;color:#3730a3;font-weight:800;font-size:.9rem}
+    .choiceGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}
+    .choice{border:2px solid #cbd5e1;background:white;border-radius:20px;padding:18px;text-align:center;font-size:1.1rem;font-weight:700;cursor:pointer;transition:all .2s ease;min-height:80px;display:flex;align-items:center;justify-content:center;}
+    .choice:hover:not(:disabled){border-color:#0ea5e9;transform:translateY(-2px);background:#f0f9ff}
+    .choice.selected{border-color:#2563eb;background:#eff6ff;box-shadow:0 0 0 3px rgba(37,99,235,.2)}
+    .choice.correct{border-color:#16a34a;background:#dcfce7;color:#166534}
+    .choice.wrong{border-color:#dc2626;background:#fee2e2;color:#991b1b}
+    
+    .feedback{min-height:30px;font-weight:800;margin:14px 0;font-size:1.05rem;}
+    .feedback.ok{color:#15803d}.feedback.bad{color:#b91c1c}.feedback.warn{color:#c2410c}
+    .hint,.solution{display:none;margin-top:14px;padding:18px;border-radius:20px;background:#f8fafc;border-left:6px solid var(--gold);line-height:1.6;font-size:1.05rem;}
+    .hint.show,.solution.show{display:block;animation:fade .3s ease both}
+    .solution{border-left-color:#10b981;background:#f0fdf4}
+    
+    .procLine{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0;font-weight:700;color:#334155}
+    .matrix-wrapper{display:inline-flex;align-items:center;gap:8px;margin:8px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+    .matrix-bracket{display:inline-grid;gap:8px;padding:8px 12px;border-left:3px solid #1e293b;border-right:3px solid #1e293b;border-radius:10px;background:rgba(255,255,255,.6);}
+    .col-2{grid-template-columns:repeat(2, minmax(60px,1fr));}
+    .col-3{grid-template-columns:repeat(3, minmax(60px,1fr));}
+    .blank{width:100%;min-width:55px;height:46px;border:2px solid #cbd5e1;border-radius:12px;padding:0 8px;text-align:center;font-weight:800;font-size:1.05rem;background:white;transition:.2s;}
+    .blank:focus{border-color:#0ea5e9;outline:none;}
+    .blank.correct{border-color:#16a34a;background:#dcfce7;color:#166534}
+    .blank.wrong{border-color:#dc2626;background:#fee2e2;color:#991b1b}
+    
+    .summaryGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:22px 0}
+    .summaryItem{background:white;border:2px solid #e2e8f0;border-radius:22px;padding:20px;text-align:center;box-shadow:0 4px 14px rgba(15,23,42,.04)}
+    .summaryItem strong{display:block;font-size:clamp(1.8rem,4vw,2.5rem);color:#0f766e;margin-bottom:4px}
+    .summaryItem span{font-weight:800;color:#64748b;text-transform:uppercase;font-size:0.85rem;letter-spacing:0.5px}
+    .notice{display:none;margin-top:16px;border-radius:18px;padding:16px 20px;font-weight:800;font-size:1.05rem;}.notice.show{display:block}.notice.ok{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}.notice.warn{background:#fef3c7;color:#92400e;border:1px solid #fde68a}.notice.bad{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+    .recovery{display:none}.recovery.show{display:block}
+
+    @media(max-width:960px){.hero,.workLayout{grid-template-columns:1fr}.visual{min-height:280px}.sidebar{order:2}.mainCard{order:1}.exerciseGrid{grid-template-columns:repeat(10,1fr)}}
+    @media(max-width:640px){
+      .app{padding:6px}.topbar{flex-direction:column;align-items:stretch}.deck{border-radius:24px}.screen{padding:18px}.panel,.sidebar,.mainCard{border-radius:24px;padding:18px}.visual{min-height:220px}.visual .one{font-size:5rem}.visual .two{font-size:4rem}.visual .three{font-size:4.8rem}.visual .four{font-size:3.5rem}.formGrid,.choiceGrid{grid-template-columns:1fr}.exerciseGrid{grid-template-columns:repeat(5,1fr)}.btnRow{flex-direction:column}.btn{width:100%}.procLine{align-items:flex-start;flex-direction:column;}.blank{height:42px;font-size:1rem;}.mathBox{padding:14px;font-size:1.05rem;}.matrix-wrapper{width:100%;}.col-3{grid-template-columns:repeat(3, minmax(50px,1fr));}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brandIcon">🧮</div>
+        <div>Deber interactivo<br><small id="headSubtitle">Operaciones de matrices · 3.º BGU A</small></div>
+      </div>
+      <div class="topActions">
+        <span class="tinyPill" id="pillSheet">📄 Hoja: Deb_Uni_1</span>
+        <span class="tinyPill">⏱️ 3 intentos por ejercicio</span>
+      </div>
+    </header>
+
+    <main class="deck">
+      <section class="screen active" id="introScreen">
+        <div class="hero">
+          <div class="panel">
+            <div class="duaRow">
+              <span class="dua green">DUA · Compromiso</span>
+              <span class="dua purple">DUA · Representación</span>
+              <span class="dua blue">DUA · Acción y expresión</span>
+            </div>
+            <h1>Deber: Operaciones de matrices</h1>
+            <p class="lead">Resuelve 20 ejercicios interactivos. Demuestra tus habilidades en sumas, restas y operaciones con matrices. Evalúa, corrige y aprende paso a paso.</p>
+            <div class="pillRow">
+              <span class="pill">✅ Retroalimentación inmediata</span>
+              <span class="pill">🧩 Calificación parcial en procedimientos</span>
+              <span class="pill">📤 Envío único a Google Sheets</span>
+            </div>
+            <div class="panel" style="background:#f8fafc;box-shadow:none;border-color:#e2e8f0;">
+              <h3>Datos del estudiante</h3>
+              <div class="formGrid">
+                <div class="field"><label>Nombre y apellido</label><input class="input" id="studentName" placeholder="Escribe tu nombre completo"></div>
+                <div class="field"><label>Curso</label><input class="input" id="studentCourse" value="Tercero de BGU" readonly style="background:#e2e8f0;color:#475569"></div>
+                <div class="field"><label>Paralelo</label><input class="input" id="studentParallel" value="A" readonly style="background:#e2e8f0;color:#475569"></div>
+              </div>
+            </div>
+            <div class="btnRow" style="margin-top:24px;">
+              <button class="btn primary" onclick="startHomework()">Iniciar deber interactivo</button>
+            </div>
+          </div>
+          <div class="visual" aria-label="Ilustración matemática">
+            <span class="one">📘</span>
+            <span class="two">📐</span>
+            <span class="three">🏆</span>
+            <span class="four">✏️</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="workScreen">
+        <div class="workLayout">
+          <aside class="sidebar">
+            <h3>Panel de avance</h3>
+            <div class="stats">
+              <div class="stat"><strong id="doneCount">0/20</strong><span>Terminados</span></div>
+              <div class="stat"><strong id="avgNow">0</strong><span>Promedio</span></div>
+            </div>
+            <div class="progressBox">
+              <strong style="color:#0f766e;font-size:0.95rem;">Progreso del deber</strong>
+              <div class="bar"><span id="progressBar"></span></div>
+            </div>
+            <div class="exerciseGrid" id="exerciseGrid"></div>
+            <div class="notice warn show" id="sideNotice" style="margin-top:16px;">Resuelve los ejercicios. Cada uno tiene 3 intentos para alcanzar la máxima nota.</div>
+            <div class="btnRow" style="margin-top:24px;">
+              <button class="btn blue" onclick="finishInitial()" id="finishBtn" disabled>Generar resumen</button>
+              <button class="btn ghost" onclick="goIntro()" id="backIntroBtn">Volver al inicio</button>
+            </div>
+          </aside>
+
+          <section class="mainCard">
+            <div id="exercisePanel"></div>
+            <div class="btnRow" style="margin-top:24px;border-top:2px solid #e2e8f0;padding-top:20px;">
+              <button class="btn ghost" onclick="prevExercise()" style="flex:1;">Anterior</button>
+              <button class="btn ghost" onclick="nextExercise()" style="flex:1;">Siguiente</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen" id="summaryScreen">
+        <div class="panel">
+          <div class="duaRow">
+            <span class="dua blue">Calificación automática</span>
+            <span class="dua green">Recuperación automática</span>
+          </div>
+          <h2 style="font-size:2.5rem;">Resumen final del deber</h2>
+          <p class="lead">Revisa tus calificaciones. El resumen se enviará directamente al docente. Una vez enviado, la actividad quedará registrada de forma permanente.</p>
+          <div class="summaryGrid">
+            <div class="summaryItem"><strong id="sumInitial">0</strong><span>Nota inicial</span></div>
+            <div class="summaryItem"><strong id="sumRecovery">No aplica</strong><span>Recuperación</span></div>
+            <div class="summaryItem"><strong id="sumFinal" style="color:#2563eb;">0</strong><span>Nota final</span></div>
+            <div class="summaryItem"><strong id="sumLevel" style="color:#ea580c;">Inicial</strong><span>Nivel de logro</span></div>
+          </div>
+          <div class="notice show warn" id="summaryNotice">Completa todos los ejercicios para generar y enviar el resumen.</div>
+
+          <div class="recovery" id="recoveryArea">
+            <h3 style="font-size:1.8rem;color:#b91c1c;margin-top:32px;">Recuperación automática activada</h3>
+            <p style="font-size:1.1rem;">Tu nota inicial fue menor a 7/10. Tienes la oportunidad de resolver estos ejercicios de refuerzo para mejorar tu calificación final. ¡Tú puedes!</p>
+            <div id="recoveryPanel"></div>
+          </div>
+
+          <div class="panel" style="background:white;border-color:#e2e8f0;margin-top:24px;">
+            <h3>Observación docente automática</h3>
+            <p id="observationText" style="font-size:1.1rem;font-weight:600;color:#334155;">La observación aparecerá cuando termines la actividad principal y la recuperación (si aplica).</p>
+          </div>
+
+          <div class="btnRow" style="margin-top:30px;">
+            <button class="btn primary" id="sendBtn" onclick="sendSummary()" style="flex:2;font-size:1.15rem;" disabled>Enviar resumen a Google Sheets</button>
+            <button class="btn ghost" onclick="goWork()" style="flex:1;">Volver al deber</button>
+          </div>
+          <div id="estado-envio" style="display:none"></div>
+          <button id="btn-reintentar" class="btn red" style="display:none; margin-top:10px; width:100%;" onclick="reintentarEnvio()">Reintentar envío</button>
+          <div class="notice" id="sendNotice"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <form id="formEnvio" action="https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec" method="GET" target="iframeOculto">
+    <input type="hidden" name="hoja" id="sendHoja" />
+    <input type="hidden" name="idEnvio" id="sendIdEnvio" />
+    <input type="hidden" name="nombre" id="sendNombre" />
+    <input type="hidden" name="curso" id="sendCurso" />
+    <input type="hidden" name="paralelo" id="sendParalelo" />
+    <input type="hidden" name="tema" id="sendTema" />
+    <input type="hidden" name="tipoActividad" id="sendTipoActividad" />
+    <input type="hidden" name="numeroEjercicios" id="sendNumeroEjercicios" />
+    <input type="hidden" name="puntajeInicial" id="sendPuntajeInicial" />
+    <input type="hidden" name="promedioInicial" id="sendPromedioInicial" />
+    <input type="hidden" name="recuperacionHabilitada" id="sendRecuperacionHabilitada" />
+    <input type="hidden" name="promedioRecuperacion" id="sendPromedioRecuperacion" />
+    <input type="hidden" name="notaFinal" id="sendNotaFinal" />
+    <input type="hidden" name="porcentajeFinal" id="sendPorcentajeFinal" />
+    <input type="hidden" name="nivel" id="sendNivel" />
+    <input type="hidden" name="estado" id="sendEstado" />
+    <input type="hidden" name="fechaLimite" id="sendFechaLimite" />
+    <input type="hidden" name="observacion" id="sendObservacion" />
+    <input type="hidden" name="detalleEjercicios" id="sendDetalleEjercicios" />
+    <input type="hidden" name="userAgent" id="sendUserAgent" />
+    <input type="hidden" name="urlOrigen" id="sendUrlOrigen" />
+    <input type="hidden" name="fechaCliente" id="sendFechaCliente" />
+  </form>
+  <iframe name="iframeOculto" id="iframeOculto" style="display:none;"></iframe>
+
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec";
+    const SHEET_NAME = "Deb_Uni_3";
+    const HOMEWORK_VERSION = "matrices_unidad3_v1_autosave";
+    const STORAGE_KEY_SENT = "deber_matrices_unidad3_enviado_v1";
+    const STORAGE_KEY_PROGRESS = "deber_matrices_unidad3_progreso_v1";
+    const STORAGE_KEY = "ueeh_deber_matrices_unidad3_resultado_v1";
+    const FECHA_LIMITE = "19 de junio de 2026";
+    const TOPIC = "Operaciones de matrices";
+    const SUBJECT = "Matemáticas";
+    const COURSE = "Tercero de BGU";
+    const PARALLEL = "A";
+    const ACTIVITY_TYPE = "Deber interactivo";
+    const TOTAL_ATTEMPTS = 3;
+    const RECOVERY_THRESHOLD = 7;
+
+    const exercises = [
+      {
+        id: 1, mode: "mcq",
+        statement: "Suma de matrices de 2x2. Calcula A + B:",
+        eq: String.raw`\[ A = \begin{bmatrix}2 & 5 \\ 1 & 3\end{bmatrix} \quad B = \begin{bmatrix}1 & -2 \\ 4 & 0\end{bmatrix} \]`,
+        options: [
+          String.raw`\( \begin{bmatrix}3 & 3 \\ 5 & 3\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}1 & 7 \\ -3 & 3\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}3 & 7 \\ 5 & 0\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}2 & -10 \\ 4 & 0\end{bmatrix} \)`
+        ],
+        correctIndex: 0,
+        hint: "Para sumar matrices, suma los elementos que están en la misma posición: \(a_{11} + b_{11}\), \(a_{12} + b_{12}\), etc.",
+        solution: String.raw`\[ A+B = \begin{bmatrix}2+1 & 5+(-2) \\ 1+4 & 3+0\end{bmatrix} = \begin{bmatrix}3 & 3 \\ 5 & 3\end{bmatrix} \]`
+      },
+      {
+        id: 2, mode: "fill",
+        statement: "Completa los valores de la matriz resultante para A + B:",
+        eq: String.raw`\[ A = \begin{bmatrix}-3 & 0 \\ 2 & -1\end{bmatrix} \quad B = \begin{bmatrix}5 & 4 \\ -2 & 3\end{bmatrix} \]`,
+        blanks: [2, 4, 0, 2],
+        body: `<div class="procLine"><span>A + B = </span><div class="matrix-wrapper"><div class="matrix-bracket col-2">[[0]] [[1]] [[2]] [[3]]</div></div></div>`,
+        hint: "Suma posición por posición. Cuidado con los signos: -3 + 5 y -1 + 3.",
+        solution: String.raw`\[ A+B = \begin{bmatrix}-3+5 & 0+4 \\ 2+(-2) & -1+3\end{bmatrix} = \begin{bmatrix}2 & 4 \\ 0 & 2\end{bmatrix} \]`
+      },
+      {
+        id: 3, mode: "mcq",
+        statement: "Resta de matrices de 2x2. Calcula A - B:",
+        eq: String.raw`\[ A = \begin{bmatrix}7 & 2 \\ 4 & 6\end{bmatrix} \quad B = \begin{bmatrix}3 & 5 \\ 1 & 2\end{bmatrix} \]`,
+        options: [
+          String.raw`\( \begin{bmatrix}10 & 7 \\ 5 & 8\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}4 & -3 \\ 3 & 4\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}4 & 3 \\ 3 & 4\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}-4 & 3 \\ -3 & -4\end{bmatrix} \)`
+        ],
+        correctIndex: 1,
+        hint: "Resta los elementos homólogos: el primer elemento es 7 - 3.",
+        solution: String.raw`\[ A-B = \begin{bmatrix}7-3 & 2-5 \\ 4-1 & 6-2\end{bmatrix} = \begin{bmatrix}4 & -3 \\ 3 & 4\end{bmatrix} \]`
+      },
+      {
+        id: 4, mode: "fill",
+        statement: "Completa los valores resultantes de la resta A - B:",
+        eq: String.raw`\[ A = \begin{bmatrix}0 & -4 \\ 8 & 3\end{bmatrix} \quad B = \begin{bmatrix}-2 & 1 \\ 5 & -3\end{bmatrix} \]`,
+        blanks: [2, -5, 3, 6],
+        body: `<div class="procLine"><span>A - B = </span><div class="matrix-wrapper"><div class="matrix-bracket col-2">[[0]] [[1]] [[2]] [[3]]</div></div></div>`,
+        hint: "Recuerda que restar un número negativo es equivalente a sumar: 0 - (-2).",
+        solution: String.raw`\[ A-B = \begin{bmatrix}0-(-2) & -4-1 \\ 8-5 & 3-(-3)\end{bmatrix} = \begin{bmatrix}2 & -5 \\ 3 & 6\end{bmatrix} \]`
+      },
+      {
+        id: 5, mode: "mcq",
+        statement: "Operación combinada. Calcula A + B - C:",
+        eq: String.raw`\[ A = \begin{bmatrix}1 & 3 \\ -2 & 5\end{bmatrix} \quad B = \begin{bmatrix}4 & -1 \\ 0 & 2\end{bmatrix} \quad C = \begin{bmatrix}-3 & 2 \\ 1 & 4\end{bmatrix} \]`,
+        options: [
+          String.raw`\( \begin{bmatrix}2 & 0 \\ -3 & 3\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}8 & 4 \\ -1 & 11\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}-2 & 4 \\ -1 & -1\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}8 & 0 \\ -3 & 3\end{bmatrix} \)`
+        ],
+        correctIndex: 3,
+        hint: "Realiza primero A + B y luego al resultado réstale la matriz C.",
+        solution: String.raw`\[ A+B = \begin{bmatrix}5 & 2 \\ -2 & 7\end{bmatrix}. \text{ Luego } (A+B)-C = \begin{bmatrix}5-(-3) & 2-2 \\ -2-1 & 7-4\end{bmatrix} = \begin{bmatrix}8 & 0 \\ -3 & 3\end{bmatrix} \]`
+      },
+      {
+        id: 6, mode: "fill",
+        statement: "Suma de matrices de 3x3. Calcula A + B:",
+        eq: String.raw`\[ A = \begin{bmatrix}1 & 0 & -2 \\ 3 & -1 & 4 \\ 0 & 2 & 5\end{bmatrix} \quad B = \begin{bmatrix}-1 & 3 & 2 \\ 0 & 4 & -3 \\ 1 & -2 & 0\end{bmatrix} \]`,
+        blanks: [0, 3, 0, 3, 3, 1, 1, 0, 5],
+        body: `<div class="procLine"><span>A + B = </span><div class="matrix-wrapper"><div class="matrix-bracket col-3">[[0]] [[1]] [[2]] [[3]] [[4]] [[5]] [[6]] [[7]] [[8]]</div></div></div>`,
+        hint: "El proceso es igual que en las matrices 2x2. Suma las nueve posiciones homólogas.",
+        solution: String.raw`\[ A+B = \begin{bmatrix}1-1 & 0+3 & -2+2 \\ 3+0 & -1+4 & 4-3 \\ 0+1 & 2-2 & 5+0\end{bmatrix} = \begin{bmatrix}0 & 3 & 0 \\ 3 & 3 & 1 \\ 1 & 0 & 5\end{bmatrix} \]`
+      },
+      {
+        id: 7, mode: "mcq",
+        statement: "Resta de matrices de 3x3. Calcula A - B:",
+        eq: String.raw`\[ A = \begin{bmatrix}5 & -1 & 3 \\ 0 & 4 & -2 \\ 2 & 1 & 0\end{bmatrix} \quad B = \begin{bmatrix}-2 & 3 & 1 \\ 4 & -1 & 0 \\ 1 & 2 & -3\end{bmatrix} \]`,
+        options: [
+          String.raw`\( \begin{bmatrix}3 & 2 & 4 \\ 4 & 3 & -2 \\ 3 & 3 & -3\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}7 & -4 & 2 \\ -4 & 5 & -2 \\ 1 & -1 & 3\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}-7 & 4 & -2 \\ 4 & -5 & 2 \\ -1 & 1 & -3\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}7 & 2 & 2 \\ 4 & 5 & 2 \\ 1 & -1 & 3\end{bmatrix} \)`
+        ],
+        correctIndex: 1,
+        hint: "Presta mucha atención a los signos. Ejemplo: elemento central es 4 - (-1) = 5.",
+        solution: String.raw`\[ A-B = \begin{bmatrix}5-(-2) & -1-3 & 3-1 \\ 0-4 & 4-(-1) & -2-0 \\ 2-1 & 1-2 & 0-(-3)\end{bmatrix} = \begin{bmatrix}7 & -4 & 2 \\ -4 & 5 & -2 \\ 1 & -1 & 3\end{bmatrix} \]`
+      },
+      {
+        id: 8, mode: "fill",
+        statement: "Suma de matrices de 3x3. Calcula A + B:",
+        eq: String.raw`\[ A = \begin{bmatrix}0 & 2 & -3 \\ -1 & 5 & 0 \\ 4 & -2 & 1\end{bmatrix} \quad B = \begin{bmatrix}3 & -2 & 1 \\ 2 & -4 & 3 \\ -1 & 0 & 2\end{bmatrix} \]`,
+        blanks: [3, 0, -2, 1, 1, 3, 3, -2, 3],
+        body: `<div class="procLine"><span>A + B = </span><div class="matrix-wrapper"><div class="matrix-bracket col-3">[[0]] [[1]] [[2]] [[3]] [[4]] [[5]] [[6]] [[7]] [[8]]</div></div></div>`,
+        hint: "Recuerda: \(a_{21} + b_{21} = -1 + 2 = 1\).",
+        solution: String.raw`\[ A+B = \begin{bmatrix}0+3 & 2-2 & -3+1 \\ -1+2 & 5-4 & 0+3 \\ 4-1 & -2+0 & 1+2\end{bmatrix} = \begin{bmatrix}3 & 0 & -2 \\ 1 & 1 & 3 \\ 3 & -2 & 3\end{bmatrix} \]`
+      },
+      {
+        id: 9, mode: "mcq",
+        statement: "Ecuación matricial. Encuentra la matriz X tal que A + X = B:",
+        eq: String.raw`\[ A = \begin{bmatrix}3 & -1 \\ 0 & 4\end{bmatrix} \quad B = \begin{bmatrix}7 & 2 \\ -3 & 1\end{bmatrix} \]`,
+        options: [
+          String.raw`\( \begin{bmatrix}4 & 3 \\ -3 & -3\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}10 & 1 \\ -3 & 5\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}-4 & -3 \\ 3 & 3\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}4 & 1 \\ 3 & 3\end{bmatrix} \)`
+        ],
+        correctIndex: 0,
+        hint: "Despeja X: al igual que en álgebra básica, X = B - A.",
+        solution: String.raw`\[ X = B - A = \begin{bmatrix}7-3 & 2-(-1) \\ -3-0 & 1-4\end{bmatrix} = \begin{bmatrix}4 & 3 \\ -3 & -3\end{bmatrix} \]`
+      },
+      {
+        id: 10, mode: "fill",
+        statement: "Ecuación matricial 3x3. Encuentra la matriz X tal que X - A = B:",
+        eq: String.raw`\[ A = \begin{bmatrix}2 & 0 & -1 \\ 3 & 4 & 1 \\ 0 & -2 & 5\end{bmatrix} \quad B = \begin{bmatrix}-1 & 3 & 2 \\ 0 & -4 & 3 \\ 1 & 2 & -2\end{bmatrix} \]`,
+        blanks: [1, 3, 1, 3, 0, 4, 1, 0, 3],
+        body: `<div class="procLine"><span>Despejamos X = A + B:</span><div class="matrix-wrapper"><div class="matrix-bracket col-3">[[0]] [[1]] [[2]] [[3]] [[4]] [[5]] [[6]] [[7]] [[8]]</div></div></div>`,
+        hint: "Despeja X pasando A al otro lado sumando: X = A + B.",
+        solution: String.raw`\[ X = A + B = \begin{bmatrix}2-1 & 0+3 & -1+2 \\ 3+0 & 4-4 & 1+3 \\ 0+1 & -2+2 & 5-2\end{bmatrix} = \begin{bmatrix}1 & 3 & 1 \\ 3 & 0 & 4 \\ 1 & 0 & 3\end{bmatrix} \]`
+      },
+      {
+        id: 11, mode: "fill",
+        statement: "Multiplicación por un escalar. Calcula 2A + 3B para:",
+        eq: String.raw`\[ A = \begin{bmatrix}1 & 0 \\ -1 & 2\end{bmatrix} \quad B = \begin{bmatrix}3 & 1 \\ 0 & -2\end{bmatrix} \]`,
+        blanks: [11, 3, -2, -2],
+        body: `<div class="procLine"><span>2A + 3B = </span><div class="matrix-wrapper"><div class="matrix-bracket col-2">[[0]] [[1]] [[2]] [[3]]</div></div></div>`,
+        hint: "Multiplica cada elemento de A por 2 y cada elemento de B por 3, y luego suma ambos resultados.",
+        solution: String.raw`\[ 2A = \begin{bmatrix}2 & 0 \\ -2 & 4\end{bmatrix}, 3B = \begin{bmatrix}9 & 3 \\ 0 & -6\end{bmatrix}. \text{ Suma: } \begin{bmatrix}2+9 & 0+3 \\ -2+0 & 4-6\end{bmatrix} = \begin{bmatrix}11 & 3 \\ -2 & -2\end{bmatrix} \]`
+      },
+      {
+        id: 12, mode: "mcq",
+        statement: "Dadas cuatro matrices, calcula A - B + C - D:",
+        eq: String.raw`\[ A = \begin{bmatrix}4 & 1 \\ -2 & 3\end{bmatrix} \quad B = \begin{bmatrix}-1 & 2 \\ 0 & 1\end{bmatrix} \quad C = \begin{bmatrix}2 & -3 \\ 1 & 0\end{bmatrix} \quad D = \begin{bmatrix}0 & 1 \\ -1 & 2\end{bmatrix} \]`,
+        options: [
+          String.raw`\( \begin{bmatrix}5 & -3 \\ 0 & 0\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}7 & -5 \\ 0 & 0\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}7 & 1 \\ -2 & 4\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}5 & -5 \\ 2 & 0\end{bmatrix} \)`
+        ],
+        correctIndex: 1,
+        hint: "Realiza las operaciones en orden. Para el primer elemento: 4 - (-1) + 2 - 0 = 7.",
+        solution: String.raw`\[ (A-B)+(C-D) = \begin{bmatrix}5 & -1 \\ -2 & 2\end{bmatrix} + \begin{bmatrix}2 & -4 \\ 2 & -2\end{bmatrix} = \begin{bmatrix}7 & -5 \\ 0 & 0\end{bmatrix} \]`
+      },
+      {
+        id: 13, mode: "fill",
+        statement: "Igualdad de matrices. Determina los valores de 'a' y 'b':",
+        eq: String.raw`\[ \begin{bmatrix}a+b & 3 \\ 1 & a-b\end{bmatrix} = \begin{bmatrix}5 & 3 \\ 1 & 1\end{bmatrix} \]`,
+        blanks: [3, 2],
+        body: `<div class="procLine">Para que las matrices sean iguales, los elementos homólogos deben ser iguales. <br><span>Valor de a = </span>[[0]]<span>, Valor de b = </span>[[1]]</div>`,
+        hint: "Forma un sistema de ecuaciones: a+b=5 y a-b=1. Si sumas las ecuaciones obtienes 2a=6.",
+        solution: String.raw`Sistema: \(a+b=5\) y \(a-b=1\). Sumando: \(2a=6 \Rightarrow a=3\). Reemplazando: \(3+b=5 \Rightarrow b=2\).`
+      },
+      {
+        id: 14, mode: "mcq",
+        statement: "Registro de temperaturas. Una estación registra las temperaturas (máximas y mínimas) de dos semanas. Calcula la suma matricial de ambas semanas:",
+        eq: String.raw`\[ S1 = \begin{bmatrix}28 & 15 \\ 30 & 16\end{bmatrix} \quad S2 = \begin{bmatrix}25 & 12 \\ 27 & 14\end{bmatrix} \]`,
+        options: [
+          String.raw`\( \begin{bmatrix}53 & 27 \\ 57 & 30\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}3 & 3 \\ 3 & 2\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}50 & 27 \\ 57 & 32\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}43 & 27 \\ 47 & 30\end{bmatrix} \)`
+        ],
+        correctIndex: 0,
+        hint: "La suma total de temperaturas de las dos semanas es simplemente S1 + S2.",
+        solution: String.raw`\[ S1+S2 = \begin{bmatrix}28+25 & 15+12 \\ 30+27 & 16+14\end{bmatrix} = \begin{bmatrix}53 & 27 \\ 57 & 30\end{bmatrix} \]`
+      },
+      {
+        id: 15, mode: "fill",
+        statement: "Balance de ventas. Las ventas de los dos primeros trimestres se representan con las matrices A y B. Calcula las ventas totales A + B:",
+        eq: String.raw`\[ A = \begin{bmatrix}120 & 85 \\ 95 & 110\end{bmatrix} \quad B = \begin{bmatrix}105 & 90 \\ 88 & 125\end{bmatrix} \]`,
+        blanks: [225, 175, 183, 235],
+        body: `<div class="procLine"><span>Ventas Totales = </span><div class="matrix-wrapper"><div class="matrix-bracket col-2">[[0]] [[1]] [[2]] [[3]]</div></div></div>`,
+        hint: "Suma los valores de la matriz A con los valores de la matriz B, posición a posición.",
+        solution: String.raw`\[ A+B = \begin{bmatrix}120+105 & 85+90 \\ 95+88 & 110+125\end{bmatrix} = \begin{bmatrix}225 & 175 \\ 183 & 235\end{bmatrix} \]`
+      },
+      {
+        id: 16, mode: "mcq",
+        statement: "Producción industrial. Una fábrica produce tres tipos de piezas en dos turnos (Mañana A, Tarde B). Calcula la producción total del día (A + B):",
+        eq: String.raw`\[ A = \begin{bmatrix}50 & 30 & 20 \\ 45 & 35 & 25 \\ 60 & 40 & 15\end{bmatrix} \quad B = \begin{bmatrix}40 & 25 & 30 \\ 50 & 20 & 35 \\ 45 & 30 & 20\end{bmatrix} \]`,
+        options: [
+          String.raw`\( \begin{bmatrix}90 & 55 & 50 \\ 95 & 55 & 60 \\ 105 & 70 & 35\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}10 & 5 & -10 \\ -5 & 15 & -10 \\ 15 & 10 & -5\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}90 & 50 & 50 \\ 95 & 55 & 55 \\ 100 & 70 & 35\end{bmatrix} \)`,
+          String.raw`\( \begin{bmatrix}80 & 55 & 50 \\ 95 & 55 & 60 \\ 105 & 60 & 35\end{bmatrix} \)`
+        ],
+        correctIndex: 0,
+        hint: "Verifica fila por fila. Fila 1: 50+40, 30+25, 20+30.",
+        solution: String.raw`\[ A+B = \begin{bmatrix}50+40 & 30+25 & 20+30 \\ 45+50 & 35+20 & 25+35 \\ 60+45 & 40+30 & 15+20\end{bmatrix} = \begin{bmatrix}90 & 55 & 50 \\ 95 & 55 & 60 \\ 105 & 70 & 35\end{bmatrix} \]`
+      },
+      {
+        id: 17, mode: "input",
+        statement: "Basado en el problema de ventas, calcula la matriz diferencia C = B - A. ¿Cuál es el valor del elemento \(c_{22}\)?",
+        eq: String.raw`\[ A = \begin{bmatrix}120 & 85 \\ 95 & 110\end{bmatrix} \quad B = \begin{bmatrix}105 & 90 \\ 88 & 125\end{bmatrix} \]`,
+        answer: 15, acceptedAnswers: ["15"],
+        hint: "El elemento \(c_{22}\) corresponde a la fila 2, columna 2. Resta el valor de la matriz A al de la matriz B en esa misma posición.",
+        solution: String.raw`Para la posición 2,2: \(c_{22} = b_{22} - a_{22} = 125 - 110 = 15\).`
+      },
+      {
+        id: 18, mode: "input",
+        statement: "Basado en la producción industrial, calcula C = A - B. ¿Cuál es el valor del elemento \(c_{31}\)?",
+        eq: String.raw`\[ A = \begin{bmatrix}50 & 30 & 20 \\ 45 & 35 & 25 \\ 60 & 40 & 15\end{bmatrix} \quad B = \begin{bmatrix}40 & 25 & 30 \\ 50 & 20 & 35 \\ 45 & 30 & 20\end{bmatrix} \]`,
+        answer: 15, acceptedAnswers: ["15"],
+        hint: "El elemento \(c_{31}\) es el de la fila 3, columna 1. Resta: \(a_{31} - b_{31}\).",
+        solution: String.raw`Para la posición 3,1: \(c_{31} = a_{31} - b_{31} = 60 - 45 = 15\).`
+      },
+      {
+        id: 19, mode: "fill",
+        statement: "Ecuación matricial con producto escalar. Halla la matriz X:",
+        eq: String.raw`\[ 2X + \begin{bmatrix}4 & 2 \\ 0 & -6\end{bmatrix} = \begin{bmatrix}10 & 8 \\ -4 & 2\end{bmatrix} \]`,
+        blanks: [3, 3, -2, 4],
+        body: `<div class="procLine"><span>Matriz X = </span><div class="matrix-wrapper"><div class="matrix-bracket col-2">[[0]] [[1]] [[2]] [[3]]</div></div></div>`,
+        hint: "Primero pasa restando la matriz constante, luego divide todos los elementos del resultado entre 2.",
+        solution: String.raw`\[ 2X = \begin{bmatrix}10 & 8 \\ -4 & 2\end{bmatrix} - \begin{bmatrix}4 & 2 \\ 0 & -6\end{bmatrix} = \begin{bmatrix}6 & 6 \\ -4 & 8\end{bmatrix}. \text{ Dividiendo entre 2: } X = \begin{bmatrix}3 & 3 \\ -2 & 4\end{bmatrix} \]`
+      },
+      {
+        id: 20, mode: "mcq",
+        statement: "Propiedades de las matrices. Dadas las matrices A y B, ¿se cumple que A + B = B + A?",
+        eq: String.raw`\[ A = \begin{bmatrix}1 & -2 & 3 \\ 0 & 4 & -1 \\ 2 & 1 & 0\end{bmatrix} \quad B = \begin{bmatrix}2 & 1 & -3 \\ -4 & 0 & 2 \\ 1 & -1 & 3\end{bmatrix} \]`,
+        options: [
+          "Sí, la suma de matrices siempre es conmutativa.",
+          "No, el orden altera el resultado de la suma.",
+          "Solo se cumple si la matriz resultante es nula.",
+          "Faltan datos para determinarlo."
+        ],
+        correctIndex: 0,
+        hint: "Piensa en la propiedad conmutativa de los números reales (x+y = y+x). Puesto que la suma de matrices se hace término a término con números reales, la propiedad se hereda.",
+        solution: "Sí, la suma de matrices hereda la propiedad conmutativa de los números reales, por lo tanto, \(A+B = B+A\) para matrices de las mismas dimensiones."
+      }
+    ];
+
+    const recoveryExercises = [
+      {
+        id: 1, mode: "mcq", statement: "Suma básica 2x2. Calcula A + B:",
+        eq: String.raw`\[ A = \begin{bmatrix}1 & 2 \\ 3 & 4\end{bmatrix} \quad B = \begin{bmatrix}2 & 0 \\ 1 & 2\end{bmatrix} \]`,
+        options: [ String.raw`\(\begin{bmatrix}3 & 2 \\ 4 & 6\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}3 & 0 \\ 4 & 6\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}2 & 2 \\ 3 & 8\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}3 & 2 \\ 2 & 2\end{bmatrix}\)` ],
+        correctIndex: 0, hint: "Suma posiciones: 1+2, 2+0, etc.", solution: String.raw`\[\begin{bmatrix}1+2 & 2+0 \\ 3+1 & 4+2\end{bmatrix} = \begin{bmatrix}3 & 2 \\ 4 & 6\end{bmatrix}\]`
+      },
+      {
+        id: 2, mode: "fill", statement: "Suma con negativos. Calcula A + B:",
+        eq: String.raw`\[ A = \begin{bmatrix}5 & -1 \\ 2 & 3\end{bmatrix} \quad B = \begin{bmatrix}1 & 4 \\ -2 & 0\end{bmatrix} \]`,
+        blanks: [6, 3, 0, 3], body: `<div class="procLine"><div class="matrix-wrapper"><div class="matrix-bracket col-2">[[0]] [[1]] [[2]] [[3]]</div></div></div>`,
+        hint: "Suma los elementos. Ejemplo: -1 + 4 = 3.", solution: String.raw`\[\begin{bmatrix}6 & 3 \\ 0 & 3\end{bmatrix}\]`
+      },
+      {
+        id: 3, mode: "mcq", statement: "Resta básica. Calcula A - B:",
+        eq: String.raw`\[ A = \begin{bmatrix}4 & 4 \\ 4 & 4\end{bmatrix} \quad B = \begin{bmatrix}1 & 1 \\ 1 & 1\end{bmatrix} \]`,
+        options: [ String.raw`\(\begin{bmatrix}5 & 5 \\ 5 & 5\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}3 & 3 \\ 3 & 3\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}4 & 4 \\ 4 & 4\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}0 & 0 \\ 0 & 0\end{bmatrix}\)` ],
+        correctIndex: 1, hint: "Resta 1 a cada elemento.", solution: String.raw`\[\begin{bmatrix}3 & 3 \\ 3 & 3\end{bmatrix}\]`
+      },
+      {
+        id: 4, mode: "fill", statement: "Resta con negativos. Calcula A - B:",
+        eq: String.raw`\[ A = \begin{bmatrix}0 & 2 \\ -1 & 5\end{bmatrix} \quad B = \begin{bmatrix}3 & -2 \\ 2 & -4\end{bmatrix} \]`,
+        blanks: [-3, 4, -3, 9], body: `<div class="procLine"><div class="matrix-wrapper"><div class="matrix-bracket col-2">[[0]] [[1]] [[2]] [[3]]</div></div></div>`,
+        hint: "Cuidado con los signos dobles: 2 - (-2) = 4.", solution: String.raw`\[\begin{bmatrix}0-3 & 2-(-2) \\ -1-2 & 5-(-4)\end{bmatrix} = \begin{bmatrix}-3 & 4 \\ -3 & 9\end{bmatrix}\]`
+      },
+      {
+        id: 5, mode: "mcq", statement: "Producto por escalar. Calcula 3A:",
+        eq: String.raw`\[ A = \begin{bmatrix}2 & -1 \\ 0 & 4\end{bmatrix} \]`,
+        options: [ String.raw`\(\begin{bmatrix}6 & -3 \\ 0 & 12\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}5 & 2 \\ 3 & 7\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}6 & -1 \\ 0 & 4\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}6 & 3 \\ 0 & 12\end{bmatrix}\)` ],
+        correctIndex: 0, hint: "Multiplica cada elemento de la matriz por 3.", solution: String.raw`\[3A = \begin{bmatrix}3(2) & 3(-1) \\ 3(0) & 3(4)\end{bmatrix} = \begin{bmatrix}6 & -3 \\ 0 & 12\end{bmatrix}\]`
+      },
+      {
+        id: 6, mode: "fill", statement: "Producto por escalar negativo. Calcula -2A:",
+        eq: String.raw`\[ A = \begin{bmatrix}-3 & 1 \\ 5 & -2\end{bmatrix} \]`,
+        blanks: [6, -2, -10, 4], body: `<div class="procLine"><div class="matrix-wrapper"><div class="matrix-bracket col-2">[[0]] [[1]] [[2]] [[3]]</div></div></div>`,
+        hint: "Multiplica por -2, invirtiendo los signos.", solution: String.raw`\[-2A = \begin{bmatrix}-2(-3) & -2(1) \\ -2(5) & -2(-2)\end{bmatrix} = \begin{bmatrix}6 & -2 \\ -10 & 4\end{bmatrix}\]`
+      },
+      {
+        id: 7, mode: "input", statement: "Dadas A y B, encuentra el elemento \(c_{12}\) de la matriz C = A + B.",
+        eq: String.raw`\[ A = \begin{bmatrix}1 & 5 \\ 0 & 2\end{bmatrix} \quad B = \begin{bmatrix}2 & 3 \\ -1 & 4\end{bmatrix} \]`,
+        answer: 8, acceptedAnswers: ["8"], hint: "El elemento de la fila 1, columna 2 es la suma de los \(a_{12}\) y \(b_{12}\).", solution: "5 + 3 = 8"
+      },
+      {
+        id: 8, mode: "input", statement: "Dadas A y B, encuentra el elemento \(c_{21}\) de la matriz C = A - B.",
+        eq: String.raw`\[ A = \begin{bmatrix}7 & 4 \\ 6 & 9\end{bmatrix} \quad B = \begin{bmatrix}1 & 2 \\ 3 & 4\end{bmatrix} \]`,
+        answer: 3, acceptedAnswers: ["3"], hint: "Fila 2, columna 1. Resta \(a_{21}\) - \(b_{21}\).", solution: "6 - 3 = 3"
+      },
+      {
+        id: 9, mode: "mcq", statement: "Ecuación sencilla. Encuentra X si X + A = B.",
+        eq: String.raw`\[ A = \begin{bmatrix}1 & 1 \\ 1 & 1\end{bmatrix} \quad B = \begin{bmatrix}5 & 5 \\ 5 & 5\end{bmatrix} \]`,
+        options: [ String.raw`\(\begin{bmatrix}6 & 6 \\ 6 & 6\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}4 & 4 \\ 4 & 4\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}5 & 5 \\ 5 & 5\end{bmatrix}\)`, String.raw`\(\begin{bmatrix}0 & 0 \\ 0 & 0\end{bmatrix}\)` ],
+        correctIndex: 1, hint: "X = B - A", solution: String.raw`\[X = \begin{bmatrix}4 & 4 \\ 4 & 4\end{bmatrix}\]`
+      },
+      {
+        id: 10, mode: "fill", statement: "Igualdad. Ingresa los valores de x, y, z, w en ese orden.",
+        eq: String.raw`\[ \begin{bmatrix}x & y \\ z & w\end{bmatrix} = \begin{bmatrix}2+1 & 4-2 \\ 0 & 5\end{bmatrix} \]`,
+        blanks: [3, 2, 0, 5], body: `<div class="procLine"><div class="matrix-wrapper"><div class="matrix-bracket col-2">[[0]] [[1]] [[2]] [[3]]</div></div></div>`,
+        hint: "Resuelve las operaciones de la matriz derecha y empareja.", solution: String.raw`\(x=3\), \(y=2\), \(z=0\), \(w=5\).`
+      }
+    ];
+
+    let currentId = 1;
+    let selectedChoice = null;
+    const state = {
+      sent:false,
+      initialFinished:false,
+      recoveryEnabled:false,
+      recoveryFinished:false,
+      initialAverage:0,
+      recoveryAverage:null,
+      finalGrade:0,
+      exercises:exercises.map(e=>({id:e.id,attempts:0,closed:false,score:0,correct:false})),
+      recovery:recoveryExercises.map(e=>({id:e.id,attempts:0,closed:false,score:0,correct:false}))
+    };
+
+    function $(id){return document.getElementById(id)}
+    function typeset(){ if(window.MathJax && MathJax.typesetPromise){ MathJax.typesetPromise().catch(()=>{}); } }
+    function round2(n){ return Math.round(Number(n)*100)/100; }
+    function screen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); typeset(); window.scrollTo(0,0); }
+    
+    function startHomework(){ 
+      const name=(localStorage.getItem("ueeh_student_name")||$("studentName").value.trim()).trim();
+      const course=(localStorage.getItem("ueeh_student_grade")||$("studentCourse").value.trim()).trim();
+      const parallel=(localStorage.getItem("ueeh_student_parallel")||$("studentParallel").value.trim()).trim();
+      if(!name||!course||!parallel){ 
+        alert("Completa nombre, curso y paralelo antes de iniciar."); 
+        return; 
+      } 
+      $("studentName").value=name;
+      $("studentCourse").value=course;
+      $("studentParallel").value=parallel;
+      localStorage.setItem("ueeh_student_name",name);
+      localStorage.setItem("ueeh_student_grade",course);
+      localStorage.setItem("ueeh_student_parallel",parallel);
+      document.getElementById('headSubtitle').innerText = `${TOPIC} · ${course} ${parallel}`;
+      document.getElementById('pillSheet').innerText = `📄 Hoja: ${SHEET_NAME}`;
+      saveProgress();
+      screen('workScreen'); 
+      openExercise(1); 
+    }
+    function goIntro(){ screen('introScreen'); }
+    function goWork(){ screen('workScreen'); renderAll(); }
+
+    function normalize(v){
+      return String(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'').replace(/,/g,'.').trim();
+    }
+    function parseNumber(v){
+      let s=normalize(v).replace(/^x=/,'').replace(/^x/,'').replace(/^=/,'');
+      if(/^[-+]?\d+(\.\d+)?\/[-+]?\d+(\.\d+)?$/.test(s)){
+        const [a,b]=s.split('/').map(Number); return b===0?NaN:a/b;
+      }
+      return Number(s);
+    }
+    function isNoSolution(v){
+      const s=normalize(v);
+      return ['sinsolucion','notienesolucion','nohay','nexistesol','nexiste','ninguna','imposible','conjuntovacio','∅'].some(k=>s.includes(k));
+    }
+    function answerMatches(input, expected){
+      if(typeof expected==='string'){
+        if(normalize(expected).includes('sin')) return isNoSolution(input);
+        return normalize(input)===normalize(expected);
+      }
+      const n=parseNumber(input);
+      return Number.isFinite(n) && Math.abs(n-Number(expected))<0.0001;
+    }
+    
+    function scoreByAttempt(attempts){ if(attempts===1)return 10; if(attempts===2)return 9; if(attempts===3)return 8; return 0; }
+    function levelText(grade){ if(grade>=9)return 'Destacado'; if(grade>=7)return 'Alcanzado'; if(grade>=4)return 'En desarrollo'; return 'Inicial'; }
+    function observation(grade){
+      if(grade>=9) return `Domina la resolución de operaciones con matrices (${TOPIC}). Excelente manejo conceptual y algorítmico.`;
+      if(grade>=7) return 'Alcanza el aprendizaje esperado. Debe seguir practicando para evitar errores menores en signos.';
+      if(grade>=4) return 'Está en proceso. Requiere reforzar las operaciones básicas de suma, resta y propiedades de matrices.';
+      return 'Necesita acompañamiento y práctica guiada para resolver correctamente las operaciones matriciales.';
+    }
+
+    function getData(id){return exercises.find(e=>e.id===id)}
+    function getState(id){return state.exercises.find(e=>e.id===id)}
+
+    function renderExerciseGrid(){
+      const grid=$('exerciseGrid'); grid.innerHTML='';
+      exercises.forEach(e=>{
+        const st=getState(e.id);
+        const b=document.createElement('button');
+        b.className='exBtn'; b.textContent=e.id; b.dataset.exercise=e.id;
+        if(e.id===currentId)b.classList.add('active');
+        if(st.closed){ if(st.score===10 || st.correct)b.classList.add('done'); else if(st.score>0)b.classList.add('partial'); else b.classList.add('fail'); }
+        b.onclick=()=>openExercise(e.id);
+        grid.appendChild(b);
+      });
+    }
+    function renderStats(){
+      const closed=state.exercises.filter(s=>s.closed).length;
+      const totalScore=state.exercises.reduce((a,b)=>a+b.score,0);
+      const avg=closed?round2(totalScore/exercises.length):0;
+      $('doneCount').textContent=`${closed}/${exercises.length}`;
+      $('avgNow').textContent=avg;
+      $('progressBar').style.width=`${closed/exercises.length*100}%`;
+      $('finishBtn').disabled=closed!==exercises.length || state.sent;
+    }
+    function renderAll(){ renderExerciseGrid(); renderStats(); renderExercise(); typeset(); }
+
+    function openExercise(id){ currentId=id; selectedChoice=null; renderAll(); }
+    function prevExercise(){ openExercise(Math.max(1,currentId-1)); }
+    function nextExercise(){ openExercise(Math.min(exercises.length,currentId+1)); }
+
+    function renderExercise(){
+      const data=getData(currentId), st=getState(currentId), panel=$('exercisePanel');
+      let typeLabel=data.mode==='mcq'?'Opción múltiple':data.mode==='input'?'Respuesta directa':'Procedimiento / Matriz';
+      
+      let html=`<span class="tag">Ejercicio ${data.id} · ${typeLabel}</span>
+                <h2 style="margin-top:16px;font-size:1.4rem;">${data.statement}</h2>
+                <div class="mathBox">${data.eq}</div>
+                <p class="muted" style="margin-bottom:16px;">Intentos: ${st.attempts}/${TOTAL_ATTEMPTS} · Puntaje actual: ${st.score}/10</p>`;
+      
+      if(data.mode==='mcq'){
+        html+=`<div class="choiceGrid">${data.options.map((op,i)=>`<button class="choice" data-choice="${i}" onclick="selectChoice(${i})" ${st.closed||state.sent?'disabled':''}>${op}</button>`).join('')}</div>`;
+      } else if(data.mode==='input'){
+        html+=`<div class="field"><input type="text" class="input" id="answerInput" placeholder="Escribe tu respuesta aquí" ${st.closed||state.sent?'disabled':''}></div>`;
+      } else {
+        html+=`<p style="color:#0f766e;font-weight:700;">Completa los valores en las casillas correspondientes.</p><div class="proc" style="margin-top:16px;">${renderFillBody(data, st)}</div>`;
+      }
+      
+      html+=`<div class="btnRow" style="margin-top:24px;">
+               <button class="btn primary" onclick="checkExercise()" ${st.closed||state.sent?'disabled':''} style="flex:2;">Comprobar respuesta</button>
+               <button class="btn ghost" onclick="showHint()" style="flex:1;">Ver pista</button>
+             </div>
+             <div class="feedback" id="feedback"></div>
+             <div class="hint" id="hintBox"><strong>Pista:</strong> ${data.hint}</div>
+             <div class="solution ${st.closed?'show':''}" id="solutionBox"><strong>Solución paso a paso:</strong><br><br>${data.solution}</div>`;
+      
+      panel.innerHTML=html;
+      typeset();
+    }
+
+    function renderFillBody(data, st){
+      return data.body.replace(/\[\[(\d+)\]\]/g,(m,idx)=>`<input type="text" class="blank" id="blank${idx}" data-blank="${idx}" ${st.closed||state.sent?'disabled':''}>`);
+    }
+    
+    function selectChoice(i){ selectedChoice=i; document.querySelectorAll('.choice').forEach(b=>b.classList.remove('selected')); const btn=document.querySelector(`[data-choice="${i}"]`); if(btn)btn.classList.add('selected'); }
+    function showHint(){ $('hintBox').classList.add('show'); typeset(); }
+    
+    function checkExercise(){
+      const data=getData(currentId), st=getState(currentId); if(st.closed||state.sent)return;
+      const fb=$('feedback'); st.attempts++;
+      
+      if(data.mode==='mcq'){
+        if(selectedChoice===null){ st.attempts--; fb.textContent='Por favor, selecciona una opción antes de comprobar.'; fb.className='feedback warn'; return; }
+        const ok=selectedChoice===data.correctIndex;
+        document.querySelectorAll('.choice').forEach((b,i)=>{ b.classList.remove('correct','wrong'); if(i===data.correctIndex)b.classList.add('correct'); if(i===selectedChoice && !ok)b.classList.add('wrong'); });
+        if(ok){ closeWithScore(st,scoreByAttempt(st.attempts),true,`¡Excelente! Respuesta correcta. Puntaje: ${scoreByAttempt(st.attempts)}/10.`); }
+        else if(st.attempts>=TOTAL_ATTEMPTS){ closeWithScore(st,0,false,'Agotaste tus intentos. Este ejercicio queda en 0/10.'); }
+        else { fb.textContent=`Respuesta incorrecta. Te quedan ${TOTAL_ATTEMPTS-st.attempts} intento(s).`; fb.className='feedback bad'; }
+      }
+      
+      if(data.mode==='input'){
+        const input=$('answerInput').value;
+        if(!input.trim()){ st.attempts--; fb.textContent='Escribe una respuesta antes de comprobar.'; fb.className='feedback warn'; return; }
+        const expected=data.answer;
+        if(answerMatches(input,expected)){ closeWithScore(st,scoreByAttempt(st.attempts),true,`¡Correcto! Puntaje obtenido: ${scoreByAttempt(st.attempts)}/10.`); }
+        else if(st.attempts>=TOTAL_ATTEMPTS){ closeWithScore(st,0,false,'Agotaste tus intentos. Este ejercicio queda en 0/10.'); }
+        else { fb.textContent=`Revisa tus cálculos. Te quedan ${TOTAL_ATTEMPTS-st.attempts} intento(s).`; fb.className='feedback bad'; }
+      }
+      
+      if(data.mode==='fill'){
+        const total=data.blanks.length; let correct=0;
+        data.blanks.forEach((ans,i)=>{
+          const input=$(`blank${i}`); const ok=answerMatches(input.value,ans);
+          input.classList.remove('correct','wrong'); input.classList.add(ok?'correct':'wrong'); if(ok)correct++;
+        });
+        if(correct===total){ closeWithScore(st,10,true,'¡Perfecto! Todas las casillas están correctas. Puntaje: 10/10.'); }
+        else if(st.attempts>=TOTAL_ATTEMPTS){ const score=round2((correct/total)*10); closeWithScore(st,score,score>=7,`Intentos agotados. Tienes ${correct}/${total} espacios correctos. Puntaje parcial: ${score}/10.`); }
+        else { fb.textContent=`Tienes ${correct}/${total} casillas correctas. Corrige las casillas en rojo. Te quedan ${TOTAL_ATTEMPTS-st.attempts} intento(s).`; fb.className='feedback warn'; }
+      }
+      renderExerciseGrid(); renderStats(); saveProgress(); typeset();
+    }
+    
+    function closeWithScore(st,score,correct,msg){
+      st.closed=true; st.score=score; st.correct=correct;
+      $('feedback').textContent=msg; $('feedback').className=score>0?'feedback ok':'feedback bad';
+      $('solutionBox').classList.add('show');
+      document.querySelectorAll('#exercisePanel input,#exercisePanel button.choice').forEach(el=>el.disabled=true);
+      const checkBtn=[...document.querySelectorAll('#exercisePanel .btn')].find(b=>b.textContent.includes('Comprobar')); if(checkBtn)checkBtn.disabled=true;
+      saveProgress();
+    }
+
+    function finishInitial(){
+      const closed=state.exercises.filter(s=>s.closed).length;
+      if(closed!==exercises.length){ alert('Aún tienes ejercicios pendientes. Debes terminar los 20 ejercicios.'); return; }
+      state.initialFinished=true;
+      state.initialAverage=round2(state.exercises.reduce((a,b)=>a+b.score,0)/exercises.length);
+      state.recoveryEnabled=state.initialAverage < RECOVERY_THRESHOLD;
+      state.finalGrade=state.initialAverage;
+      updateSummary();
+      screen('summaryScreen');
+      if(state.recoveryEnabled) renderRecovery();
+      saveProgress();
+    }
+
+    function updateSummary(){
+      $('sumInitial').textContent=state.initialAverage||0;
+      $('sumRecovery').textContent=state.recoveryAverage===null?'No aplica':state.recoveryAverage;
+      $('sumFinal').textContent=state.finalGrade||0;
+      $('sumLevel').textContent=levelText(state.finalGrade||0);
+      $('observationText').textContent=observation(state.finalGrade||0);
+      
+      const notice=$('summaryNotice');
+      if(!state.initialFinished){ notice.textContent='Completa el deber para generar el resumen.'; notice.className='notice show warn'; $('sendBtn').disabled=true; return; }
+      if(state.recoveryEnabled && !state.recoveryFinished){ notice.textContent='Tienes la recuperación activada. Resuélvela para mejorar tu nota final.'; notice.className='notice show warn'; $('sendBtn').disabled=true; return; }
+      notice.textContent='Resumen listo para enviar. Solo se permite un envío por estudiante.'; notice.className='notice show ok'; $('sendBtn').disabled=state.sent;
+    }
+
+    function renderRecovery(){
+      $('recoveryArea').classList.add('show');
+      const panel=$('recoveryPanel');
+      panel.innerHTML=recoveryExercises.map((e,idx)=>{
+        const st=state.recovery[idx];
+        let body=`<div class="panel" style="margin:20px 0;background:#fff;border:2px solid #e2e8f0;box-shadow:0 6px 16px rgba(0,0,0,0.04);">
+                    <span class="tag" style="background:#fee2e2;color:#991b1b;">Refuerzo ${e.id}</span>
+                    <h3 style="margin-top:12px;font-size:1.2rem;">${e.statement}</h3>
+                    <div class="mathBox" style="box-shadow:none;background:#f8fafc;">${e.eq}</div>
+                    <p class="muted" style="margin-bottom:12px;">Intentos: ${st.attempts}/${TOTAL_ATTEMPTS} · Puntaje: ${st.score}/10</p>`;
+        
+        if(e.mode==='mcq') {
+           body+=`<div class="choiceGrid">${e.options.map((op,i)=>`<button class="choice recChoice${e.id}" onclick="selectRecoveryChoice(${e.id},${i})" ${st.closed||state.sent?'disabled':''}>${op}</button>`).join('')}</div>`;
+        } else if(e.mode==='input') {
+           body+=`<input type="text" class="input" id="recInput${e.id}" placeholder="Respuesta directa" ${st.closed||state.sent?'disabled':''}>`;
+        } else {
+           body+=`<div class="proc">${renderRecFillBody(e, st)}</div>`;
+        }
+        
+        body+=`<div class="btnRow" style="margin-top:16px;">
+                 <button class="btn red" onclick="checkRecovery(${e.id})" ${st.closed||state.sent?'disabled':''}>Comprobar</button>
+                 <button class="btn ghost" onclick="toggleRecHint(${e.id})">Pista</button>
+               </div>
+               <div class="feedback" id="recFb${e.id}"></div>
+               <div class="hint" id="recHint${e.id}"><strong>Pista:</strong> ${e.hint}</div>
+               <div class="solution ${st.closed?'show':''}" id="recSol${e.id}"><strong>Solución:</strong><br><br>${e.solution}</div>
+              </div>`;
+        return body;
+      }).join('');
+      typeset();
+    }
+    
+    function renderRecFillBody(data, st){
+      return data.body.replace(/\[\[(\d+)\]\]/g,(m,idx)=>`<input type="text" class="blank" id="recBlank${data.id}_${idx}" ${st.closed||state.sent?'disabled':''}>`);
+    }
+
+    const recSelections={};
+    function selectRecoveryChoice(id,i){ recSelections[id]=i; document.querySelectorAll(`.recChoice${id}`).forEach(b=>b.classList.remove('selected')); document.querySelectorAll(`.recChoice${id}`)[i].classList.add('selected'); }
+    function toggleRecHint(id){ $(`recHint${id}`).classList.add('show'); typeset(); }
+    
+    function checkRecovery(id){
+      const data=recoveryExercises.find(e=>e.id===id), st=state.recovery.find(s=>s.id===id); if(st.closed||state.sent)return;
+      const fb=$(`recFb${id}`); st.attempts++;
+      let ok=false;
+      let partialScore=0;
+      
+      if(data.mode==='mcq'){
+        if(recSelections[id]===undefined){ st.attempts--; fb.textContent='Selecciona una opción.'; fb.className='feedback warn'; return; }
+        ok=recSelections[id]===data.correctIndex;
+      } else if(data.mode==='input') {
+        const val=$(`recInput${id}`).value; if(!val.trim()){st.attempts--; fb.textContent='Escribe una respuesta.'; fb.className='feedback warn'; return;} 
+        ok=answerMatches(val,data.answer);
+      } else if(data.mode==='fill') {
+        let correct=0; const total=data.blanks.length;
+        data.blanks.forEach((ans,idx)=>{
+          const inp=$(`recBlank${id}_${idx}`); const isOk=answerMatches(inp.value,ans);
+          inp.classList.remove('correct','wrong'); inp.classList.add(isOk?'correct':'wrong'); if(isOk)correct++;
+        });
+        ok=(correct===total);
+        partialScore=round2((correct/total)*10);
+      }
+      
+      if(ok){ st.closed=true; st.correct=true; st.score=10; fb.textContent=`¡Correcto! Puntaje: 10/10.`; fb.className='feedback ok'; }
+      else if(st.attempts>=TOTAL_ATTEMPTS){ st.closed=true; st.correct=false; st.score=(data.mode==='fill'?partialScore:0); fb.textContent=`Intentos agotados. Puntaje: ${st.score}/10.`; fb.className='feedback bad'; }
+      else { fb.textContent=`Incorrecto. Te quedan ${TOTAL_ATTEMPTS-st.attempts} intento(s).`; fb.className='feedback bad'; }
+      
+      if(st.closed){ $(`recSol${id}`).classList.add('show'); document.querySelectorAll(`#recoveryArea input, #recoveryArea button.choice`).forEach(el=>el.disabled=true); }
+      
+      if(state.recovery.every(s=>s.closed)){
+        state.recoveryFinished=true;
+        state.recoveryAverage=round2(state.recovery.reduce((a,b)=>a+b.score,0)/state.recovery.length);
+        state.finalGrade=round2((state.initialAverage+state.recoveryAverage)/2);
+      }
+      renderRecovery(); updateSummary(); typeset();
+    }
+
+    function crearIdEnvio(nombre, tipoActividad) {
+      const limpio = String(nombre || "estudiante")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .slice(0, 40);
+      return `${SHEET_NAME}-${tipoActividad}-${limpio}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+
+    function validarDatosEstudiante(nombre, curso, paralelo) {
+      const errores = [];
+      const nombreLimpio = (nombre || "").trim().toLowerCase();
+      if (!nombreLimpio || nombreLimpio === "pablo juca") errores.push("Debes ingresar tu nombre completo.");
+      if (!curso || curso.trim() === "") errores.push("Debes seleccionar tu curso.");
+      if (!paralelo || paralelo.trim() === "") errores.push("Debes seleccionar tu paralelo.");
+      return errores;
+    }
+
+    function enviarNota(datos, onSuccess, onError) {
+      const errores = validarDatosEstudiante(datos.nombre, datos.curso, datos.paralelo);
+      if (errores.length > 0) {
+        onError(errores.join(" "));
+        return;
+      }
+      const callbackName = "jsonp_cb_" + Date.now() + "_" + Math.floor(Math.random() * 9999);
+      const script = document.createElement("script");
+      const params = new URLSearchParams();
+      Object.keys(datos).forEach((k) => {
+        if (datos[k] !== undefined && datos[k] !== null) params.append(k, datos[k]);
+      });
+      params.append("callback", callbackName);
+      const timeout = setTimeout(function () {
+        cleanup();
+        onError("Tiempo de espera agotado (15s). Verifica tu conexión e intenta de nuevo.");
+      }, 15000);
+      window[callbackName] = function (response) {
+        cleanup();
+        if (response && response.ok === true) onSuccess(response);
+        else {
+          const msg = response && response.error ? response.error : "El servidor no confirmó el registro.";
+          onError(msg);
+        }
+      };
+      function cleanup() {
+        clearTimeout(timeout);
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+      script.onerror = function () {
+        cleanup();
+        onError("No se pudo conectar con el servidor. Verifica tu internet.");
+      };
+      script.src = APPS_SCRIPT_URL + "?" + params.toString();
+      document.head.appendChild(script);
+    }
+
+    function mostrarEnviando() {
+      const el = document.getElementById("estado-envio");
+      if(el) {
+        el.innerHTML = "⏳ Enviando nota, por favor espera...";
+        el.className = "envio-enviando";
+        el.style.display = "block";
+      }
+      const retryBtn = document.getElementById("btn-reintentar");
+      if (retryBtn) retryBtn.style.display = "none";
+    }
+
+    function mostrarExito(sheet, row) {
+      const el = document.getElementById("estado-envio");
+      if(el) {
+        el.innerHTML = "✓ Nota registrada correctamente.<br><small>Hoja: <strong>" + sheet + "</strong> | Fila: <strong>" + row + "</strong></small>";
+        el.className = "envio-ok";
+        el.style.display = "block";
+      }
+      const retryBtn = document.getElementById("btn-reintentar");
+      if (retryBtn) retryBtn.style.display = "none";
+    }
+
+    function mostrarError(msg) {
+      const el = document.getElementById("estado-envio");
+      if(el) {
+        el.innerHTML = "✗ " + msg;
+        el.className = "envio-error";
+        el.style.display = "block";
+      }
+      const retryBtn = document.getElementById("btn-reintentar");
+      if (retryBtn) retryBtn.style.display = "inline-block";
+    }
+
+    function construirPayloadDeber() {
+      const name = (localStorage.getItem("ueeh_student_name") || $("studentName").value.trim()).trim();
+      const course = (localStorage.getItem("ueeh_student_grade") || $("studentCourse").value.trim()).trim();
+      const parallel = (localStorage.getItem("ueeh_student_parallel") || $("studentParallel").value.trim()).trim();
+      const initialPoints = round2(state.exercises.reduce((a, b) => a + b.score, 0));
+      const finalVal = round2(state.finalGrade);
+      const detail = state.exercises.map((s) => `E${s.id}:${s.score}/10`).join(" | ");
+
+      return {
+        hoja: SHEET_NAME,
+        idEnvio: crearIdEnvio(name, "deber"),
+        nombre: name,
+        curso: course,
+        paralelo: parallel,
+        tema: "Operaciones con matrices",
+        tipoActividad: "Deber interactivo",
+        numeroEjercicios: "20",
+        puntajeInicial: String(initialPoints),
+        promedioInicial: String(state.initialAverage),
+        recuperacionHabilitada: state.recoveryEnabled ? "Sí" : "No",
+        promedioRecuperacion: state.recoveryAverage === null ? "No aplica" : String(state.recoveryAverage),
+        notaFinal: String(finalVal),
+        porcentajeFinal: String(round2(finalVal * 10)),
+        nivel: levelText(finalVal),
+        estado: "Enviado",
+        fechaLimite: FECHA_LIMITE,
+        observacion: observation(finalVal),
+        detalleEjercicios: detail,
+        userAgent: navigator.userAgent || "",
+        urlOrigen: location.href || "",
+        fechaCliente: new Date().toISOString()
+      };
+    }
+
+    function sendSummary() {
+      if (state.sent || localStorage.getItem(STORAGE_KEY_SENT) === "true") {
+        showSend("Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.", "ok");
+        blockAll();
+        return;
+      }
+      if (!state.initialFinished || (state.recoveryEnabled && !state.recoveryFinished)) {
+        showSend("Todavía falta completar la actividad o la recuperación.", "bad");
+        return;
+      }
+
+      const payload = construirPayloadDeber();
+      mostrarEnviando();
+
+      enviarNota(payload, function (response) {
+        state.sent = true;
+        localStorage.setItem(STORAGE_KEY_SENT, "true");
+        localStorage.removeItem(STORAGE_KEY_PROGRESS);
+        localStorage.setItem("ueeh_unidad3_result_deber", JSON.stringify({ ...payload, enviadoSheets: true, pendienteEnvio: false, hojaSheets: response.sheet, filaSheets: response.row, idEnvio: payload.idEnvio, fecha: new Date().toISOString() }));
+        mostrarExito(response.sheet, response.row);
+        showSend(`Resumen enviado correctamente a Deb_Uni_3, fila ${response.row}.`, "ok");
+        blockAll();
+        saveProgress();
+      }, function (msg) {
+        state.sent = false;
+        localStorage.setItem("ueeh_unidad3_result_deber", JSON.stringify({ ...payload, enviadoSheets: false, pendienteEnvio: true, fecha: new Date().toISOString() }));
+        mostrarError(msg);
+        showSend("No se pudo enviar. Puedes reintentar.", "bad");
+        saveProgress();
+      });
+    }
+
+    function reintentarEnvio() {
+      sendSummary();
+    }
+
+    function showSend(msg, type) {
+      const n = document.getElementById("sendNotice");
+      if(n) {
+        n.textContent = msg;
+        n.className = `notice show ${type}`;
+      }
+    }
+
+    function blockAll() {
+      document.querySelectorAll("input,button:not(#backIntroBtn),select").forEach((el) => el.disabled = true);
+    }
+
+    function saveProgress() {
+      try {
+        localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify({
+          version: HOMEWORK_VERSION,
+          currentId,
+          selectedAnswers: {}, // MCQ selections
+          state: {
+            ...state,
+            exercises: state.exercises.map((e) => ({
+              id: e.id,
+              attempts: e.attempts,
+              closed: e.closed,
+              score: e.score,
+              correct: e.correct
+            })),
+            recovery: state.recovery.map((e) => ({
+              id: e.id,
+              attempts: e.attempts,
+              closed: e.closed,
+              score: e.score,
+              correct: e.correct
+            }))
+          },
+          studentName: $("studentName")?.value || "",
+          studentCourse: $("studentCourse")?.value || "",
+          studentParallel: $("studentParallel")?.value || "",
+          savedAt: new Date().toISOString()
+        }));
+      } catch {}
+    }
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_PROGRESS);
+        if (!raw) return false;
+        const saved = JSON.parse(raw);
+        if (!saved || !saved.state) return false;
+        if (saved.version !== HOMEWORK_VERSION) {
+          localStorage.removeItem(STORAGE_KEY_PROGRESS);
+          return false;
+        }
+        currentId = Number(saved.currentId || 1);
+        state.sent = Boolean(saved.state.sent);
+        state.initialFinished = Boolean(saved.state.initialFinished);
+        state.recoveryEnabled = Boolean(saved.state.recoveryEnabled);
+        state.recoveryFinished = Boolean(saved.state.recoveryFinished);
+        state.initialAverage = Number(saved.state.initialAverage || 0);
+        state.recoveryAverage = saved.state.recoveryAverage ?? null;
+        state.finalGrade = Number(saved.state.finalGrade || 0);
+        
+        if (Array.isArray(saved.state.exercises)) {
+          saved.state.exercises.forEach((se) => {
+            const st = getState(se.id);
+            if (st) {
+              st.attempts = Number(se.attempts || 0);
+              st.closed = Boolean(se.closed);
+              st.score = Number(se.score || 0);
+              st.correct = Boolean(se.correct);
+            }
+          });
+        }
+        if (Array.isArray(saved.state.recovery)) {
+          saved.state.recovery.forEach((sr, idx) => {
+            const st = state.recovery[idx];
+            if (st) {
+              st.attempts = Number(sr.attempts || 0);
+              st.closed = Boolean(sr.closed);
+              st.score = Number(sr.score || 0);
+              st.correct = Boolean(sr.correct);
+            }
+          });
+        }
+        if (saved.studentName) $("studentName").value = saved.studentName;
+        if (saved.studentCourse) $("studentCourse").value = saved.studentCourse;
+        if (saved.studentParallel) $("studentParallel").value = saved.studentParallel;
+        return true;
+      } catch {
+        localStorage.removeItem(STORAGE_KEY_PROGRESS);
+        return false;
+      }
+    }
+
+    function init() {
+      const appName = localStorage.getItem("ueeh_student_name"),
+        appCourse = localStorage.getItem("ueeh_student_grade"),
+        appParallel = localStorage.getItem("ueeh_student_parallel");
+      if (appName) $("studentName").value = appName;
+      if (appCourse) $("studentCourse").value = appCourse;
+      if (appParallel) $("studentParallel").value = appParallel;
+
+      const recovered = loadProgress();
+
+      renderExerciseGrid();
+      renderStats();
+      renderExercise();
+      updateSummary();
+
+      if (recovered && $("sideNotice")) {
+        $("sideNotice").textContent = "Avance recuperado. Puedes continuar desde donde te quedaste.";
+        $("sideNotice").className = "notice ok show";
+      }
+
+      if (localStorage.getItem(STORAGE_KEY_SENT) === "true") {
+        state.sent = true;
+        showSend("Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.", "ok");
+        blockAll();
+      }
+      setTimeout(typeset, 800);
+    }
+    document.addEventListener('DOMContentLoaded',init);
+  </script>
+</body>
+</html>

@@ -59,6 +59,20 @@ export function limpiarDatosLocales() {
     KEYS.student,
     KEYS.progress,
     KEYS.lastSubmission,
-    KEYS.gameResults
+    KEYS.gameResults,
+    // Unidad 2
+    "ueeh_unidad2_presentation_viewed",
+    "ueeh_unidad2_result_gamificacion",
+    "ueeh_unidad2_result_deber",
+    "deber_derivadas_unidad2_enviado_v1",
+    "deber_derivadas_unidad2_progreso_v1",
+    "ueeh_escape_derivadas_unidad2_estado_v1",
+    // Unidad 3
+    "ueeh_unidad3_presentation_viewed",
+    "ueeh_unidad3_result_gamificacion",
+    "ueeh_unidad3_result_deber",
+    "deber_matrices_unidad3_enviado_v1",
+    "deber_matrices_unidad3_progreso_v1",
+    "ueeh_escape_matrices_unidad3_estado_v1"
   ].forEach((key) => localStorage.removeItem(key));
 }
