@@ -306,6 +306,7 @@ body { min-height: 100dvh; }
 /* Cielo y selva de fondo */
 #skyBg {
   position: absolute; inset: 0;
+  z-index: 0;
   background: linear-gradient(180deg, #87CEEB 0%, #b0e2f5 35%, #c8f0c0 60%, #4a8c4f 80%, #2d5a30 100%);
 }
 .bg-tree {
@@ -332,6 +333,7 @@ body { min-height: 100dvh; }
 /* Plataformas */
 .platform {
   position: absolute;
+  z-index: 10;
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   -webkit-tap-highlight-color: transparent;
@@ -1282,26 +1284,44 @@ function shuffleArray(array) {
    MOTOR DEL JUEGO
    ============================================= */
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const target = document.getElementById(id);
-  if(target) target.classList.add('active');
   const inGame = (id === 'GAME');
-  document.getElementById('gameHUD').classList.toggle('hidden', !inGame);
-  document.getElementById('gameArea').style.display = inGame ? 'block' : 'none';
-  document.getElementById('touchControls').style.display = inGame ? 'flex' : 'none';
-  document.getElementById('uiLayer').style.display = inGame ? 'none' : 'flex';
+
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
+  if (!inGame) {
+    const target = document.getElementById(id);
+    if(target) target.classList.add('active');
+  }
+
+  const gameHUD = document.getElementById('gameHUD');
+  const gameArea = document.getElementById('gameArea');
+  const touchControls = document.getElementById('touchControls');
+  const uiLayer = document.getElementById('uiLayer');
+
+  if (gameHUD) {
+    gameHUD.classList.toggle('hidden', !inGame);
+    gameHUD.style.display = inGame ? 'flex' : 'none';
+  }
+  if (gameArea) gameArea.style.display = inGame ? 'block' : 'none';
+  if (touchControls) touchControls.style.display = inGame ? 'flex' : 'none';
+  if (uiLayer) uiLayer.style.display = inGame ? 'none' : 'flex';
   
   if (inGame) {
       gameState.isRunning = true;
-      gameLoop();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(gameLoop);
   } else {
       gameState.isRunning = false;
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
   }
 }
 
 function startGame() {
   gameState = { currentLevel: 0, score: 0, lives: 3, exercisesCompleted: [], correctAnswers: 0, totalAnswers: 0, levelExercisesDone: 0, hintsUsed: 0, attempts: 0, hintShown: false, solutionShown: false, levelStartScore: 0, activeExercise: null, stars: [0,0,0,0], isRunning: false, shuffledOptions: [], scoresByExercise: {} };
+  hero = { x: 5, y: 0, velX: 0, velY: 0, isJumping: false, facingRight: true };
   loadLevel(0);
 }
 
@@ -1311,6 +1331,7 @@ function showInstructions() { showScreen('instructionsScreen'); }
 
 function loadLevel(levelIdx) {
   if(levelIdx >= LEVELS.length) { showFinalScreen(); return; }
+  if(levelIdx < 0 || !LEVELS[levelIdx]) return;
   gameState.currentLevel = levelIdx;
   gameState.levelExercisesDone = 0;
   gameState.levelStartScore = gameState.score;
@@ -1323,9 +1344,16 @@ function loadLevel(levelIdx) {
 
 function buildLevelScene(level) {
   const area = document.getElementById('gameArea');
-  const sky = document.getElementById('skyBg');
+  if (!area || !level) return;
+
+  let sky = document.getElementById('skyBg');
+  if (!sky) {
+    sky = document.createElement('div');
+    sky.id = 'skyBg';
+    area.prepend(sky);
+  }
   sky.style.background = `linear-gradient(180deg, ${level.bgColors[0]} 0%, ${level.bgColors[1]} 35%, ${level.bgColors[2]} 60%, ${level.bgColors[3]} 80%, ${level.bgColors[4]} 100%)`;
-  area.querySelectorAll('.platform,.coin,.enemy,.hero-char,.bg-cloud,.bg-tree').forEach(e=>e.remove());
+  area.querySelectorAll('.platform, .coin, .enemy, .bg-cloud, .bg-tree, #hero').forEach(e=>e.remove());
 
   // Decoraciones
   [0,1,2].forEach(i=>{ const c = document.createElement('div'); c.className = 'bg-cloud'; c.style.cssText = `width:${60+i*30}px;height:${20+i*10}px;top:${8+i*6}%;animation-duration:${18+i*7}s;animation-delay:-${i*6}s;`; area.appendChild(c); });
@@ -1368,7 +1396,12 @@ function buildLevelScene(level) {
 
   // Personaje principal
   let heroDiv = document.getElementById('hero');
-  if(!heroDiv) { heroDiv = document.createElement('div'); heroDiv.id = 'hero'; heroDiv.innerHTML = '🦸'; area.appendChild(heroDiv); }
+  if(!heroDiv) {
+    heroDiv = document.createElement('div');
+    heroDiv.id = 'hero';
+    heroDiv.innerHTML = '🦸';
+  }
+  area.appendChild(heroDiv);
   
   hero.x = 5; hero.y = 0; hero.velX = 0; hero.velY = 0; hero.isJumping = false; hero.facingRight = true;
   updateHeroRender();
@@ -1385,7 +1418,12 @@ function updateHeroRender() {
 
 // BUCLE PRINCIPAL FLUIDO
 function gameLoop() {
-  if (gameState.isRunning && !document.getElementById('mathModal').classList.contains('open')) {
+  if (!gameState.isRunning) return;
+
+  const mathModal = document.getElementById('mathModal');
+  const modalOpen = mathModal && mathModal.classList.contains('open');
+
+  if (!modalOpen) {
       // Movimiento Horizontal (Teclas o Táctil)
       if (keys['ArrowLeft'] || keys['KeyA'] || touchLeft) {
           hero.x = Math.max(1, hero.x - 0.4);
@@ -1415,10 +1453,14 @@ function gameLoop() {
 
 // SISTEMA DE COLISIONES AUTOMÁTICO
 function checkAutomatedCollisions() {
+    const level = LEVELS[gameState.currentLevel];
+    if (!level) return;
+
     // 1. Colisión con Monedas
     document.querySelectorAll('.coin').forEach(coin => {
         let cx = parseFloat(coin.dataset.posX);
         let cy = parseFloat(coin.dataset.posY);
+        if (Number.isNaN(cx) || Number.isNaN(cy)) return;
         if (Math.abs(hero.x - cx) < 3 && Math.abs(hero.y - cy) < 40) {
             addScore(2);
             coin.remove();
@@ -1427,12 +1469,12 @@ function checkAutomatedCollisions() {
     });
 
     // 2. Colisión con Bloques de Preguntas (GOLPEAR POR DEBAJO)
-    const level = LEVELS[gameState.currentLevel];
     [0, 1].forEach(idx => {
         const qBlock = document.getElementById(`qblock-${idx}`);
         if (qBlock && !qBlock.classList.contains('answered')) {
             let bx = parseFloat(qBlock.dataset.posX);
             let by = parseFloat(qBlock.dataset.posY);
+            if (Number.isNaN(bx) || Number.isNaN(by)) return;
             
             if (Math.abs(hero.x - bx) < 4 && hero.y > by - 60 && hero.y < by - 10 && hero.velY > 0) {
                 hero.velY = -2; // Rebota un poco la cabeza
@@ -1442,7 +1484,8 @@ function checkAutomatedCollisions() {
     });
 
     // 3. Colisión con Bandera Meta
-    if (hero.x > 88) {
+    const flag = document.getElementById('levelFlag');
+    if (flag && hero.x > 88) {
         hero.x = 88; 
         tryAdvanceLevel();
     }
