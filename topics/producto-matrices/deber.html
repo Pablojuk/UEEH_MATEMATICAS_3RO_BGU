@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Deber interactivo | Producto de matrices M3x3</title>
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      --bg1:#f7fbff;
+      --bg2:#eaf7ff;
+      --ink:#21304a;
+      --muted:#607086;
+      --navy:#163153;
+      --line:#dde8f3;
+      --card:#fffdf8;
+      --soft:#f8fbff;
+      --mint:#c6f7df;
+      --aqua:#9ce8f0;
+      --lilac:#dacbff;
+      --cream:#fff0b8;
+      --peach:#ffd1bd;
+      --pink:#ffd7e8;
+      --blue:#3578e5;
+      --green:#169b62;
+      --red:#d94242;
+      --orange:#e88917;
+      --shadow:0 18px 48px rgba(22,49,83,.16);
+      --radius:26px;
+    }
+
+    * { box-sizing:border-box; }
+    html, body { margin:0; min-height:100%; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(218,203,255,.70), transparent 24%),
+        radial-gradient(circle at 88% 16%, rgba(156,232,240,.70), transparent 28%),
+        radial-gradient(circle at 15% 92%, rgba(255,215,232,.70), transparent 26%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow-x:hidden;
+    }
+
+    button, input, textarea { font:inherit; }
+    button {
+      min-height:48px;
+      border:0;
+      border-radius:17px;
+      padding:.85rem 1rem;
+      font-weight:900;
+      cursor:pointer;
+      color:var(--navy);
+      background:linear-gradient(135deg, var(--cream), var(--peach));
+      box-shadow:0 9px 20px rgba(22,49,83,.12);
+      transition:.15s ease;
+    }
+    button:active { transform:scale(.98); }
+    button:hover:not(:disabled) { filter:brightness(1.02); transform:translateY(-1px); }
+    button:disabled { opacity:.52; cursor:not-allowed; transform:none; }
+    .btnBlue { background:linear-gradient(135deg, var(--blue), var(--aqua)); color:white; }
+    .btnGhost { background:white; border:2px solid var(--line); box-shadow:none; }
+    .btnGood { background:linear-gradient(135deg, #dcffea, var(--mint)); color:#0e6844; }
+    .btnRed { background:linear-gradient(135deg, #ffe0e0, #ffc5c5); color:#7c1d1d; }
+
+    .app {
+      width:min(1220px, 100%);
+      margin:auto;
+      padding:clamp(10px, 2vw, 22px);
+      min-height:100dvh;
+      padding-bottom:calc(16px + env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      color:var(--navy);
+      margin-bottom:14px;
+    }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:1000; }
+    .brandIcon {
+      width:52px; height:52px; border-radius:18px;
+      display:grid; place-items:center; font-size:1.7rem;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.9);
+      box-shadow:0 8px 20px rgba(22,49,83,.12);
+    }
+    .brand small { display:block; color:var(--muted); font-weight:800; margin-top:2px; }
+    .topActions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+    .tinyPill {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:.55rem .75rem; border-radius:999px;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(22,49,83,.08);
+      font-weight:900; color:var(--navy);
+    }
+
+    .deck {
+      min-height:calc(100dvh - 94px);
+      border-radius:32px;
+      overflow:hidden;
+      background:rgba(255,255,255,.54);
+      border:1px solid rgba(255,255,255,.9);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+    }
+    .screen { display:none; min-height:calc(100dvh - 94px); padding:clamp(14px,3vw,36px); }
+    .screen.active { display:block; animation:fade .28s ease both; }
+    @keyframes fade { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+
+    .hero {
+      display:grid;
+      grid-template-columns:1.12fr .88fr;
+      gap:clamp(16px,4vw,40px);
+      align-items:center;
+      min-height:calc(100dvh - 170px);
+    }
+    .panel, .sidebar, .mainCard {
+      background:rgba(255,253,248,.95);
+      border:1px solid rgba(255,255,255,.9);
+      border-radius:var(--radius);
+      padding:clamp(16px,2.6vw,30px);
+      box-shadow:0 12px 34px rgba(22,49,83,.10);
+    }
+    .visual {
+      min-height:390px;
+      border-radius:34px;
+      position:relative;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 28% 24%, rgba(255,255,255,.95), transparent 15%),
+        radial-gradient(circle at 76% 18%, rgba(255,240,184,.9), transparent 16%),
+        linear-gradient(145deg, #b7eff4, #daceff 52%, #ffe9bd);
+      box-shadow:var(--shadow);
+      border:6px solid rgba(255,255,255,.52);
+    }
+    .visual span { position:absolute; filter:drop-shadow(0 16px 15px rgba(22,49,83,.18)); }
+    .visual .one { font-size:7.5rem; left:8%; top:15%; animation:float 3s ease-in-out infinite; }
+    .visual .two { font-size:6rem; right:9%; top:14%; animation:spin 15s linear infinite; }
+    .visual .three { font-size:7rem; right:12%; bottom:10%; animation:pulse 2.4s ease-in-out infinite; }
+    .visual .four { font-size:4.7rem; left:16%; bottom:11%; transform:rotate(-8deg); }
+    @keyframes float { 50%{transform:translateY(-14px) rotate(-3deg)} }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    @keyframes pulse { 50%{transform:scale(1.05)} }
+
+    h1, h2, h3, p { margin-top:0; }
+    h1 { font-size:clamp(2.15rem, 6vw, 4.9rem); line-height:.96; letter-spacing:-.05em; color:var(--navy); margin-bottom:16px; }
+    h2 { font-size:clamp(1.65rem, 4vw, 3rem); line-height:1.05; color:var(--navy); margin-bottom:14px; }
+    h3 { color:#174e80; margin-bottom:9px; }
+    p, li { line-height:1.55; font-size:clamp(.98rem,1.45vw,1.12rem); }
+    .lead { font-size:clamp(1.05rem,2vw,1.28rem); font-weight:750; color:#34445f; }
+
+    .duaRow, .pillRow, .btnRow { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0; }
+    .dua, .pill, .tag {
+      display:inline-flex; align-items:center; gap:6px; border-radius:999px;
+      padding:.52rem .75rem; font-weight:950; font-size:.9rem;
+    }
+    .dua.green { background:#dcffec; color:#0f6945; }
+    .dua.purple { background:#eee8ff; color:#5b3fb1; }
+    .dua.blue { background:#e1f5ff; color:#145d8d; }
+    .pill { background:#f2fbff; color:#145d8d; border:1px solid #cceff6; }
+    .tag { background:#eef3ff; color:#2e50a2; }
+
+    .formGrid { display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; margin-top:16px; }
+    .field label { display:block; font-weight:950; margin-bottom:7px; color:#2b3b55; }
+    .input, textarea {
+      width:100%; border:2px solid var(--line); border-radius:17px;
+      padding:.85rem .95rem; outline:none; background:white;
+      color:var(--ink); font-size:1rem;
+    }
+    textarea { min-height:92px; resize:vertical; }
+    .input:focus, textarea:focus { border-color:#63cdda; box-shadow:0 0 0 4px rgba(99,205,218,.18); }
+
+    .workLayout { display:grid; grid-template-columns:315px 1fr; gap:16px; min-height:calc(100dvh - 170px); }
+    .sidebar { align-self:start; position:sticky; top:12px; }
+    .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:12px 0; }
+    .stat { background:var(--soft); border:1px solid var(--line); border-radius:18px; padding:12px; text-align:center; }
+    .stat strong { display:block; font-size:1.55rem; color:var(--navy); }
+    .stat span { color:var(--muted); font-weight:800; }
+    .bar { height:15px; background:#e9eff7; border-radius:999px; overflow:hidden; border:1px solid rgba(22,49,83,.06); margin-top:8px; }
+    .bar span { display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--mint), var(--aqua), var(--lilac)); transition:width .25s ease; }
+    .progressBox { margin:12px 0; padding:13px; border-radius:20px; background:var(--soft); border:1px solid var(--line); }
+    .exerciseGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:12px; }
+    .exBtn { height:46px; min-height:46px; padding:0; border-radius:14px; background:#e7edf5; color:#31415d; box-shadow:none; }
+    .exBtn.active { background:linear-gradient(135deg, var(--blue), var(--aqua)); color:white; }
+    .exBtn.done { background:#dcffec; color:#0f6945; }
+    .exBtn.partial { background:#fff0d4; color:#9b5a03; }
+    .exBtn.fail { background:#ffe3e3; color:#8f1b1b; }
+
+    .mathBox {
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      background:#fff9df;
+      border:2px solid #ffe293;
+      border-radius:19px;
+      padding:14px;
+      margin:13px 0;
+      font-size:clamp(.95rem,1.7vw,1.12rem);
+    }
+    .choiceGrid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin:14px 0; }
+    .choice {
+      text-align:left; background:white; border:2px solid var(--line); box-shadow:none;
+      border-radius:18px; min-height:58px; color:var(--ink);
+    }
+    .choice.selected { border-color:var(--blue); background:#eef6ff; }
+    .choice.correct { border-color:var(--green); background:#e8fff1; }
+    .choice.wrong { border-color:var(--red); background:#fff0f0; }
+
+    .matrixInputHelp { color:var(--muted); font-weight:750; margin:.35rem 0 0; }
+    .answerMatrixWrap{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      margin:14px 0;
+      padding:16px 12px;
+      background:#fffdf5;
+      border:2px solid #dce9f6;
+      border-radius:20px;
+    }
+    .answerMatrix{
+      display:grid;
+      grid-template-columns:24px repeat(3, minmax(70px, 96px)) 24px;
+      grid-template-rows:repeat(3, 52px);
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      width:max-content;
+      max-width:100%;
+      margin:0 auto;
+    }
+    .bracketLeft,
+    .bracketRight{
+      align-self:stretch;
+      width:22px;
+      position:relative;
+    }
+    .bracketLeft{
+      grid-column:1;
+      grid-row:1 / 4;
+      border-left:4px solid var(--navy);
+      border-top:4px solid var(--navy);
+      border-bottom:4px solid var(--navy);
+      border-radius:10px 0 0 10px;
+    }
+    .bracketRight{
+      grid-column:5;
+      grid-row:1 / 4;
+      border-right:4px solid var(--navy);
+      border-top:4px solid var(--navy);
+      border-bottom:4px solid var(--navy);
+      border-radius:0 10px 10px 0;
+    }
+    .matrixCell{
+      width:100%;
+      min-width:70px;
+      height:52px;
+      text-align:center;
+      font-weight:950;
+      border:2px solid var(--line);
+      border-radius:14px;
+      background:white;
+      color:var(--ink);
+      outline:none;
+    }
+    .matrixCell:focus{
+      border-color:#63cdda;
+      box-shadow:0 0 0 4px rgba(99,205,218,.18);
+    }
+    .matrixCell.correct{ border-color:var(--green); background:#e8fff1; }
+    .matrixCell.wrong{ border-color:var(--red); background:#fff0f0; }
+    .fillGrid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; margin:14px 0; }
+    .fillItem { background:var(--soft); border:1px solid var(--line); border-radius:18px; padding:12px; }
+    .fillItem label { display:block; font-weight:950; color:var(--navy); margin-bottom:6px; }
+    .blankInput.correct { border-color:var(--green); background:#e8fff1; }
+    .blankInput.wrong { border-color:var(--red); background:#fff0f0; }
+
+    .feedback { display:none; margin:12px 0; padding:13px 15px; border-radius:18px; font-weight:850; }
+    .feedback.show { display:block; }
+    .feedback.ok { background:#e8fff1; color:#0f6945; }
+    .feedback.bad { background:#fff0f0; color:#8f1b1b; }
+    .feedback.warn { background:#fff2d6; color:#9b5a03; }
+
+    .hint, .solution {
+      display:none; margin-top:12px; padding:15px; border-radius:18px;
+      background:#f8fbff; border-left:6px solid #6dd3e1;
+    }
+    .hint.show, .solution.show { display:block; animation:fade .2s ease both; }
+    .solution { border-left-color:#b79cff; }
+
+    .summaryGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:18px 0; }
+    .summaryItem { background:var(--soft); border:1px solid var(--line); border-radius:20px; padding:15px; text-align:center; }
+    .summaryItem strong { display:block; font-size:clamp(1.55rem, 4vw, 2.25rem); color:var(--navy); }
+    .summaryItem span { color:var(--muted); font-weight:850; }
+    .notice { display:none; padding:14px 16px; border-radius:18px; font-weight:850; margin-top:12px; }
+    .notice.show { display:block; }
+    .notice.ok { background:#e8fff1; color:#0f6945; }
+    .notice.warn { background:#fff2d6; color:#9b5a03; }
+    .notice.bad { background:#fff0f0; color:#8f1b1b; }
+    .recoveryBox { display:none; margin-top:14px; }
+    .recoveryBox.show { display:block; }
+
+    @media(max-width:940px){
+      .hero, .workLayout { grid-template-columns:1fr; }
+      .sidebar { position:static; order:2; }
+      .mainCard { order:1; }
+      .visual { min-height:270px; }
+      .summaryGrid, .formGrid { grid-template-columns:repeat(2,1fr); }
+      .exerciseGrid { grid-template-columns:repeat(10,1fr); }
+    }
+    @media(max-width:640px){
+      .app { padding:8px; }
+      .topbar { flex-direction:column; align-items:stretch; }
+      .topActions { justify-content:flex-start; }
+      .deck { border-radius:22px; }
+      .screen { padding:12px; }
+      .panel, .sidebar, .mainCard { border-radius:20px; padding:14px; }
+      .visual { min-height:220px; }
+      .visual .one { font-size:4.8rem; }
+      .visual .two { font-size:3.8rem; }
+      .visual .three { font-size:4.8rem; }
+      .visual .four { font-size:3.4rem; }
+      .formGrid, .summaryGrid, .stats, .choiceGrid, .fillGrid { grid-template-columns:1fr; }
+      .exerciseGrid { grid-template-columns:repeat(5,1fr); }
+      .btnRow button { flex:1 1 100%; }
+      .mathBox { font-size:.93rem; padding:12px; }
+      .answerMatrix{
+        grid-template-columns:22px repeat(3, minmax(58px, 72px)) 22px;
+        gap:7px;
+      }
+      .matrixCell{
+        min-width:58px;
+        height:50px;
+        font-size:.92rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brandIcon">🧮</div>
+        <div>Deber interactivo<br><small>Producto de matrices M3x3 · 3.º BGU A</small></div>
+      </div>
+      <div class="topActions">
+        <span class="tinyPill">📄 Hoja: Deb_Uni_4</span>
+        <span class="tinyPill">⏱️ 3 intentos</span>
+        <span class="tinyPill">📅 Límite: 26 de junio de 2026</span>
+      </div>
+    </header>
+
+    <main class="deck">
+      <section class="screen active" id="introScreen">
+        <div class="hero">
+          <div class="panel">
+            <div class="duaRow">
+              <span class="dua green">DUA · Compromiso</span>
+              <span class="dua purple">DUA · Representación</span>
+              <span class="dua blue">DUA · Acción y expresión</span>
+            </div>
+            <h1>Deber: Producto de matrices M3x3</h1>
+            <p class="lead">
+              Resuelve 20 ejercicios interactivos de multiplicación de matrices \(3\times3\).
+              La actividad incluye opción múltiple, respuesta directa y procedimiento incompleto.
+            </p>
+            <div class="pillRow">
+              <span class="pill">✅ Retroalimentación inmediata</span>
+              <span class="pill">🧩 Puntaje parcial en procedimientos</span>
+              <span class="pill">📤 Envío único a Google Sheets</span>
+            </div>
+            <div class="panel" style="background:#f8fbff;box-shadow:none;">
+              <h3>Datos del estudiante</h3>
+              <div class="formGrid">
+                <div class="field">
+                  <label for="studentName">Nombre y apellido</label>
+                  <input class="input" id="studentName" placeholder="Escribe tu nombre completo" autocomplete="name" />
+                </div>
+                <div class="field">
+                  <label for="studentCourse">Curso</label>
+                  <input class="input" id="studentCourse" value="Tercero de BGU" />
+                </div>
+                <div class="field">
+                  <label for="studentParallel">Paralelo</label>
+                  <input class="input" id="studentParallel" value="A" />
+                </div>
+              </div>
+            </div>
+            <div class="btnRow">
+              <button onclick="startHomework()">Iniciar deber</button>
+            </div>
+            <div class="notice warn show">
+              En los ejercicios de respuesta directa aparecerá una matriz con 9 espacios vacíos para completar la matriz resultante.
+            </div>
+          </div>
+          <div class="visual" aria-label="Ilustración educativa">
+            <span class="one">📘</span>
+            <span class="two">🔢</span>
+            <span class="three">🏆</span>
+            <span class="four">✏️</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="workScreen">
+        <div class="workLayout">
+          <aside class="sidebar">
+            <h3 id="panelTitle">Panel de avance</h3>
+            <div class="stats">
+              <div class="stat"><strong id="doneCount">0/20</strong><span>Terminados</span></div>
+              <div class="stat"><strong id="avgNow">0</strong><span>Promedio</span></div>
+            </div>
+            <div class="progressBox">
+              <strong>Progreso</strong>
+              <div class="bar"><span id="progressBar"></span></div>
+            </div>
+            <div class="exerciseGrid" id="exerciseGrid"></div>
+            <div class="notice warn show" id="sideNotice">Selecciona un ejercicio. Cada uno tiene 3 intentos.</div>
+            <div class="btnRow">
+              <button class="btnBlue" onclick="finishCurrentPhase()" id="finishBtn" disabled>Generar resumen</button>
+              <button class="btnGhost" onclick="goSummaryOrIntro()" id="backBtn">Volver</button>
+            </div>
+          </aside>
+
+          <section class="mainCard">
+            <div id="exercisePanel"></div>
+            <div class="btnRow">
+              <button class="btnGhost" onclick="prevExercise()">Anterior</button>
+              <button class="btnBlue" onclick="nextExercise()">Siguiente</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen" id="summaryScreen">
+        <div class="panel">
+          <div class="duaRow">
+            <span class="dua blue">Calificación automática</span>
+            <span class="dua green">Recuperación automática</span>
+            <span class="dua purple">Envío único</span>
+          </div>
+          <h2>Resumen final del deber</h2>
+          <p class="lead">
+            Revisa tu resultado. Si corresponde recuperación, complétala antes de enviar.
+            Después del envío, la tarea quedará bloqueada.
+          </p>
+
+          <div class="summaryGrid">
+            <div class="summaryItem"><strong id="sumInitial">0</strong><span>Nota inicial</span></div>
+            <div class="summaryItem"><strong id="sumRecovery">No aplica</strong><span>Recuperación</span></div>
+            <div class="summaryItem"><strong id="sumFinal">0</strong><span>Nota final</span></div>
+            <div class="summaryItem"><strong id="sumLevel">Inicial</strong><span>Nivel</span></div>
+          </div>
+
+          <div class="notice show warn" id="summaryNotice">Completa el deber para generar el resumen.</div>
+
+          <div class="recoveryBox" id="recoveryArea">
+            <div class="panel" style="background:#f8fbff;box-shadow:none;">
+              <h3>Recuperación automática</h3>
+              <p id="recoveryMessage">Tu nota inicial fue menor a 7/10. Resuelve 10 ejercicios similares para reforzar.</p>
+              <div class="btnRow">
+                <button class="btnBlue" onclick="startRecovery()">Iniciar recuperación</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="background:#f8fbff;box-shadow:none;margin-top:16px;">
+            <h3>Observación automática</h3>
+            <p id="observationText">La observación aparecerá cuando termines la actividad.</p>
+          </div>
+
+          <div class="btnRow">
+            <button id="sendBtn" onclick="sendSummary()" disabled>Enviar resumen a Google Sheets</button>
+            <button class="btnGhost" onclick="goWork()" id="returnWorkBtn">Volver al deber</button>
+          </div>
+          <div class="notice" id="sendNotice"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    /************************************************************
+     * CONFIGURACIÓN EDITABLE OBLIGATORIA
+     ************************************************************/
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec";
+    const SHEET_NAME = "Deb_Uni_4";
+    const STORAGE_KEY = "ueeh_deber_producto_matrices_unidad4_resultado_v1";
+
+    const FECHA_LIMITE = "26 de junio de 2026";
+    const TOPIC = "Producto de matrices M3x3";
+    const SUBJECT = "Matemáticas";
+    const COURSE = "Tercero de BGU";
+    const PARALLEL = "A";
+    const ACTIVITY_TYPE = "Deber interactivo";
+    const TOTAL_ATTEMPTS = 3;
+    const RECOVERY_THRESHOLD = 7;
+
+    const exercises = [{"id": 1, "mode": "mcq", "type": "Nivel básico", "statement": "Ejercicio 1. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & 0 & 2\\\\\n0 & 1 & 3\\\\\n2 & 1 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 0 & 0\\\\\n0 & 1 & 0\\\\\n0 & 0 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, 0, 2], [0, 1, 3], [2, 1, 0]], "B": [[1, 0, 0], [0, 1, 0], [0, 0, 1]], "answerMatrix": [[1, 0, 2], [0, 1, 3], [2, 1, 0]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(1)+0(0)+2(0)=1\n        \\]\n        \\[\n        c_{22}=0(0)+1(1)+3(0)=1\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & 0 & 2\\\\\n0 & 1 & 3\\\\\n2 & 1 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 0 & 0\\\\\n0 & 1 & 0\\\\\n0 & 0 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n1 & 0 & 2\\\\\n0 & 1 & 3\\\\\n2 & 1 & 0\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n1 & 0 & 2\\\\\n0 & 1 & 3\\\\\n2 & 1 & 0\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n1 & 0 & 2\\\\\n0 & 1 & 1\\\\\n2 & 3 & 0\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n2 & 0 & 2\\\\\n0 & 1 & 3\\\\\n2 & 1 & 0\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n1 & 0 & 2\\\\\n2 & 1 & 0\\\\\n0 & 1 & 3\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 2, "mode": "input", "type": "Nivel básico", "statement": "Ejercicio 2. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n2 & 0 & 0\\\\\n0 & 1 & 0\\\\\n0 & 0 & 3\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 1\\\\\n0 & 3 & 4\\\\\n2 & 0 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[2, 0, 0], [0, 1, 0], [0, 0, 3]], "B": [[1, 2, 1], [0, 3, 4], [2, 0, 1]], "answerMatrix": [[2, 4, 2], [0, 3, 4], [6, 0, 3]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=2(1)+0(0)+0(2)=2\n        \\]\n        \\[\n        c_{22}=0(2)+1(3)+0(0)=3\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n2 & 0 & 0\\\\\n0 & 1 & 0\\\\\n0 & 0 & 3\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 1\\\\\n0 & 3 & 4\\\\\n2 & 0 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n2 & 4 & 2\\\\\n0 & 3 & 4\\\\\n6 & 0 & 3\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 3, "mode": "mcq", "type": "Nivel básico", "statement": "Ejercicio 3. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & 2 & 3\\\\\n0 & 1 & 2\\\\\n2 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 0 & 2\\\\\n2 & 1 & 0\\\\\n0 & 3 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, 2, 3], [0, 1, 2], [2, 0, 1]], "B": [[1, 0, 2], [2, 1, 0], [0, 3, 1]], "answerMatrix": [[5, 11, 5], [2, 7, 2], [2, 3, 5]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(1)+2(2)+3(0)=5\n        \\]\n        \\[\n        c_{22}=0(0)+1(1)+2(3)=7\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & 2 & 3\\\\\n0 & 1 & 2\\\\\n2 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 0 & 2\\\\\n2 & 1 & 0\\\\\n0 & 3 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n5 & 11 & 5\\\\\n2 & 7 & 2\\\\\n2 & 3 & 5\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n5 & 11 & 5\\\\\n2 & 7 & 2\\\\\n2 & 3 & 5\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n5 & 2 & 2\\\\\n11 & 7 & 3\\\\\n5 & 2 & 5\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n6 & 11 & 5\\\\\n2 & 7 & 2\\\\\n2 & 3 & 5\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n5 & 11 & 5\\\\\n2 & 3 & 5\\\\\n2 & 7 & 2\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 4, "mode": "input", "type": "Nivel básico", "statement": "Ejercicio 4. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n0 & 1 & 0\\\\\n2 & 0 & 1\\\\\n1 & 1 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n3 & 1 & 0\\\\\n0 & 2 & 4\\\\\n1 & 0 & 2\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[0, 1, 0], [2, 0, 1], [1, 1, 1]], "B": [[3, 1, 0], [0, 2, 4], [1, 0, 2]], "answerMatrix": [[0, 2, 4], [7, 2, 2], [4, 3, 6]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=0(3)+1(0)+0(1)=0\n        \\]\n        \\[\n        c_{22}=2(1)+0(2)+1(0)=2\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n0 & 1 & 0\\\\\n2 & 0 & 1\\\\\n1 & 1 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n3 & 1 & 0\\\\\n0 & 2 & 4\\\\\n1 & 0 & 2\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n0 & 2 & 4\\\\\n7 & 2 & 2\\\\\n4 & 3 & 6\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 5, "mode": "input", "type": "Nivel básico", "statement": "Ejercicio 5. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & -1 & 0\\\\\n2 & 0 & -1\\\\\n0 & 3 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n-1 & 3 & 2\\\\\n4 & 0 & -2\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, -1, 0], [2, 0, -1], [0, 3, 1]], "B": [[2, 1, 0], [-1, 3, 2], [4, 0, -2]], "answerMatrix": [[3, -2, -2], [0, 2, 2], [1, 9, 4]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(2)-1(-1)+0(4)=3\n        \\]\n        \\[\n        c_{22}=2(1)+0(3)-1(0)=2\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & -1 & 0\\\\\n2 & 0 & -1\\\\\n0 & 3 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n-1 & 3 & 2\\\\\n4 & 0 & -2\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n3 & -2 & -2\\\\\n0 & 2 & 2\\\\\n1 & 9 & 4\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 6, "mode": "mcq", "type": "Nivel intermedio", "statement": "Ejercicio 6. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n2 & 1 & 0\\\\\n-1 & 3 & 2\\\\\n0 & 4 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & -1\\\\\n0 & 3 & 4\\\\\n5 & -2 & 0\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[2, 1, 0], [-1, 3, 2], [0, 4, 1]], "B": [[1, 2, -1], [0, 3, 4], [5, -2, 0]], "answerMatrix": [[2, 7, 2], [9, 3, 13], [5, 10, 16]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=2(1)+1(0)+0(5)=2\n        \\]\n        \\[\n        c_{22}=-1(2)+3(3)+2(-2)=3\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n2 & 1 & 0\\\\\n-1 & 3 & 2\\\\\n0 & 4 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & -1\\\\\n0 & 3 & 4\\\\\n5 & -2 & 0\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n2 & 7 & 2\\\\\n9 & 3 & 13\\\\\n5 & 10 & 16\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n2 & 7 & 2\\\\\n9 & 3 & 13\\\\\n5 & 10 & 16\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n2 & 9 & 5\\\\\n7 & 3 & 10\\\\\n2 & 13 & 16\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n3 & 7 & 2\\\\\n9 & 3 & 13\\\\\n5 & 10 & 16\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n2 & 7 & 2\\\\\n5 & 10 & 16\\\\\n9 & 3 & 13\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 7, "mode": "mcq", "type": "Nivel intermedio", "statement": "Ejercicio 7. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n3 & 0 & -2\\\\\n1 & 1 & 1\\\\\n0 & -1 & 4\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n-3 & 2 & 5\\\\\n1 & 0 & -1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[3, 0, -2], [1, 1, 1], [0, -1, 4]], "B": [[2, 1, 0], [-3, 2, 5], [1, 0, -1]], "answerMatrix": [[4, 3, 2], [0, 3, 4], [7, -2, -9]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=3(2)+0(-3)-2(1)=4\n        \\]\n        \\[\n        c_{22}=1(1)+1(2)+1(0)=3\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n3 & 0 & -2\\\\\n1 & 1 & 1\\\\\n0 & -1 & 4\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n-3 & 2 & 5\\\\\n1 & 0 & -1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n4 & 3 & 2\\\\\n0 & 3 & 4\\\\\n7 & -2 & -9\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n4 & 3 & 2\\\\\n0 & 3 & 4\\\\\n7 & -2 & -9\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n4 & 0 & 7\\\\\n3 & 3 & -2\\\\\n2 & 4 & -9\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n5 & 3 & 2\\\\\n0 & 3 & 4\\\\\n7 & -2 & -9\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n4 & 3 & 2\\\\\n7 & -2 & -9\\\\\n0 & 3 & 4\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 8, "mode": "input", "type": "Nivel intermedio", "statement": "Ejercicio 8. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & 2 & 1\\\\\n2 & 1 & 0\\\\\n0 & 3 & -1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n4 & 0 & 2\\\\\n1 & -1 & 3\\\\\n2 & 5 & 0\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, 2, 1], [2, 1, 0], [0, 3, -1]], "B": [[4, 0, 2], [1, -1, 3], [2, 5, 0]], "answerMatrix": [[8, 3, 8], [9, -1, 7], [1, -8, 9]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(4)+2(1)+1(2)=8\n        \\]\n        \\[\n        c_{22}=2(0)+1(-1)+0(5)=-1\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & 2 & 1\\\\\n2 & 1 & 0\\\\\n0 & 3 & -1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n4 & 0 & 2\\\\\n1 & -1 & 3\\\\\n2 & 5 & 0\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n8 & 3 & 8\\\\\n9 & -1 & 7\\\\\n1 & -8 & 9\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 9, "mode": "input", "type": "Nivel intermedio", "statement": "Ejercicio 9. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n0 & 2 & -1\\\\\n3 & -1 & 2\\\\\n1 & 0 & 4\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 3 & 0\\\\\n2 & -2 & 1\\\\\n0 & 5 & -1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[0, 2, -1], [3, -1, 2], [1, 0, 4]], "B": [[1, 3, 0], [2, -2, 1], [0, 5, -1]], "answerMatrix": [[4, -9, 3], [1, 21, -3], [1, 23, -4]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=0(1)+2(2)-1(0)=4\n        \\]\n        \\[\n        c_{22}=3(3)-1(-2)+2(5)=21\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n0 & 2 & -1\\\\\n3 & -1 & 2\\\\\n1 & 0 & 4\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 3 & 0\\\\\n2 & -2 & 1\\\\\n0 & 5 & -1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n4 & -9 & 3\\\\\n1 & 21 & -3\\\\\n1 & 23 & -4\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 10, "mode": "input", "type": "Nivel intermedio", "statement": "Ejercicio 10. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n2 & -3 & 1\\\\\n0 & 1 & 4\\\\\n-1 & 2 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n3 & 0 & -2\\\\\n1 & 4 & 1\\\\\n2 & -1 & 5\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[2, -3, 1], [0, 1, 4], [-1, 2, 0]], "B": [[3, 0, -2], [1, 4, 1], [2, -1, 5]], "answerMatrix": [[5, -13, -2], [9, 0, 21], [-1, 8, 4]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=2(3)-3(1)+1(2)=5\n        \\]\n        \\[\n        c_{22}=0(0)+1(4)+4(-1)=0\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n2 & -3 & 1\\\\\n0 & 1 & 4\\\\\n-1 & 2 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n3 & 0 & -2\\\\\n1 & 4 & 1\\\\\n2 & -1 & 5\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n5 & -13 & -2\\\\\n9 & 0 & 21\\\\\n-1 & 8 & 4\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 11, "mode": "mcq", "type": "Nivel avanzado", "statement": "Ejercicio 11. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & 2 & 0\\\\\n0 & 1 & 1\\\\\n3 & -1 & 2\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & -1 & 3\\\\\n1 & 0 & 4\\\\\n0 & 5 & -2\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, 2, 0], [0, 1, 1], [3, -1, 2]], "B": [[2, -1, 3], [1, 0, 4], [0, 5, -2]], "answerMatrix": [[4, -1, 11], [1, 5, 2], [5, 7, 1]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(2)+2(1)+0(0)=4\n        \\]\n        \\[\n        c_{22}=0(-1)+1(0)+1(5)=5\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & 2 & 0\\\\\n0 & 1 & 1\\\\\n3 & -1 & 2\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & -1 & 3\\\\\n1 & 0 & 4\\\\\n0 & 5 & -2\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n4 & -1 & 11\\\\\n1 & 5 & 2\\\\\n5 & 7 & 1\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n4 & -1 & 11\\\\\n1 & 5 & 2\\\\\n5 & 7 & 1\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n4 & 1 & 5\\\\\n-1 & 5 & 7\\\\\n11 & 2 & 1\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n5 & -1 & 11\\\\\n1 & 5 & 2\\\\\n5 & 7 & 1\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n4 & -1 & 11\\\\\n5 & 7 & 1\\\\\n1 & 5 & 2\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 12, "mode": "mcq", "type": "Nivel avanzado", "statement": "Ejercicio 12. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n2 & 0 & 1\\\\\n-1 & 3 & 2\\\\\n4 & 1 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 0\\\\\n0 & -1 & 3\\\\\n5 & 0 & 2\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[2, 0, 1], [-1, 3, 2], [4, 1, 0]], "B": [[1, 2, 0], [0, -1, 3], [5, 0, 2]], "answerMatrix": [[7, 4, 2], [9, -5, 13], [4, 7, 3]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=2(1)+0(0)+1(5)=7\n        \\]\n        \\[\n        c_{22}=-1(2)+3(-1)+2(0)=-5\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n2 & 0 & 1\\\\\n-1 & 3 & 2\\\\\n4 & 1 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 0\\\\\n0 & -1 & 3\\\\\n5 & 0 & 2\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n7 & 4 & 2\\\\\n9 & -5 & 13\\\\\n4 & 7 & 3\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n7 & 4 & 2\\\\\n9 & -5 & 13\\\\\n4 & 7 & 3\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n7 & 9 & 4\\\\\n4 & -5 & 7\\\\\n2 & 13 & 3\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n8 & 4 & 2\\\\\n9 & -5 & 13\\\\\n4 & 7 & 3\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n7 & 4 & 2\\\\\n4 & 7 & 3\\\\\n9 & -5 & 13\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 13, "mode": "input", "type": "Nivel avanzado", "statement": "Ejercicio 13. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n0 & 1 & 2\\\\\n3 & 0 & -1\\\\\n2 & -2 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n4 & 1 & -3\\\\\n2 & 0 & 5\\\\\n1 & -1 & 2\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[0, 1, 2], [3, 0, -1], [2, -2, 1]], "B": [[4, 1, -3], [2, 0, 5], [1, -1, 2]], "answerMatrix": [[4, -2, 9], [11, 4, -11], [5, 1, -14]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=0(4)+1(2)+2(1)=4\n        \\]\n        \\[\n        c_{22}=3(1)+0(0)-1(-1)=4\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n0 & 1 & 2\\\\\n3 & 0 & -1\\\\\n2 & -2 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n4 & 1 & -3\\\\\n2 & 0 & 5\\\\\n1 & -1 & 2\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n4 & -2 & 9\\\\\n11 & 4 & -11\\\\\n5 & 1 & -14\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 14, "mode": "fill", "type": "Nivel avanzado", "statement": "Ejercicio 14. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & -2 & 3\\\\\n0 & 4 & -1\\\\\n2 & 1 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n3 & 1 & 2\\\\\n-1 & 0 & 4\\\\\n2 & -3 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, -2, 3], [0, 4, -1], [2, 1, 0]], "B": [[3, 1, 2], [-1, 0, 4], [2, -3, 1]], "answerMatrix": [[11, -8, -3], [-6, 3, 15], [5, 2, 8]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(3)-2(-1)+3(2)=11\n        \\]\n        \\[\n        c_{22}=0(1)+4(0)-1(-3)=3\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & -2 & 3\\\\\n0 & 4 & -1\\\\\n2 & 1 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n3 & 1 & 2\\\\\n-1 & 0 & 4\\\\\n2 & -3 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n11 & -8 & -3\\\\\n-6 & 3 & 15\\\\\n5 & 2 & 8\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "fillIntro": "Completa estas entradas del resultado. Si todas están correctas, ya puedes ubicar el producto completo.", "blanks": [{"label": "\\(c_{11}\\)", "answer": 11, "calc": "c_{11}=1(3)-2(-1)+3(2)=11"}, {"label": "\\(c_{12}\\)", "answer": -8, "calc": "c_{12}=1(1)-2(0)+3(-3)=-8"}, {"label": "\\(c_{22}\\)", "answer": 3, "calc": "c_{22}=0(1)+4(0)-1(-3)=3"}, {"label": "\\(c_{33}\\)", "answer": 8, "calc": "c_{33}=2(2)+1(4)+0(1)=8"}]}, {"id": 15, "mode": "input", "type": "Nivel avanzado", "statement": "Ejercicio 15. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n-2 & 1 & 0\\\\\n3 & -1 & 2\\\\\n1 & 4 & -3\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n0 & 2 & -1\\\\\n5 & 1 & 3\\\\\n-2 & 0 & 4\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[-2, 1, 0], [3, -1, 2], [1, 4, -3]], "B": [[0, 2, -1], [5, 1, 3], [-2, 0, 4]], "answerMatrix": [[5, -3, 5], [-9, 5, 2], [26, 6, -1]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=-2(0)+1(5)+0(-2)=5\n        \\]\n        \\[\n        c_{22}=3(2)-1(1)+2(0)=5\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n-2 & 1 & 0\\\\\n3 & -1 & 2\\\\\n1 & 4 & -3\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n0 & 2 & -1\\\\\n5 & 1 & 3\\\\\n-2 & 0 & 4\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n5 & -3 & 5\\\\\n-9 & 5 & 2\\\\\n26 & 6 & -1\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 16, "mode": "mcq", "type": "Contextualizado", "statement": "Cantidades de materiales por taller y precios por proveedor. Calcula \\(A\\cdot B\\) e interpreta que una entrada combina cantidades por precios.", "eq": "\\[\nA=\\begin{pmatrix}\n4 & 2 & 1\\\\\n3 & 5 & 2\\\\\n6 & 1 & 3\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 3 & 4\\\\\n1 & 2 & 1\\\\\n5 & 4 & 3\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[4, 2, 1], [3, 5, 2], [6, 1, 3]], "B": [[2, 3, 4], [1, 2, 1], [5, 4, 3]], "answerMatrix": [[15, 20, 21], [21, 27, 23], [28, 32, 34]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=4(2)+2(1)+1(5)=15\n        \\]\n        \\[\n        c_{22}=3(3)+5(2)+2(4)=27\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n4 & 2 & 1\\\\\n3 & 5 & 2\\\\\n6 & 1 & 3\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 3 & 4\\\\\n1 & 2 & 1\\\\\n5 & 4 & 3\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n15 & 20 & 21\\\\\n21 & 27 & 23\\\\\n28 & 32 & 34\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n15 & 20 & 21\\\\\n21 & 27 & 23\\\\\n28 & 32 & 34\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n15 & 21 & 28\\\\\n20 & 27 & 32\\\\\n21 & 23 & 34\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n16 & 20 & 21\\\\\n21 & 27 & 23\\\\\n28 & 32 & 34\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n15 & 20 & 21\\\\\n28 & 32 & 34\\\\\n21 & 27 & 23\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 17, "mode": "input", "type": "Contextualizado", "statement": "Horas de uso de tres recursos y tarifas en tres turnos. Calcula \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n10 & 8 & 6\\\\\n5 & 7 & 9\\\\\n4 & 3 & 12\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 3\\\\\n2 & 1 & 4\\\\\n3 & 2 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[10, 8, 6], [5, 7, 9], [4, 3, 12]], "B": [[1, 2, 3], [2, 1, 4], [3, 2, 1]], "answerMatrix": [[44, 40, 68], [46, 35, 52], [46, 35, 36]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=10(1)+8(2)+6(3)=44\n        \\]\n        \\[\n        c_{22}=5(2)+7(1)+9(2)=35\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n10 & 8 & 6\\\\\n5 & 7 & 9\\\\\n4 & 3 & 12\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 3\\\\\n2 & 1 & 4\\\\\n3 & 2 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n44 & 40 & 68\\\\\n46 & 35 & 52\\\\\n46 & 35 & 36\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 18, "mode": "fill", "type": "Contextualizado", "statement": "Insumos por proyecto y costos en tres tiendas. Calcula \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n2 & 1 & 3\\\\\n4 & 0 & 2\\\\\n1 & 5 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n5 & 3 & 2\\\\\n2 & 4 & 1\\\\\n1 & 0 & 6\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[2, 1, 3], [4, 0, 2], [1, 5, 1]], "B": [[5, 3, 2], [2, 4, 1], [1, 0, 6]], "answerMatrix": [[15, 10, 23], [22, 12, 20], [16, 23, 13]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=2(5)+1(2)+3(1)=15\n        \\]\n        \\[\n        c_{22}=4(3)+0(4)+2(0)=12\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n2 & 1 & 3\\\\\n4 & 0 & 2\\\\\n1 & 5 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n5 & 3 & 2\\\\\n2 & 4 & 1\\\\\n1 & 0 & 6\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n15 & 10 & 23\\\\\n22 & 12 & 20\\\\\n16 & 23 & 13\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "fillIntro": "Completa estas entradas del resultado. Si todas están correctas, ya puedes ubicar el producto completo.", "blanks": [{"label": "\\(c_{11}\\)", "answer": 15, "calc": "c_{11}=2(5)+1(2)+3(1)=15"}, {"label": "\\(c_{12}\\)", "answer": 10, "calc": "c_{12}=2(3)+1(4)+3(0)=10"}, {"label": "\\(c_{22}\\)", "answer": 12, "calc": "c_{22}=4(3)+0(4)+2(0)=12"}, {"label": "\\(c_{33}\\)", "answer": 13, "calc": "c_{33}=1(2)+5(1)+1(6)=13"}]}, {"id": 19, "mode": "input", "type": "Reto integrador", "statement": "Reto integrador. Calcula \\(A\\cdot B\\) y verifica al menos dos entradas.", "eq": "\\[\nA=\\begin{pmatrix}\n1 & 0 & 2\\\\\n2 & 1 & 0\\\\\n0 & 3 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n1 & 0 & 3\\\\\n4 & -1 & 2\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, 0, 2], [2, 1, 0], [0, 3, 1]], "B": [[2, 1, 0], [1, 0, 3], [4, -1, 2]], "answerMatrix": [[10, -1, 4], [5, 2, 3], [7, -1, 11]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(2)+0(1)+2(4)=10\n        \\]\n        \\[\n        c_{22}=2(1)+1(0)+0(-1)=2\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & 0 & 2\\\\\n2 & 1 & 0\\\\\n0 & 3 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n1 & 0 & 3\\\\\n4 & -1 & 2\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n10 & -1 & 4\\\\\n5 & 2 & 3\\\\\n7 & -1 & 11\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    "}, {"id": 20, "mode": "mcq", "type": "Reto integrador", "statement": "Reto integrador. Calcula \\(A\\cdot B\\) y verifica al menos dos entradas.", "eq": "\\[\nA=\\begin{pmatrix}\n2 & 1 & -1\\\\\n0 & 3 & 2\\\\\n1 & -2 & 4\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 3\\\\\n4 & 0 & -1\\\\\n-2 & 5 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[2, 1, -1], [0, 3, 2], [1, -2, 4]], "B": [[1, 2, 3], [4, 0, -1], [-2, 5, 1]], "answerMatrix": [[8, -1, 4], [8, 10, -1], [-15, 22, 9]], "hint": "Verifica dimensiones y llena la matriz resultado por orden: fila 1, fila 2 y fila 3. Cada entrada se obtiene con fila de A por columna de B.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=2(1)+1(4)-1(-2)=8\n        \\]\n        \\[\n        c_{22}=0(2)+3(0)+2(5)=10\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n2 & 1 & -1\\\\\n0 & 3 & 2\\\\\n1 & -2 & 4\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 3\\\\\n4 & 0 & -1\\\\\n-2 & 5 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n8 & -1 & 4\\\\\n8 & 10 & -1\\\\\n-15 & 22 & 9\n\\end{pmatrix}\n\\]\n      </div>\n      <p><strong>Error común:</strong> no cambies el orden del producto ni multipliques entrada por entrada.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n8 & -1 & 4\\\\\n8 & 10 & -1\\\\\n-15 & 22 & 9\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n8 & 8 & -15\\\\\n-1 & 10 & 22\\\\\n4 & -1 & 9\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n9 & -1 & 4\\\\\n8 & 10 & -1\\\\\n-15 & 22 & 9\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n8 & -1 & 4\\\\\n-15 & 22 & 9\\\\\n8 & 10 & -1\n\\end{pmatrix}\\)"], "correctIndex": 0}];
+    const recoveryExercises = [{"id": 1, "mode": "mcq", "type": "Recuperación", "statement": "Recuperación 1. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & 0 & 1\\\\\n0 & 1 & 0\\\\\n2 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n0 & 3 & 1\\\\\n1 & 0 & 2\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, 0, 1], [0, 1, 0], [2, 0, 1]], "B": [[2, 1, 0], [0, 3, 1], [1, 0, 2]], "answerMatrix": [[3, 1, 2], [0, 3, 1], [5, 2, 2]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(2)+0(0)+1(1)=3\n        \\]\n        \\[\n        c_{22}=0(1)+1(3)+0(0)=3\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & 0 & 1\\\\\n0 & 1 & 0\\\\\n2 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n0 & 3 & 1\\\\\n1 & 0 & 2\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n3 & 1 & 2\\\\\n0 & 3 & 1\\\\\n5 & 2 & 2\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n3 & 1 & 2\\\\\n0 & 3 & 1\\\\\n5 & 2 & 2\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n3 & 0 & 5\\\\\n1 & 3 & 2\\\\\n2 & 1 & 2\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n4 & 1 & 2\\\\\n0 & 3 & 1\\\\\n5 & 2 & 2\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n3 & 1 & 2\\\\\n5 & 2 & 2\\\\\n0 & 3 & 1\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 2, "mode": "input", "type": "Recuperación", "statement": "Recuperación 2. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n2 & 0 & 0\\\\\n0 & 2 & 0\\\\\n0 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 3\\\\\n4 & 0 & 1\\\\\n2 & 1 & 0\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[2, 0, 0], [0, 2, 0], [0, 0, 1]], "B": [[1, 2, 3], [4, 0, 1], [2, 1, 0]], "answerMatrix": [[2, 4, 6], [8, 0, 2], [2, 1, 0]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=2(1)+0(4)+0(2)=2\n        \\]\n        \\[\n        c_{22}=0(2)+2(0)+0(1)=0\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n2 & 0 & 0\\\\\n0 & 2 & 0\\\\\n0 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 3\\\\\n4 & 0 & 1\\\\\n2 & 1 & 0\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n2 & 4 & 6\\\\\n8 & 0 & 2\\\\\n2 & 1 & 0\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    "}, {"id": 3, "mode": "fill", "type": "Recuperación", "statement": "Recuperación 3. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & 1 & 0\\\\\n0 & 2 & 1\\\\\n1 & 0 & 2\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 0 & 2\\\\\n3 & 1 & 0\\\\\n0 & 2 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, 1, 0], [0, 2, 1], [1, 0, 2]], "B": [[1, 0, 2], [3, 1, 0], [0, 2, 1]], "answerMatrix": [[4, 1, 2], [6, 4, 1], [1, 4, 4]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(1)+1(3)+0(0)=4\n        \\]\n        \\[\n        c_{22}=0(0)+2(1)+1(2)=4\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & 1 & 0\\\\\n0 & 2 & 1\\\\\n1 & 0 & 2\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 0 & 2\\\\\n3 & 1 & 0\\\\\n0 & 2 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n4 & 1 & 2\\\\\n6 & 4 & 1\\\\\n1 & 4 & 4\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    ", "fillIntro": "Completa las entradas indicadas del producto.", "blanks": [{"label": "\\(c_{11}\\)", "answer": 4, "calc": "c_{11}=1(1)+1(3)+0(0)=4"}, {"label": "\\(c_{13}\\)", "answer": 2, "calc": "c_{13}=1(2)+1(0)+0(1)=2"}, {"label": "\\(c_{21}\\)", "answer": 6, "calc": "c_{21}=0(1)+2(3)+1(0)=6"}, {"label": "\\(c_{33}\\)", "answer": 4, "calc": "c_{33}=1(2)+0(0)+2(1)=4"}]}, {"id": 4, "mode": "input", "type": "Recuperación", "statement": "Recuperación 4. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n0 & 1 & 2\\\\\n1 & 0 & 1\\\\\n2 & 1 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n1 & 3 & 2\\\\\n0 & 1 & 4\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[0, 1, 2], [1, 0, 1], [2, 1, 0]], "B": [[2, 1, 0], [1, 3, 2], [0, 1, 4]], "answerMatrix": [[1, 5, 10], [2, 2, 4], [5, 5, 2]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=0(2)+1(1)+2(0)=1\n        \\]\n        \\[\n        c_{22}=1(1)+0(3)+1(1)=2\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n0 & 1 & 2\\\\\n1 & 0 & 1\\\\\n2 & 1 & 0\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n1 & 3 & 2\\\\\n0 & 1 & 4\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n1 & 5 & 10\\\\\n2 & 2 & 4\\\\\n5 & 5 & 2\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    "}, {"id": 5, "mode": "mcq", "type": "Recuperación", "statement": "Recuperación 5. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & -1 & 1\\\\\n2 & 0 & 1\\\\\n0 & 1 & -1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 0 & 1\\\\\n1 & 3 & 0\\\\\n0 & -1 & 2\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, -1, 1], [2, 0, 1], [0, 1, -1]], "B": [[2, 0, 1], [1, 3, 0], [0, -1, 2]], "answerMatrix": [[1, -4, 3], [4, -1, 4], [1, 4, -2]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(2)-1(1)+1(0)=1\n        \\]\n        \\[\n        c_{22}=2(0)+0(3)+1(-1)=-1\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & -1 & 1\\\\\n2 & 0 & 1\\\\\n0 & 1 & -1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 0 & 1\\\\\n1 & 3 & 0\\\\\n0 & -1 & 2\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n1 & -4 & 3\\\\\n4 & -1 & 4\\\\\n1 & 4 & -2\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n1 & -4 & 3\\\\\n4 & -1 & 4\\\\\n1 & 4 & -2\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n1 & 4 & 1\\\\\n-4 & -1 & 4\\\\\n3 & 4 & -2\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n2 & -4 & 3\\\\\n4 & -1 & 4\\\\\n1 & 4 & -2\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n1 & -4 & 3\\\\\n1 & 4 & -2\\\\\n4 & -1 & 4\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 6, "mode": "input", "type": "Recuperación", "statement": "Recuperación 6. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n3 & 1 & 0\\\\\n0 & 1 & 2\\\\\n1 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 0\\\\\n0 & 1 & 3\\\\\n2 & 0 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[3, 1, 0], [0, 1, 2], [1, 0, 1]], "B": [[1, 2, 0], [0, 1, 3], [2, 0, 1]], "answerMatrix": [[3, 7, 3], [4, 1, 5], [3, 2, 1]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=3(1)+1(0)+0(2)=3\n        \\]\n        \\[\n        c_{22}=0(2)+1(1)+2(0)=1\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n3 & 1 & 0\\\\\n0 & 1 & 2\\\\\n1 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 0\\\\\n0 & 1 & 3\\\\\n2 & 0 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n3 & 7 & 3\\\\\n4 & 1 & 5\\\\\n3 & 2 & 1\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    "}, {"id": 7, "mode": "fill", "type": "Recuperación", "statement": "Recuperación 7. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n2 & 1 & 1\\\\\n1 & 2 & 0\\\\\n0 & 1 & 3\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 0 & 2\\\\\n2 & 1 & 1\\\\\n0 & 3 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[2, 1, 1], [1, 2, 0], [0, 1, 3]], "B": [[1, 0, 2], [2, 1, 1], [0, 3, 1]], "answerMatrix": [[4, 4, 6], [5, 2, 4], [2, 10, 4]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=2(1)+1(2)+1(0)=4\n        \\]\n        \\[\n        c_{22}=1(0)+2(1)+0(3)=2\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n2 & 1 & 1\\\\\n1 & 2 & 0\\\\\n0 & 1 & 3\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 0 & 2\\\\\n2 & 1 & 1\\\\\n0 & 3 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n4 & 4 & 6\\\\\n5 & 2 & 4\\\\\n2 & 10 & 4\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    ", "fillIntro": "Completa las entradas indicadas del producto.", "blanks": [{"label": "\\(c_{11}\\)", "answer": 4, "calc": "c_{11}=2(1)+1(2)+1(0)=4"}, {"label": "\\(c_{13}\\)", "answer": 6, "calc": "c_{13}=2(2)+1(1)+1(1)=6"}, {"label": "\\(c_{21}\\)", "answer": 5, "calc": "c_{21}=1(1)+2(2)+0(0)=5"}, {"label": "\\(c_{33}\\)", "answer": 4, "calc": "c_{33}=0(2)+1(1)+3(1)=4"}]}, {"id": 8, "mode": "input", "type": "Recuperación", "statement": "Recuperación 8. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & 2 & 0\\\\\n0 & 1 & 1\\\\\n2 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n0 & 1 & 2\\\\\n1 & 0 & 3\\\\\n2 & 1 & 0\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, 2, 0], [0, 1, 1], [2, 0, 1]], "B": [[0, 1, 2], [1, 0, 3], [2, 1, 0]], "answerMatrix": [[2, 1, 8], [3, 1, 3], [2, 3, 4]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(0)+2(1)+0(2)=2\n        \\]\n        \\[\n        c_{22}=0(1)+1(0)+1(1)=1\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & 2 & 0\\\\\n0 & 1 & 1\\\\\n2 & 0 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n0 & 1 & 2\\\\\n1 & 0 & 3\\\\\n2 & 1 & 0\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n2 & 1 & 8\\\\\n3 & 1 & 3\\\\\n2 & 3 & 4\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    "}, {"id": 9, "mode": "mcq", "type": "Recuperación", "statement": "Recuperación 9. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n1 & 0 & -1\\\\\n2 & 1 & 0\\\\\n0 & 3 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n0 & 2 & 1\\\\\n1 & 0 & 3\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[1, 0, -1], [2, 1, 0], [0, 3, 1]], "B": [[2, 1, 0], [0, 2, 1], [1, 0, 3]], "answerMatrix": [[1, 1, -3], [4, 4, 1], [1, 6, 6]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=1(2)+0(0)-1(1)=1\n        \\]\n        \\[\n        c_{22}=2(1)+1(2)+0(0)=4\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n1 & 0 & -1\\\\\n2 & 1 & 0\\\\\n0 & 3 & 1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n2 & 1 & 0\\\\\n0 & 2 & 1\\\\\n1 & 0 & 3\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n1 & 1 & -3\\\\\n4 & 4 & 1\\\\\n1 & 6 & 6\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    ", "options": ["\\(\\begin{pmatrix}\n1 & 1 & -3\\\\\n4 & 4 & 1\\\\\n1 & 6 & 6\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n1 & 4 & 1\\\\\n1 & 4 & 6\\\\\n-3 & 1 & 6\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n2 & 1 & -3\\\\\n4 & 4 & 1\\\\\n1 & 6 & 6\n\\end{pmatrix}\\)", "\\(\\begin{pmatrix}\n1 & 1 & -3\\\\\n1 & 6 & 6\\\\\n4 & 4 & 1\n\\end{pmatrix}\\)"], "correctIndex": 0}, {"id": 10, "mode": "input", "type": "Recuperación", "statement": "Recuperación 10. Calcula el producto \\(A\\cdot B\\).", "eq": "\\[\nA=\\begin{pmatrix}\n2 & -1 & 0\\\\\n1 & 1 & 1\\\\\n0 & 2 & -1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 1\\\\\n0 & 1 & 3\\\\\n2 & 0 & 1\n\\end{pmatrix}\n\\]\n\\[\n\\text{Calcula }A\\cdot B\n\\]", "A": [[2, -1, 0], [1, 1, 1], [0, 2, -1]], "B": [[1, 2, 1], [0, 1, 3], [2, 0, 1]], "answerMatrix": [[2, 3, -1], [3, 3, 5], [-2, 2, 5]], "hint": "Trabaja despacio: elige una fila de A, una columna de B, multiplica término a término y suma.", "solution": "\n      <p>Se aplica la regla <strong>fila por columna</strong>. Por ejemplo:</p>\n      <div class=\"mathBox\">\n        \\[\n        c_{11}=2(1)-1(0)+0(2)=2\n        \\]\n        \\[\n        c_{22}=1(2)+1(1)+1(0)=3\n        \\]\n      </div>\n      <p>Luego se ubica cada resultado en su casilla correspondiente. El producto final es:</p>\n      <div class=\"mathBox\">\n        \\[\nA=\\begin{pmatrix}\n2 & -1 & 0\\\\\n1 & 1 & 1\\\\\n0 & 2 & -1\n\\end{pmatrix},\\qquad B=\\begin{pmatrix}\n1 & 2 & 1\\\\\n0 & 1 & 3\\\\\n2 & 0 & 1\n\\end{pmatrix}\n\\]\n\\[\nA\\cdot B=\\begin{pmatrix}\n2 & 3 & -1\\\\\n3 & 3 & 5\\\\\n-2 & 2 & 5\n\\end{pmatrix}\n\\]\n      </div>\n      <p>Compara tu respuesta con la matriz final y revisa signos.</p>\n    "}];
+
+    let state = {
+      phase: "initial",
+      currentIndex: 0,
+      student: {},
+      initial: [],
+      recovery: [],
+      initialFinished: false,
+      recoveryEnabled: false,
+      recoveryFinished: false,
+      summary: null,
+      locked: false
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      restoreIfSent();
+      typeset();
+    });
+
+    function buildRuntime(data) {
+      return data.map(ex => ({
+        ...structuredClone(ex),
+        attempts: 0,
+        score: null,
+        status: "pending",
+        selected: null,
+        matrixInput: "",
+        matrixCells: Array(9).fill(""),
+        blankInputs: Array((ex.blanks || []).length).fill(""),
+        feedback: "",
+        feedbackType: "",
+        hintShown: false,
+        solutionShown: false
+      }));
+    }
+
+    function activeList() {
+      return state.phase === "recovery" ? state.recovery : state.initial;
+    }
+
+    function currentExercise() {
+      return activeList()[state.currentIndex];
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      typeset();
+    }
+
+    function startHomework() {
+      if (state.locked) return;
+      const name = document.getElementById("studentName").value.trim();
+      if (!name) {
+        showNotice("sideNotice", "Escribe tu nombre y apellido antes de iniciar.", "bad");
+        alert("Escribe tu nombre y apellido antes de iniciar.");
+        return;
+      }
+
+      state.student = {
+        nombre: name,
+        curso: document.getElementById("studentCourse").value.trim() || COURSE,
+        paralelo: document.getElementById("studentParallel").value.trim() || PARALLEL
+      };
+      state.initial = buildRuntime(exercises);
+      state.recovery = buildRuntime(recoveryExercises);
+      state.phase = "initial";
+      state.currentIndex = 0;
+      state.initialFinished = false;
+      state.recoveryEnabled = false;
+      state.recoveryFinished = false;
+      state.summary = null;
+
+      showScreen("workScreen");
+      renderWork();
+    }
+
+    function renderWork() {
+      const list = activeList();
+      const total = list.length;
+      const done = list.filter(e => e.score !== null).length;
+      const avg = done ? round2(list.reduce((s,e)=>s+(e.score ?? 0),0) / done) : 0;
+
+      document.getElementById("panelTitle").textContent = state.phase === "initial" ? "Panel de avance" : "Panel de recuperación";
+      document.getElementById("doneCount").textContent = `${done}/${total}`;
+      document.getElementById("avgNow").textContent = avg;
+      document.getElementById("progressBar").style.width = `${Math.round(done/total*100)}%`;
+      document.getElementById("finishBtn").disabled = done < total || state.locked;
+      document.getElementById("finishBtn").textContent = state.phase === "initial" ? "Generar resumen" : "Generar resumen final";
+
+      renderExerciseGrid();
+      renderExercise();
+      typeset();
+    }
+
+    function renderExerciseGrid() {
+      const list = activeList();
+      const grid = document.getElementById("exerciseGrid");
+      grid.innerHTML = list.map((ex, i) => {
+        let cls = "";
+        if (i === state.currentIndex) cls += " active";
+        if (ex.status === "correct") cls += " done";
+        if (ex.status === "partial") cls += " partial";
+        if (ex.status === "fail") cls += " fail";
+        return `<button class="exBtn${cls}" onclick="openExercise(${i})" ${state.locked ? "disabled" : ""}>${i+1}</button>`;
+      }).join("");
+    }
+
+    function renderExercise() {
+      const ex = currentExercise();
+      const disabled = ex.score !== null || state.locked;
+      const attemptsText = `${ex.attempts}/${TOTAL_ATTEMPTS}`;
+      const scoreText = ex.score === null ? "Pendiente" : `${ex.score}/10`;
+
+      let body = "";
+      if (ex.mode === "mcq") {
+        body = `
+          <div class="choiceGrid">
+            ${ex.options.map((opt, idx) => {
+              let cls = "choice";
+              if (ex.selected === idx) cls += " selected";
+              if (disabled && idx === ex.correctIndex) cls += " correct";
+              if (disabled && ex.selected === idx && idx !== ex.correctIndex) cls += " wrong";
+              return `<button class="${cls}" onclick="selectOption(${idx})" ${disabled ? "disabled" : ""}>${opt}</button>`;
+            }).join("")}
+          </div>
+        `;
+      }
+
+      if (ex.mode === "input") {
+        const checked = ex.attempts > 0 || disabled;
+        const flatAnswer = ex.answerMatrix.flat();
+        body = `
+          <div class="field">
+            <span style="font-weight:950;">Matriz resultante</span>
+            <p class="matrixInputHelp">Completa los 9 espacios por filas: fila 1, fila 2 y fila 3.</p>
+            <div class="answerMatrixWrap">
+              <div class="answerMatrix" aria-label="Matriz resultado con nueve espacios">
+                <div class="bracketLeft"></div>
+                ${Array.from({length:9}).map((_, idx) => {
+                  const val = ex.matrixCells?.[idx] || "";
+                  const ok = checked && compareValue(val, flatAnswer[idx]);
+                  const cls = checked ? (ok ? " correct" : " wrong") : "";
+                  const row = Math.floor(idx / 3) + 1;
+                  const col = (idx % 3) + 2;
+                  return `<input class="matrixCell${cls}" style="grid-row:${row};grid-column:${col};" value="${escapeHtml(val)}" oninput="updateMatrixCell(${idx}, this.value)" ${disabled ? "disabled" : ""} placeholder="c${Math.floor(idx/3)+1}${idx%3+1}" inputmode="decimal" />`;
+                }).join("")}
+                <div class="bracketRight"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (ex.mode === "fill") {
+        body = `
+          <p>${ex.fillIntro || "Completa el procedimiento."}</p>
+          <div class="fillGrid">
+            ${(ex.blanks || []).map((b, idx) => {
+              const val = ex.blankInputs[idx] || "";
+              const checked = ex.attempts > 0 || disabled;
+              const ok = checked && compareValue(val, b.answer);
+              const cls = checked ? (ok ? " correct" : " wrong") : "";
+              return `
+                <div class="fillItem">
+                  <label>${b.label}</label>
+                  <input class="input blankInput${cls}" value="${escapeHtml(val)}" oninput="updateBlank(${idx}, this.value)" ${disabled ? "disabled" : ""} placeholder="valor" />
+                  <small>${b.calc}</small>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }
+
+      document.getElementById("exercisePanel").innerHTML = `
+        <div class="duaRow">
+          <span class="tag">${state.phase === "initial" ? "Ejercicio" : "Recuperación"} ${state.currentIndex + 1}</span>
+          <span class="tag">${ex.type}</span>
+          <span class="tag">Intentos: ${attemptsText}</span>
+          <span class="tag">Puntaje: ${scoreText}</span>
+        </div>
+        <h2>${ex.statement}</h2>
+        <div class="mathBox">${ex.eq}</div>
+        ${body}
+        <div class="btnRow">
+          <button class="btnGood" onclick="checkExercise()" ${disabled ? "disabled" : ""}>Comprobar</button>
+          <button class="btnGhost" onclick="toggleHint()">Ver pista</button>
+          <button class="btnGhost" onclick="toggleSolution()" ${ex.score === null ? "disabled" : ""}>Ver solución</button>
+        </div>
+        <div class="feedback ${ex.feedback ? "show " + ex.feedbackType : ""}" id="feedbackBox">${ex.feedback}</div>
+        <div class="hint ${ex.hintShown ? "show" : ""}"><strong>💡 Pista:</strong> ${ex.hint}</div>
+        <div class="solution ${ex.solutionShown ? "show" : ""}"><strong>✅ Solución paso a paso:</strong> ${ex.solution}</div>
+      `;
+    }
+
+    function openExercise(index) {
+      if (state.locked) return;
+      state.currentIndex = index;
+      renderWork();
+    }
+
+    function prevExercise() {
+      if (state.locked) return;
+      const list = activeList();
+      state.currentIndex = (state.currentIndex - 1 + list.length) % list.length;
+      renderWork();
+    }
+
+    function nextExercise() {
+      if (state.locked) return;
+      const list = activeList();
+      state.currentIndex = (state.currentIndex + 1) % list.length;
+      renderWork();
+    }
+
+    function selectOption(idx) {
+      const ex = currentExercise();
+      if (ex.score !== null || state.locked) return;
+      ex.selected = idx;
+      renderExercise();
+      typeset();
+    }
+
+    function updateMatrixInput(value) {
+      const ex = currentExercise();
+      ex.matrixInput = value;
+    }
+
+    function updateMatrixCell(idx, value) {
+      const ex = currentExercise();
+      if (!ex.matrixCells) ex.matrixCells = Array(9).fill("");
+      ex.matrixCells[idx] = value;
+    }
+
+    function updateBlank(idx, value) {
+      const ex = currentExercise();
+      ex.blankInputs[idx] = value;
+    }
+
+    function checkExercise() {
+      const ex = currentExercise();
+      if (state.locked || ex.score !== null) return;
+
+      if (ex.mode === "mcq" && ex.selected === null) {
+        setFeedback(ex, "Selecciona una opción antes de comprobar.", "warn");
+        return;
+      }
+      if (ex.mode === "input" && (!ex.matrixCells || ex.matrixCells.every(v => !String(v).trim()))) {
+        setFeedback(ex, "Completa la matriz resultante antes de comprobar.", "warn");
+        return;
+      }
+      if (ex.mode === "fill" && ex.blankInputs.every(v => !String(v).trim())) {
+        setFeedback(ex, "Completa al menos un espacio antes de comprobar.", "warn");
+        return;
+      }
+
+      ex.attempts += 1;
+
+      if (ex.mode === "mcq") {
+        const ok = ex.selected === ex.correctIndex;
+        finalizeSimpleExercise(ex, ok);
+      } else if (ex.mode === "input") {
+        const ok = compareMatrixCells(ex.matrixCells, ex.answerMatrix);
+        finalizeSimpleExercise(ex, ok);
+      } else if (ex.mode === "fill") {
+        finalizeFillExercise(ex);
+      }
+
+      updateFinishAvailability();
+      renderWork();
+    }
+
+    function finalizeSimpleExercise(ex, ok) {
+      if (ok) {
+        ex.score = attemptScore(ex.attempts);
+        ex.status = "correct";
+        ex.feedback = `¡Correcto! Aplicaste la regla fila por columna. Puntaje: ${ex.score}/10.`;
+        ex.feedbackType = "ok";
+        ex.solutionShown = true;
+      } else if (ex.attempts >= TOTAL_ATTEMPTS) {
+        ex.score = 0;
+        ex.status = "fail";
+        ex.feedback = "Intentos agotados. Revisa la solución paso a paso y observa dónde se produjo el error.";
+        ex.feedbackType = "bad";
+        ex.solutionShown = true;
+      } else {
+        ex.feedback = `Aún no es correcto. Revisa signos, ubicación de entradas y orden del producto. Te quedan ${TOTAL_ATTEMPTS - ex.attempts} intento(s).`;
+        ex.feedbackType = "bad";
+      }
+    }
+
+    function finalizeFillExercise(ex) {
+      const total = ex.blanks.length;
+      const correct = ex.blanks.filter((b, i) => compareValue(ex.blankInputs[i], b.answer)).length;
+
+      if (correct === total) {
+        ex.score = attemptScore(ex.attempts);
+        ex.status = "correct";
+        ex.feedback = `¡Muy bien! Completaste todas las entradas. Puntaje: ${ex.score}/10.`;
+        ex.feedbackType = "ok";
+        ex.solutionShown = true;
+      } else if (ex.attempts >= TOTAL_ATTEMPTS) {
+        ex.score = round2((correct / total) * 10);
+        ex.status = ex.score > 0 ? "partial" : "fail";
+        ex.feedback = `Intentos agotados. Lograste ${correct} de ${total} espacios correctos. Puntaje parcial: ${ex.score}/10.`;
+        ex.feedbackType = ex.score > 0 ? "warn" : "bad";
+        ex.solutionShown = true;
+      } else {
+        ex.feedback = `Tienes ${correct} de ${total} espacios correctos. Revisa los productos parciales. Te quedan ${TOTAL_ATTEMPTS - ex.attempts} intento(s).`;
+        ex.feedbackType = "warn";
+      }
+    }
+
+    function attemptScore(attempts) {
+      if (attempts <= 1) return 10;
+      if (attempts === 2) return 9;
+      return 8;
+    }
+
+    function setFeedback(ex, msg, type) {
+      ex.feedback = msg;
+      ex.feedbackType = type;
+      renderExercise();
+      typeset();
+    }
+
+    function toggleHint() {
+      const ex = currentExercise();
+      ex.hintShown = !ex.hintShown;
+      renderExercise();
+      typeset();
+    }
+
+    function toggleSolution() {
+      const ex = currentExercise();
+      if (ex.score === null) {
+        setFeedback(ex, "La solución se desbloquea cuando resuelvas el ejercicio o cuando agotes los 3 intentos.", "warn");
+        return;
+      }
+      ex.solutionShown = !ex.solutionShown;
+      renderExercise();
+      typeset();
+    }
+
+    function updateFinishAvailability() {
+      const list = activeList();
+      const done = list.every(e => e.score !== null);
+      document.getElementById("finishBtn").disabled = !done || state.locked;
+    }
+
+    function finishCurrentPhase() {
+      if (state.phase === "initial") finishInitial();
+      else finishRecovery();
+    }
+
+    function finishInitial() {
+      if (!state.initial.every(e => e.score !== null)) return;
+      state.initialFinished = true;
+      const notaInicial = averageScore(state.initial);
+      state.recoveryEnabled = notaInicial < RECOVERY_THRESHOLD;
+      generateSummary();
+      showScreen("summaryScreen");
+      renderSummary();
+    }
+
+    function startRecovery() {
+      if (state.locked) return;
+      state.phase = "recovery";
+      state.currentIndex = 0;
+      showScreen("workScreen");
+      renderWork();
+    }
+
+    function finishRecovery() {
+      if (!state.recovery.every(e => e.score !== null)) return;
+      state.recoveryFinished = true;
+      generateSummary();
+      showScreen("summaryScreen");
+      renderSummary();
+    }
+
+    function generateSummary() {
+      const notaInicial = state.initialFinished ? averageScore(state.initial) : 0;
+      const recuperacionHabilitada = notaInicial < RECOVERY_THRESHOLD;
+      const promedioRecuperacion = recuperacionHabilitada && state.recoveryFinished ? averageScore(state.recovery) : null;
+      const notaFinal = !recuperacionHabilitada ? notaInicial : (promedioRecuperacion === null ? notaInicial : round2((notaInicial + promedioRecuperacion) / 2));
+      const porcentajeFinal = round2(notaFinal * 10);
+      const nivelFinal = nivel(notaFinal);
+      const obs = observacion(notaFinal, recuperacionHabilitada, promedioRecuperacion);
+
+      state.summary = {
+        notaInicial,
+        recuperacionHabilitada,
+        promedioRecuperacion,
+        notaFinal,
+        porcentajeFinal,
+        nivel: nivelFinal,
+        observacion: obs
+      };
+      return state.summary;
+    }
+
+    function renderSummary(savedPayload=null) {
+      const s = savedPayload ? {
+        notaInicial: Number(savedPayload.promedioInicial || 0),
+        recuperacionHabilitada: String(savedPayload.recuperacionHabilitada) === "true",
+        promedioRecuperacion: savedPayload.promedioRecuperacion === "No aplica" ? null : Number(savedPayload.promedioRecuperacion || 0),
+        notaFinal: Number(savedPayload.notaFinal || 0),
+        porcentajeFinal: Number(savedPayload.porcentajeFinal || 0),
+        nivel: savedPayload.nivel || "Inicial",
+        observacion: savedPayload.observacion || ""
+      } : (state.summary || generateSummary());
+
+      document.getElementById("sumInitial").textContent = round2(s.notaInicial);
+      document.getElementById("sumRecovery").textContent = s.recuperacionHabilitada ? (s.promedioRecuperacion === null ? "Pendiente" : round2(s.promedioRecuperacion)) : "No aplica";
+      document.getElementById("sumFinal").textContent = round2(s.notaFinal);
+      document.getElementById("sumLevel").textContent = s.nivel;
+      document.getElementById("observationText").textContent = s.observacion;
+
+      const notice = document.getElementById("summaryNotice");
+      const recoveryArea = document.getElementById("recoveryArea");
+      const sendBtn = document.getElementById("sendBtn");
+
+      if (state.locked) {
+        notice.className = "notice show ok";
+        notice.textContent = "Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.";
+        recoveryArea.classList.remove("show");
+        sendBtn.disabled = true;
+        document.getElementById("returnWorkBtn").disabled = true;
+        return;
+      }
+
+      if (s.recuperacionHabilitada && s.promedioRecuperacion === null) {
+        notice.className = "notice show warn";
+        notice.textContent = "Tu nota inicial es menor a 7/10. Debes completar la recuperación antes de enviar.";
+        recoveryArea.classList.add("show");
+        sendBtn.disabled = true;
+      } else {
+        notice.className = "notice show ok";
+        notice.textContent = "El resumen está listo para enviar a Google Sheets.";
+        recoveryArea.classList.remove("show");
+        sendBtn.disabled = false;
+      }
+      typeset();
+    }
+
+    function goWork() {
+      if (state.locked) return;
+      showScreen("workScreen");
+      renderWork();
+    }
+
+    function goSummaryOrIntro() {
+      if (state.initialFinished) {
+        showScreen("summaryScreen");
+        renderSummary();
+      } else {
+        showScreen("introScreen");
+      }
+    }
+
+    function averageScore(list) {
+      if (!list.length) return 0;
+      return round2(list.reduce((s,e)=>s+(e.score ?? 0),0) / list.length);
+    }
+
+    function round2(n) {
+      return Math.round((Number(n) || 0) * 100) / 100;
+    }
+
+    function nivel(nota) {
+      if (nota >= 9) return "Destacado";
+      if (nota >= 7) return "Alcanzado";
+      if (nota >= 4) return "En desarrollo";
+      return "Inicial";
+    }
+
+    function observacion(nota, rec, recAvg) {
+      if (nota >= 9) return "Desempeño destacado: analiza y opera matrices de hasta tercer orden con seguridad, orden y precisión.";
+      if (nota >= 7) return "Resultado alcanzado: aplica correctamente la regla fila por columna. Para mejorar, refuerza signos negativos y ubicación de entradas.";
+      if (nota >= 4) return "Desempeño en desarrollo: reconoce el procedimiento, pero necesita practicar el cálculo de cada entrada y revisar dimensiones.";
+      return "Nivel inicial: conviene reforzar filas, columnas, dimensiones y la regla de producto antes de avanzar a ejercicios más complejos.";
+    }
+
+    function compareMatrixCells(cells, matrix) {
+      if (!cells || cells.length !== 9) return false;
+      const flat = matrix.flat();
+      return cells.every((v, i) => compareValue(v, flat[i]));
+    }
+
+    function compareMatrixInput(input, matrix) {
+      const nums = extractNumbers(input);
+      if (nums.length !== 9) return false;
+      const flat = matrix.flat();
+      return nums.every((v,i) => Math.abs(v - Number(flat[i])) < 1e-9);
+    }
+
+    function extractNumbers(text) {
+      const clean = String(text || "")
+        .replace(/−/g, "-")
+        .replace(/,/g, " ")
+        .replace(/;/g, " ")
+        .replace(/[\[\]\(\){}]/g, " ");
+      const matches = clean.match(/-?\d+(?:\/\d+)?|-?\d+(?:\.\d+)?/g) || [];
+      return matches.map(parseFlexibleNumber).filter(v => Number.isFinite(v));
+    }
+
+    function parseFlexibleNumber(value) {
+      const v = String(value || "").trim().replace(",", ".").replace(/−/g, "-");
+      if (/^-?\d+\/\d+$/.test(v)) {
+        const [a,b] = v.split("/").map(Number);
+        return b === 0 ? NaN : a/b;
+      }
+      return Number(v);
+    }
+
+    function compareValue(user, expected) {
+      const a = parseFlexibleNumber(user);
+      const b = parseFlexibleNumber(expected);
+      return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a-b) < 1e-9;
+    }
+
+    function detalleEjercicios() {
+      const init = state.initial.map((e,i)=>`E${i+1}:${e.score ?? 0}/10`).join(" | ");
+      if (state.recoveryEnabled && state.recoveryFinished) {
+        const rec = state.recovery.map((e,i)=>`R${i+1}:${e.score ?? 0}/10`).join(" | ");
+        return init + " || REC " + rec;
+      }
+      return init;
+    }
+
+    function crearIdEnvio({ hoja, tipoActividad, nombre }) {
+      const limpio = String(nombre || "estudiante")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .slice(0, 40);
+
+      return `${hoja}-${tipoActividad || "actividad"}-${limpio}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+
+    function buildPayload() {
+      const s = state.summary || generateSummary();
+      return {
+        hoja: SHEET_NAME,
+        idEnvio: crearIdEnvio({ hoja: SHEET_NAME, tipoActividad: ACTIVITY_TYPE, nombre: state.student.nombre }),
+        nombre: state.student.nombre,
+        curso: COURSE,
+        paralelo: PARALLEL,
+        tema: TOPIC,
+        tipoActividad: ACTIVITY_TYPE,
+        numeroEjercicios: exercises.length,
+        puntajeInicial: round2(state.initial.reduce((sum,e)=>sum+(e.score || 0),0)),
+        promedioInicial: s.notaInicial,
+        recuperacionHabilitada: s.recuperacionHabilitada,
+        promedioRecuperacion: s.promedioRecuperacion === null ? "No aplica" : s.promedioRecuperacion,
+        notaFinal: s.notaFinal,
+        porcentajeFinal: s.porcentajeFinal,
+        nivel: s.nivel,
+        estado: "Enviado",
+        fechaLimite: FECHA_LIMITE,
+        observacion: s.observacion,
+        detalleEjercicios: detalleEjercicios(),
+        userAgent: navigator.userAgent,
+        urlOrigen: location.href,
+        fechaCliente: new Date().toISOString()
+      };
+    }
+
+    function sendSummary() {
+      if (state.locked) return;
+      const s = state.summary || generateSummary();
+      if (s.recuperacionHabilitada && s.promedioRecuperacion === null) {
+        showSendNotice("Completa la recuperación antes de enviar.", "bad");
+        return;
+      }
+
+      const payload = buildPayload();
+      document.getElementById("sendBtn").disabled = true;
+      showSendNotice("Enviando resumen a Google Sheets...", "warn");
+
+      const callbackName = "jsonpCallback_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+      const params = new URLSearchParams();
+      params.set("callback", callbackName);
+      Object.entries(payload).forEach(([k,v]) => {
+        params.set(k, typeof v === "object" ? JSON.stringify(v) : String(v));
+      });
+
+      let completed = false;
+      const script = document.createElement("script");
+
+      function complete(resp) {
+        if (completed) return;
+        completed = true;
+        try { delete window[callbackName]; } catch(e) { window[callbackName] = undefined; }
+        script.remove();
+        markSent(payload);
+      }
+
+      window[callbackName] = function(response) {
+        complete(response);
+      };
+
+      script.src = ENDPOINT + "?" + params.toString();
+      script.onload = () => setTimeout(() => complete({ ok:true, mode:"script-load" }), 600);
+      script.onerror = () => {
+        if (completed) return;
+        showSendNotice("No se pudo confirmar el envío. Revisa tu conexión e intenta nuevamente.", "bad");
+        document.getElementById("sendBtn").disabled = false;
+        try { delete window[callbackName]; } catch(e) { window[callbackName] = undefined; }
+        script.remove();
+      };
+
+      document.body.appendChild(script);
+    }
+
+    function markSent(payload) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        enviado: true,
+        fechaEnvio: new Date().toISOString(),
+        payload
+      }));
+      state.locked = true;
+      showSendNotice("Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.", "ok");
+      lockAll();
+      renderSummary(payload);
+      guardarResultadoEnDashboard(payload);
+    }
+
+    function restoreIfSent() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+      try {
+        const data = JSON.parse(saved);
+        if (data && data.enviado && data.payload) {
+          state.locked = true;
+          state.student = { nombre: data.payload.nombre, curso: data.payload.curso, paralelo: data.payload.paralelo };
+          state.summary = {
+            notaInicial: Number(data.payload.promedioInicial || 0),
+            recuperacionHabilitada: String(data.payload.recuperacionHabilitada) === "true",
+            promedioRecuperacion: data.payload.promedioRecuperacion === "No aplica" ? null : Number(data.payload.promedioRecuperacion || 0),
+            notaFinal: Number(data.payload.notaFinal || 0),
+            porcentajeFinal: Number(data.payload.porcentajeFinal || 0),
+            nivel: data.payload.nivel,
+            observacion: data.payload.observacion
+          };
+          showScreen("summaryScreen");
+          renderSummary(data.payload);
+          showSendNotice("Resumen enviado correctamente. Ya no puedes modificar ni reenviar la tarea.", "ok");
+          lockAll();
+        }
+      } catch(e) {
+        console.warn("No se pudo leer el estado guardado.", e);
+      }
+    }
+
+    function lockAll() {
+      document.querySelectorAll("button,input,textarea").forEach(el => el.disabled = true);
+    }
+
+    function showNotice(id, msg, type) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = "notice show " + type;
+      el.textContent = msg;
+    }
+
+    function showSendNotice(msg, type) {
+      const el = document.getElementById("sendNotice");
+      el.className = "notice show " + type;
+      el.textContent = msg;
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function typeset() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise().catch(() => {});
+      }
+    }
+
+    // === INTEGRACIÓN CON DASHBOARD (Unidad 4) ===
+    const MAIN_RESULT_KEY = "ueeh_unidad4_result_deber";
+
+    function guardarResultadoEnDashboard(datos) {
+      try {
+        localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify(datos));
+      } catch(e) { console.warn("No se pudo guardar resultado en dashboard:", e); }
+    }
+
+    // Auto-cargar datos del estudiante desde la app principal
+    (function autoCargarDatos() {
+      const appName = localStorage.getItem("ueeh_student_name"),
+        appCourse = localStorage.getItem("ueeh_student_grade"),
+        appParallel = localStorage.getItem("ueeh_student_parallel");
+      const nameInput = document.getElementById("studentName");
+      const courseInput = document.getElementById("studentCourse");
+      const parallelInput = document.getElementById("studentParallel");
+      if (appName && nameInput) nameInput.value = appName;
+      if (appCourse && courseInput) courseInput.value = appCourse;
+      if (appParallel && parallelInput) parallelInput.value = appParallel;
+    })();
+  </script>
+</body>
+</html>

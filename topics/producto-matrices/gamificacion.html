@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Matrix-Space: Simulador Fluido</title>
+    
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            var-celeste: #80FFDB;
+            var-turquesa: #48BFE3;
+            var-lila: #B5179E;
+            var-rosa: #F72585;
+            var-amarillo: #FFEA00;
+            var-bg-space: #0B090A;
+            var-bg-glass: rgba(22, 26, 29, 0.7);
+            var-texto: #F8F9FA;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+        body {
+            font-family: 'Comfortaa', cursive;
+            background: radial-gradient(circle at center, #161A1D, #0B090A);
+            color: #F8F9FA;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100dvh; overflow: hidden;
+        }
+
+        /* --- Glassmorphism Screens --- */
+        .screen {
+            display: none; width: 90%; max-width: 800px; height: 90dvh;
+            margin-top: 5vh; padding: 30px; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            background: rgba(22, 26, 29, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px;
+            box-shadow: 0 0 30px rgba(181, 23, 158, 0.2);
+        }
+
+        .screen.active { display: flex; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1, h2 { font-family: 'Orbitron', sans-serif; color: #80FFDB; text-shadow: 0 0 10px #80FFDB; margin-bottom: 20px; }
+        p { font-size: 1.1rem; line-height: 1.5; margin-bottom: 15px; }
+
+        .btn {
+            background: transparent; color: white; border: 2px solid #F72585;
+            border-radius: 50px; padding: 15px 30px; font-size: 1.2rem; font-weight: bold;
+            font-family: 'Orbitron', sans-serif; cursor: pointer; transition: 0.3s;
+            margin: 10px; box-shadow: 0 0 15px rgba(247, 37, 133, 0.4), inset 0 0 10px rgba(247, 37, 133, 0.2);
+            text-transform: uppercase;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-menta { border-color: #80FFDB; box-shadow: 0 0 15px rgba(128, 255, 219, 0.4), inset 0 0 10px rgba(128, 255, 219, 0.2); color: #80FFDB; }
+
+        .ui-top {
+            width: 100%; max-width: 600px; display: flex; justify-content: space-around;
+            padding: 15px; background: rgba(0, 0, 0, 0.5); border-radius: 20px; margin-bottom: 15px;
+            border: 1px solid #48BFE3; font-family: 'Orbitron', sans-serif; color: #48BFE3;
+            text-shadow: 0 0 5px #48BFE3; font-size: 1.2rem;
+        }
+
+        #game-container { position: relative; background: #000; border: 3px solid #B5179E; border-radius: 15px; box-shadow: 0 0 30px rgba(181, 23, 158, 0.4); touch-action: none; }
+        #game-canvas { display: block; border-radius: 10px; }
+
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
+        .ctrl-btn {
+            width: 65px; height: 65px; background: rgba(255,255,255,0.05);
+            border: 2px solid #80FFDB; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; color: #80FFDB; box-shadow: 0 0 15px rgba(128, 255, 219, 0.2);
+        }
+        .ctrl-btn:active { background: #80FFDB; color: #000; transform: scale(0.9); }
+
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none;
+            align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+        }
+        .modal-content {
+            background: rgba(22, 26, 29, 0.95); padding: 30px; border-radius: 25px;
+            max-width: 600px; width: 100%; max-height: 90dvh; overflow-y: auto;
+            border: 2px solid #48BFE3; box-shadow: 0 0 40px rgba(72, 191, 227, 0.4); text-align: left;
+        }
+        .matrix-display { background: white; color: black; padding: 15px; border-radius: 10px; overflow-x: auto; margin-bottom: 15px; }
+        .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; }
+        .option-btn { text-align: left; background: rgba(255,255,255,0.1); border: 1px solid #80FFDB; color: white; padding: 15px; border-radius: 10px; cursor: pointer; font-family: 'Comfortaa', cursive; }
+        .option-btn:active { background: #80FFDB; color: black; }
+
+        .feedback { margin-top: 15px; padding: 15px; border-radius: 10px; font-weight: bold; display: none; }
+        .correct { background: rgba(128, 255, 219, 0.2); border: 1px solid #80FFDB; color: #80FFDB; }
+        .incorrect { background: rgba(247, 37, 133, 0.2); border: 1px solid #F72585; color: #F72585; }
+
+        .envio-enviando { background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-top:12px; font-weight:600; text-align:center; width: 100%; max-width: 500px; box-sizing: border-box; }
+        .envio-ok       { background:#d1e7dd; color:#0f5132; padding:10px; border-radius:8px; margin-top:12px; font-weight:600; text-align:center; width: 100%; max-width: 500px; box-sizing: border-box; }
+        .envio-error    { background:#f8d7da; color:#842029; padding:10px; border-radius:8px; margin-top:12px; font-weight:600; text-align:center; width: 100%; max-width: 500px; box-sizing: border-box; }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #80FFDB;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 50px; padding: 15px 30px; font-size: 1.2rem; font-weight: bold;
+            font-family: 'Orbitron', sans-serif; cursor: pointer; transition: 0.3s;
+            margin: 10px; box-shadow: 0 0 15px rgba(128, 255, 219, 0.2);
+            text-transform: uppercase;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.18); }
+
+        @media (max-width: 500px) {
+            h1 { font-size: 1.5rem; }
+            .btn { font-size: 1rem; padding: 12px 20px; }
+            #game-container { width: 340px; height: 340px; }
+            .screen { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="screen-start" class="screen">
+        <h1><i class="fas fa-space-shuttle"></i> Matrix-Space</h1>
+        <p><strong>Nivel:</strong> Tercero de BGU | <strong>Tema:</strong> Producto M3x3</p>
+        <div style="background: rgba(181, 23, 158, 0.2); padding: 15px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #B5179E;">
+            <p>Alerta: Los enemigos ahora son letales y rápidos. Tienes <strong>10 VIDAS</strong> para completar los 4 niveles. Si las pierdes todas, deberás reiniciar desde cero.</p>
+        </div>
+        <button class="btn btn-menta" onclick="startGame()">INICIAR SIMULACIÓN</button>
+    </div>
+
+    <div id="screen-game" class="screen" style="background: transparent; border: none; box-shadow: none;">
+        <div class="ui-top">
+            <span>NIVEL: <b id="ui-level">1</b>/4</span>
+            <span>PTS: <b id="ui-score">0</b></span>
+            <span><i class="fas fa-heart" style="color: #F72585;"></i> <b id="ui-lives">10</b></span>
+        </div>
+        
+        <div id="game-container">
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <div></div><button class="ctrl-btn" onclick="move('up')"><i class="fas fa-chevron-up"></i></button><div></div>
+            <button class="ctrl-btn" onclick="move('left')"><i class="fas fa-chevron-left"></i></button>
+            <button class="ctrl-btn" onclick="move('down')"><i class="fas fa-chevron-down"></i></button>
+            <button class="ctrl-btn" onclick="move('right')"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+    <div id="modal-exercise" class="modal">
+        <div class="modal-content">
+            <h2 id="ex-title">Reto Matemático</h2>
+            <div id="ex-question"></div>
+            <div class="matrix-display" id="ex-matrix-area"></div>
+            <div class="options-grid" id="ex-options"></div>
+            <div id="ex-feedback" class="feedback"></div>
+            <div id="ex-solution" style="display:none; margin-top:15px; font-size: 0.9rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top:10px;"></div>
+            <button id="btn-next-level" class="btn btn-menta" style="display:none; width:100%; margin-top: 20px;" onclick="closeModal()">Siguiente Sector</button>
+        </div>
+    </div>
+
+    <div id="screen-end" class="screen">
+        <h2 id="end-title">Simulación Terminada</h2>
+        <div id="end-stats" style="font-size: 1.5rem; margin: 20px; font-family: 'Orbitron', sans-serif; color: #FFEA00;"></div>
+        <div id="end-evaluation" style="padding: 15px; border-radius: 15px; margin-bottom: 20px; font-weight: bold; border: 1px solid white;"></div>
+        <div id="estado-envio" style="display:none; margin: 12px 0; width: 100%; max-width: 500px;"></div>
+        <div id="submit-status" style="font-size:0.85rem; color:#80FFDB; margin-top: 8px; font-weight: 600; text-align:center;"></div>
+        <button class="btn btn-secondary" id="retry-submit-btn" onclick="reintentarEnvio()" style="display:none; margin: 10px auto 14px;">🔄 Reintentar envío</button>
+        <button id="btn-repeat" class="btn btn-menta" onclick="startGame()">REINICIAR DESDE CERO</button>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyAcZYZeZjo-_H2KXdpjNsxpjRY9Y3kU-Rv7VjCjKw3tELL5YAXqVbfuhI6fwdIGXii/exec";
+        const SHEET_NAME = "Gami_Uni_4";
+        const GAME_STATE_KEY = "ueeh_escape_producto_matrices_unidad4_estado_v1";
+        
+        let resultSubmitted = false;
+        let lastSummary = null;
+
+        function crearIdEnvio(nombre, tipoActividad) {
+            const limpio = String(nombre || "estudiante")
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^\w\s-]/g, "")
+                .replace(/\s+/g, "-")
+                .slice(0, 40);
+            return `${SHEET_NAME}-${tipoActividad}-${limpio}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        }
+
+        function getStudentData() {
+            return {
+                nombre: localStorage.getItem("ueeh_student_name") || "",
+                curso: localStorage.getItem("ueeh_student_grade") || "3ro BGU",
+                paralelo: localStorage.getItem("ueeh_student_parallel") || ""
+            };
+        }
+
+        function validarDatosEstudiante(nombre, curso, paralelo) {
+            const errores = [];
+            const nombreLimpio = (nombre || "").trim().toLowerCase();
+            if (!nombreLimpio || nombreLimpio === "pablo juca") errores.push("Debes ingresar tu nombre completo.");
+            if (!curso || curso.trim() === "") errores.push("Debes seleccionar tu curso.");
+            if (!paralelo || paralelo.trim() === "") errores.push("Debes seleccionar tu paralelo.");
+            return errores;
+        }
+
+        function enviarNota(datos, onSuccess, onError) {
+            const errores = validarDatosEstudiante(datos.nombre, datos.curso, datos.paralelo);
+            if (errores.length > 0) {
+                onError(errores.join(" "));
+                return;
+            }
+            const callbackName = "jsonp_cb_" + Date.now() + "_" + Math.floor(Math.random() * 9999);
+            const script = document.createElement("script");
+            const params = new URLSearchParams();
+            Object.keys(datos).forEach((k) => {
+                if (datos[k] !== undefined && datos[k] !== null) params.append(k, datos[k]);
+            });
+            params.append("callback", callbackName);
+            const timeout = setTimeout(function () {
+                cleanup();
+                onError("Tiempo de espera agotado (15s). Verifica tu conexión e intenta de nuevo.");
+            }, 15000);
+            window[callbackName] = function (response) {
+                cleanup();
+                if (response && response.ok === true) onSuccess(response);
+                else {
+                    const msg = response && response.error ? response.error : "El servidor no confirmó el registro.";
+                    onError(msg);
+                }
+            };
+            function cleanup() {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+            }
+            script.onerror = function () {
+                cleanup();
+                onError("No se pudo conectar con el servidor. Verifica tu internet.");
+            };
+            script.src = APPS_SCRIPT_URL + "?" + params.toString();
+            document.head.appendChild(script);
+        }
+
+        function mostrarEnviando() {
+            const el = document.getElementById("estado-envio");
+            if(el) {
+                el.innerHTML = "⏳ Enviando nota, por favor espera...";
+                el.className = "envio-enviando";
+                el.style.display = "block";
+            }
+            const retryBtn = document.getElementById("retry-submit-btn");
+            if (retryBtn) retryBtn.style.display = "none";
+        }
+
+        function mostrarExito(sheet, row) {
+            const el = document.getElementById("estado-envio");
+            if(el) {
+                el.innerHTML = "✓ Nota registrada correctamente.<br><small>Hoja: <strong>" + sheet + "</strong> | Fila: <strong>" + row + "</strong></small>";
+                el.className = "envio-ok";
+                el.style.display = "block";
+            }
+            const retryBtn = document.getElementById("retry-submit-btn");
+            if (retryBtn) retryBtn.style.display = "none";
+        }
+
+        function mostrarError(msg) {
+            const el = document.getElementById("estado-envio");
+            if(el) {
+                el.innerHTML = "✗ " + msg;
+                el.className = "envio-error";
+                el.style.display = "block";
+            }
+            const retryBtn = document.getElementById("retry-submit-btn");
+            if (retryBtn) retryBtn.style.display = "inline-block";
+        }
+
+        const PENDING_QUEUE_KEY = "ueeh_u4_gamificacion_pending_queue";
+        const SENT_KEY = "ueeh_u4_gamificacion_enviado";
+        const MAIN_RESULT_KEY = "ueeh_unidad4_result_gamificacion";
+
+        function mostrarMensajePendiente() {
+            const el = document.getElementById("estado-envio");
+            if(el) {
+                el.innerHTML = "⏳ No hay conexión a internet. Tu resultado quedó guardado en este dispositivo y se enviará automáticamente cuando vuelva la conexión.";
+                el.className = "envio-enviando";
+                el.style.display = "block";
+            }
+            const retryBtn = document.getElementById("retry-submit-btn");
+            if (retryBtn) retryBtn.style.display = "inline-block";
+        }
+
+        function checkPendingQueue() {
+            const pendingData = localStorage.getItem(PENDING_QUEUE_KEY);
+            if (!pendingData) return;
+            if (navigator.onLine === false) return;
+
+            const payload = JSON.parse(pendingData);
+            const statusEl = document.getElementById("submit-status");
+            if (statusEl) statusEl.textContent = "Conexión recuperada. Intentando enviar tu resultado pendiente...";
+            mostrarEnviando();
+
+            enviarNota(payload, function(response) {
+                resultSubmitted = true;
+                localStorage.setItem(SENT_KEY, "true");
+                localStorage.removeItem(PENDING_QUEUE_KEY);
+
+                const mainResultVal = localStorage.getItem(MAIN_RESULT_KEY);
+                if (mainResultVal) {
+                    const res = JSON.parse(mainResultVal);
+                    res.enviadoSheets = true;
+                    res.pendienteEnvio = false;
+                    res.hojaSheets = response.sheet;
+                    res.filaSheets = response.row;
+                    localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify(res));
+                }
+
+                if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_4, fila ${response.row}.`;
+                mostrarExito(response.sheet, response.row);
+            }, function(msg) {
+                if (statusEl) statusEl.textContent = "Error al intentar retransmitir: " + msg;
+                mostrarError(msg);
+            });
+        }
+
+        window.addEventListener('online', checkPendingQueue);
+
+        function mostrarPantallaFinalDesdeLocalStorage() {
+            const mainResultVal = localStorage.getItem(MAIN_RESULT_KEY);
+            if (!mainResultVal) {
+                showScreen('screen-start');
+                return;
+            }
+
+            const res = JSON.parse(mainResultVal);
+            const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+
+            document.getElementById('end-title').innerText = res.notaFinal >= 7 ? "SIMULACIÓN SUPERADA" : "SIMULACIÓN TERMINADA";
+            document.getElementById('end-stats').innerHTML = `Puntuación: ${res.notaFinal * 80}<br>Nota: ${res.notaFinal.toFixed(1)}/10`;
+
+            const evalDiv = document.getElementById('end-evaluation');
+            let color = res.notaFinal >= 9 ? "#80FFDB" : res.notaFinal >= 7 ? "#48BFE3" : "#FFEA00";
+            evalDiv.innerText = res.observacion;
+            evalDiv.style.borderColor = color;
+            evalDiv.style.color = color;
+
+            const replayBtn = document.getElementById('btn-repeat');
+            if (replayBtn) replayBtn.style.display = 'none';
+
+            showScreen('screen-end');
+
+            if (pending) {
+                mostrarMensajePendiente();
+            } else {
+                mostrarExito(res.hojaSheets || SHEET_NAME, res.filaSheets || "Registrado");
+            }
+        }
+
+        function submitResultToSheets(summary) {
+            if (resultSubmitted) return;
+
+            const statusEl = document.getElementById("submit-status");
+            if (statusEl) statusEl.textContent = "Enviando resultados al registro...";
+            mostrarEnviando();
+
+            const student = getStudentData();
+            if (!student.nombre || !student.curso || !student.paralelo) {
+                if (statusEl) statusEl.textContent = "Faltan datos del estudiante (nombre, curso y paralelo).";
+                mostrarError("Faltan datos del estudiante. Abre la actividad desde el Campus.");
+                return;
+            }
+
+            const payload = {
+                hoja: SHEET_NAME,
+                idEnvio: (summary && summary.idEnvio) || crearIdEnvio(student.nombre, "gamificacion"),
+                nombre: student.nombre,
+                curso: student.curso,
+                paralelo: student.paralelo,
+                tema: "Producto de matrices",
+                tipoActividad: "Gamificación - Matrix-Space",
+                numeroEjercicios: "4",
+                puntajeInicial: (summary ? summary.notaFinal : 0).toFixed(2),
+                promedioInicial: (summary ? summary.notaFinal : 0).toFixed(2),
+                recuperacionHabilitada: (summary ? summary.notaFinal : 0) < 7 ? "SI" : "NO",
+                promedioRecuperacion: "",
+                notaFinal: (summary ? summary.notaFinal : 0).toFixed(2),
+                porcentajeFinal: String(summary ? summary.porcentajeFinal : 0),
+                nivel: summary ? summary.nivel : "En proceso",
+                estado: summary ? summary.estado : "Completado",
+                fechaLimite: "",
+                observacion: summary ? summary.observacion : "",
+                userAgent: navigator.userAgent || "",
+                urlOrigen: location.href || "",
+                fechaCliente: new Date().toISOString()
+            };
+
+            const unit4GameSummary = {
+                tipoActividad: "Gamificacion",
+                tema: "Producto de matrices",
+                notaFinal: Number((summary ? summary.notaFinal : 0).toFixed(2)),
+                porcentajeFinal: summary ? summary.porcentajeFinal : 0,
+                nivel: summary ? summary.nivel : "En proceso",
+                estado: "Completado",
+                numeroEjercicios: 4,
+                intentos: 4,
+                erroresEjercicios: summary ? summary.erroresEjercicios : 0,
+                observacion: summary ? summary.observacion : "",
+                fecha: new Date().toISOString(),
+                idEnvio: payload.idEnvio
+            };
+
+            if (navigator.onLine === false) {
+                localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+                localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...unit4GameSummary, enviadoSheets: false, pendienteEnvio: true }));
+                mostrarMensajePendiente();
+                return;
+            }
+
+            enviarNota(payload, function(response){
+                resultSubmitted=true;
+                localStorage.setItem(SENT_KEY, "true");
+                localStorage.removeItem(PENDING_QUEUE_KEY);
+                localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...unit4GameSummary, enviadoSheets:true, pendienteEnvio:false, hojaSheets:response.sheet, filaSheets:response.row, idEnvio:payload.idEnvio }));
+                if (statusEl) statusEl.textContent = `Resultado enviado correctamente a Gami_Uni_4, fila ${response.row}.`;
+                mostrarExito(response.sheet, response.row);
+            }, function(msg){
+                resultSubmitted=false;
+                localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(payload));
+                localStorage.setItem(MAIN_RESULT_KEY, JSON.stringify({ ...unit4GameSummary, enviadoSheets:false, pendienteEnvio:true }));
+                if (statusEl) statusEl.textContent = "No se pudo enviar. Se guardó para enviar cuando vuelva la conexión.";
+                mostrarError(msg);
+            });
+        }
+
+        function reintentarEnvio() {
+            const pendingData = localStorage.getItem(PENDING_QUEUE_KEY);
+            if (pendingData) {
+                checkPendingQueue();
+            } else if (lastSummary) {
+                submitResultToSheets(lastSummary);
+            } else {
+                mostrarError("No se encontró ningún resultado pendiente para enviar. Por favor recarga.");
+            }
+        }
+
+        window.addEventListener('load', comprobarEstadoInicial);
+
+        function comprobarEstadoInicial() {
+            const pending = localStorage.getItem(PENDING_QUEUE_KEY);
+            const enviado = localStorage.getItem(SENT_KEY) === "true";
+            
+            if (pending || enviado) {
+                mostrarPantallaFinalDesdeLocalStorage();
+            } else {
+                showScreen('screen-start');
+            }
+        }
+
+        /* --- DATOS EDUCATIVOS --- */
+        const levelsData = [
+            {
+                title: "Cálculo Directo $A \\cdot B$",
+                question: "Dadas las matrices $A$ y $B$, calcula el elemento $c_{11}$ del producto $C = A \\cdot B$.",
+                matrices: "\\[ A = \\begin{pmatrix} 1 & 2 & 0 \\\\ 0 & 1 & 3 \\\\ 2 & -1 & 1 \\end{pmatrix}, \\quad B = \\begin{pmatrix} 2 & 0 & 1 \\\\ 1 & -1 & 0 \\\\ 3 & 2 & 0 \\end{pmatrix} \\]",
+                options: [{ text: "4", correct: true }, { text: "2", correct: false }, { text: "5", correct: false }, { text: "0", correct: false }],
+                hint: "Recuerda: $c_{11} = (fila_1 A) \\cdot (columna_1 B) = (1\\cdot2) + (2\\cdot1) + (0\\cdot3)$",
+                solution: "Paso 1: Multiplicar término a término: $1\\cdot2 + 2\\cdot1 + 0\\cdot3 = 2 + 2 + 0 = 4$."
+            },
+            {
+                title: "Propiedad Matriz Diagonal",
+                question: "Calcula $D \\cdot B$ donde $D$ es diagonal. ¿Qué efecto produce?",
+                matrices: "\\[ D = \\begin{pmatrix} 3 & 0 & 0 \\\\ 0 & -2 & 0 \\\\ 0 & 0 & 4 \\end{pmatrix}, \\quad B = \\begin{pmatrix} -1 & -1 & 2 \\\\ 3 & 0 & 1 \\\\ 2 & 5 & -2 \\end{pmatrix} \\]",
+                options: [{ text: "Escala las filas de B", correct: true }, { text: "Escala las columnas de B", correct: false }, { text: "No tiene ningún efecto", correct: false }],
+                hint: "Multiplicar por una diagonal a la izquierda multiplica cada fila $i$ por $d_{ii}$.",
+                solution: "Al realizar $D \\cdot B$, la primera fila se multiplica por 3, la segunda por -2 y la tercera por 4."
+            },
+            {
+                title: "Propiedad Conmutativa",
+                question: "En general, para el producto de matrices cuadradas $A$ y $B$:",
+                matrices: "\\[ A \\cdot B \\neq B \\cdot A \\]",
+                options: [{ text: "Verdadero, el producto no es conmutativo", correct: true }, { text: "Falso, siempre se puede cambiar el orden", correct: false }],
+                hint: "Piensa en el orden de las operaciones de fila por columna.",
+                solution: "El producto de matrices no cumple la propiedad conmutativa. El orden altera el producto."
+            },
+            {
+                title: "Errores Frecuentes",
+                question: "¿Cuál es un error común al multiplicar matrices?",
+                matrices: "",
+                options: [{ text: "Multiplicar elemento por elemento como en la suma", correct: true }, { text: "Sumar los resultados de los productos cruzados", correct: false }],
+                hint: "El producto no es distributivo de forma directa sobre los elementos individuales.",
+                solution: "Un error típico es creer que $(A \\cdot B)_{ij} = a_{ij} \\cdot b_{ij}$, lo cual es falso."
+            }
+        ];
+
+        /* --- CONFIGURACIÓN DEL CANVAS --- */
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const tileSize = 20;
+        const gridWidth = 19;
+        const gridHeight = 19;
+        canvas.width = gridWidth * tileSize;
+        canvas.height = gridHeight * tileSize;
+
+        /* --- VARIABLES GLOBALES --- */
+        let score = 0, currentLevel = 1, lives = 10;
+        let gameActive = false, lastTime = 0;
+        let dots = [], superDots = [];
+        
+        // Entidades con posición actual (x,y) y posición destino (tx,ty) para movimiento fluido
+        let pacman = { x: 1, y: 1, tx: 1, ty: 1, dir: 'right', nextDir: 'right' };
+        let ghosts = [
+            { x: 9, y: 9, tx: 9, ty: 9, color: '#F72585', dir: 'up' },
+            { x: 9, y: 8, tx: 9, ty: 8, color: '#48BFE3', dir: 'up' }
+        ];
+
+        const map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+            [1,2,1,1,0,1,1,0,1,0,1,1,0,1,1,0,1,2,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,0,1],
+            [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+            [1,1,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,1,1],
+            [1,1,1,1,0,1,0,0,0,0,0,0,0,1,0,1,1,1,1],
+            [1,1,1,1,0,1,0,1,1,0,1,1,0,1,0,1,1,1,1],
+            [0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0], /* Portal fila 9 */
+            [1,1,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,1],
+            [1,1,1,1,0,1,0,0,0,0,0,0,0,1,0,1,1,1,1],
+            [1,1,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+            [1,2,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,2,1],
+            [1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1],
+            [1,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1],
+            [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        function initLevel() {
+            dots = []; superDots = [];
+            for(let y=0; y<gridHeight; y++) {
+                for(let x=0; x<gridWidth; x++) {
+                    if(map[y][x] === 0) dots.push({x, y});
+                    if(map[y][x] === 2) superDots.push({x, y});
+                }
+            }
+            resetPositions();
+        }
+
+        function resetPositions() {
+            pacman = { x: 1, y: 1, tx: 1, ty: 1, dir: 'right', nextDir: 'right' };
+            ghosts[0] = { x: 9, y: 9, tx: 9, ty: 9, color: '#F72585', dir: 'up' };
+            ghosts[1] = { x: 9, y: 8, tx: 9, ty: 8, color: '#48BFE3', dir: 'up' };
+        }
+
+        /* --- MOTOR GRÁFICO (DIBUJO) --- */
+        function draw() {
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+
+            // Laberinto
+            ctx.strokeStyle = '#B5179E'; ctx.lineWidth = 2; ctx.shadowBlur = 10; ctx.shadowColor = '#B5179E';
+            for(let y=0; y<gridHeight; y++) {
+                for(let x=0; x<gridWidth; x++) {
+                    if(map[y][x] === 1) ctx.strokeRect(x*tileSize+2, y*tileSize+2, tileSize-4, tileSize-4);
+                }
+            }
+            ctx.shadowBlur = 0;
+
+            // Puntos
+            ctx.fillStyle = '#80FFDB';
+            dots.forEach(d => {
+                ctx.beginPath(); ctx.arc(d.x*tileSize + tileSize/2, d.y*tileSize + tileSize/2, 2, 0, Math.PI*2); ctx.fill();
+            });
+
+            // Retos Matemáticos
+            ctx.shadowBlur = 15; ctx.shadowColor = '#FFEA00'; ctx.fillStyle = '#FFEA00';
+            superDots.forEach(d => {
+                ctx.beginPath(); ctx.arc(d.x*tileSize + tileSize/2, d.y*tileSize + tileSize/2, 6, 0, Math.PI*2); ctx.fill();
+            });
+
+            // Pac-Man (Dibuja basado en sus coordenadas flotantes para fluidez)
+            ctx.fillStyle = '#FFEA00';
+            ctx.beginPath();
+            let sa = pacman.dir==='left'?1.2 : pacman.dir==='up'?1.7 : pacman.dir==='down'?0.7 : 0.2;
+            let ea = pacman.dir==='left'?0.8 : pacman.dir==='up'?1.3 : pacman.dir==='down'?0.3 : 1.8;
+            ctx.arc(pacman.x*tileSize + tileSize/2, pacman.y*tileSize + tileSize/2, 8, sa * Math.PI, ea * Math.PI);
+            ctx.lineTo(pacman.x*tileSize + tileSize/2, pacman.y*tileSize + tileSize/2);
+            ctx.fill();
+
+            // Fantasmas
+            ghosts.forEach(g => {
+                ctx.shadowColor = g.color; ctx.fillStyle = g.color;
+                let cx = g.x * tileSize, cy = g.y * tileSize;
+                ctx.beginPath();
+                ctx.arc(cx + tileSize/2, cy + tileSize/2, tileSize/2 - 2, Math.PI, 0);
+                ctx.lineTo(cx + tileSize - 2, cy + tileSize - 2); ctx.lineTo(cx + 15, cy + tileSize - 5);
+                ctx.lineTo(cx + 10, cy + tileSize - 2); ctx.lineTo(cx + 5, cy + tileSize - 5);
+                ctx.lineTo(cx + 2, cy + tileSize - 2); ctx.closePath(); ctx.fill();
+                
+                ctx.shadowBlur = 0; ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.arc(cx + 6, cy + 8, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(cx + 14, cy + 8, 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'blue';
+                ctx.beginPath(); ctx.arc(cx + 6, cy + 8, 1, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(cx + 14, cy + 8, 1, 0, Math.PI*2); ctx.fill();
+            });
+        }
+
+        /* --- LÓGICA DE MOVIMIENTO FLUIDO Y COLISIONES --- */
+        function isOpposite(dir1, dir2) {
+            return (dir1==='up'&&dir2==='down')||(dir1==='down'&&dir2==='up')||(dir1==='left'&&dir2==='right')||(dir1==='right'&&dir2==='left');
+        }
+
+        function moveEntity(ent, speed) {
+            if (ent.x !== ent.tx || ent.y !== ent.ty) {
+                let dx = ent.tx - ent.x; let dy = ent.ty - ent.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist <= speed) {
+                    ent.x = ent.tx; ent.y = ent.ty; // Llegó a la celda exacta
+                } else {
+                    ent.x += (dx / dist) * speed; ent.y += (dy / dist) * speed;
+                }
+            }
+        }
+
+        function update(timeScale) {
+            let baseSpeed = 0.12; // Velocidad base
+            let currentSpeed = baseSpeed * timeScale;
+
+            // Movimiento fluido de Pacman
+            moveEntity(pacman, currentSpeed);
+
+            // Si Pacman llegó al centro de su celda, calcula la siguiente celda
+            if (pacman.x === pacman.tx && pacman.y === pacman.ty) {
+                // Portal (Túnel)
+                if (pacman.tx === -1) { pacman.x = gridWidth - 1; pacman.tx = gridWidth - 1; }
+                else if (pacman.tx === gridWidth) { pacman.x = 0; pacman.tx = 0; }
+                else {
+                    let nx = pacman.tx, ny = pacman.ty;
+                    if(pacman.nextDir === 'up') ny--; if(pacman.nextDir === 'down') ny++;
+                    if(pacman.nextDir === 'left') nx--; if(pacman.nextDir === 'right') nx++;
+                    
+                    let checkX = (nx < 0) ? gridWidth - 1 : (nx >= gridWidth ? 0 : nx);
+                    
+                    if (map[ny] && map[ny][checkX] !== 1) {
+                        pacman.dir = pacman.nextDir; pacman.tx = nx; pacman.ty = ny;
+                    } else {
+                        // Intentar seguir recto
+                        nx = pacman.tx; ny = pacman.ty;
+                        if(pacman.dir === 'up') ny--; if(pacman.dir === 'down') ny++;
+                        if(pacman.dir === 'left') nx--; if(pacman.dir === 'right') nx++;
+                        checkX = (nx < 0) ? gridWidth - 1 : (nx >= gridWidth ? 0 : nx);
+                        if (map[ny] && map[ny][checkX] !== 1) { pacman.tx = nx; pacman.ty = ny; }
+                    }
+                }
+            }
+
+            // Comer Puntos (Basado en distancia real)
+            dots = dots.filter(d => {
+                if (Math.hypot(d.x - pacman.x, d.y - pacman.y) < 0.5) {
+                    score += 10; document.getElementById('ui-score').innerText = score; return false;
+                } return true;
+            });
+
+            // Comer Retos
+            superDots.forEach((d, index) => {
+                if (Math.hypot(d.x - pacman.x, d.y - pacman.y) < 0.5) {
+                    superDots.splice(index, 1); gameActive = false; openExercise();
+                }
+            });
+
+            // Movimiento e IA de Fantasmas
+            ghosts.forEach(g => {
+                moveEntity(g, currentSpeed * 0.45); // Fantasmas un 10% más lentos
+
+                if (g.x === g.tx && g.y === g.ty) {
+                    if (g.tx === -1) { g.x = gridWidth - 1; g.tx = gridWidth - 1; }
+                    else if (g.tx === gridWidth) { g.x = 0; g.tx = 0; }
+                    else {
+                        let dirs = [{d:'up', x:0, y:-1}, {d:'down', x:0, y:1}, {d:'left', x:-1, y:0}, {d:'right', x:1, y:0}];
+                        let possibleMoves = [];
+
+                        dirs.forEach(dir => {
+                            if (isOpposite(g.dir, dir.d)) return;
+                            let nx = g.tx + dir.x; let ny = g.ty + dir.y;
+                            let checkX = (nx < 0) ? gridWidth - 1 : (nx >= gridWidth ? 0 : nx);
+
+                            if(map[ny] && map[ny][checkX] !== 1) {
+                                // IA: Distancia hacia Pacman (tx/ty para predecir)
+                                let dist = Math.abs(nx - pacman.tx) + Math.abs(ny - pacman.ty);
+                                possibleMoves.push({dir: dir.d, x: nx, y: ny, dist: dist});
+                            }
+                        });
+
+                        if (possibleMoves.length === 0) {
+                            g.dir = isOpposite(g.dir, 'up') ? 'down' : (g.dir === 'down' ? 'up' : (g.dir === 'left' ? 'right' : 'left'));
+                            let revDir = dirs.find(d => d.d === g.dir);
+                            g.tx += revDir.x; g.ty += revDir.y;
+                        } else {
+                            possibleMoves.sort((a,b) => a.dist - b.dist);
+                            let chosen = (Math.random() < 0.8) ? possibleMoves[0] : possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                            g.tx = chosen.x; g.ty = chosen.y; g.dir = chosen.dir;
+                        }
+                    }
+                }
+
+                // NUEVO: Verificación de Muerte Precisa (Hitbox circular)
+                if (Math.hypot(g.x - pacman.x, g.y - pacman.y) < 0.8) {
+                    lives--; document.getElementById('ui-lives').innerText = lives;
+                    if(lives <= 0) {
+                        endGame(false); // Falso = Muerte
+                    } else {
+                        resetPositions();
+                    }
+                }
+            });
+        }
+
+        // Bucle de juego optimizado a 60 FPS
+        function gameLoop(timestamp) {
+            if (!gameActive) { lastTime = timestamp; requestAnimationFrame(gameLoop); return; }
+            
+            let deltaTime = timestamp - lastTime;
+            if (deltaTime > 100) deltaTime = 16.6; // Evitar saltos si se cambia de pestaña
+            
+            let timeScale = deltaTime / 16.66; // Normalizar a 60fps
+            update(timeScale);
+            draw();
+            
+            lastTime = timestamp;
+            requestAnimationFrame(gameLoop);
+        }
+
+        /* --- CONTROL INTERFAZ Y JUEGO --- */
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function startGame() {
+            score = 0; currentLevel = 1; lives = 10;
+            document.getElementById('ui-score').innerText = score;
+            document.getElementById('ui-level').innerText = currentLevel;
+            document.getElementById('ui-lives').innerText = lives;
+            initLevel();
+            showScreen('screen-game');
+            gameActive = true;
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function move(direction) { pacman.nextDir = direction; }
+        window.addEventListener('keydown', e => {
+            if(e.key === 'ArrowUp') move('up'); if(e.key === 'ArrowDown') move('down');
+            if(e.key === 'ArrowLeft') move('left'); if(e.key === 'ArrowRight') move('right');
+        });
+
+        /* --- EJERCICIOS MATEMÁTICOS --- */
+        function openExercise() {
+            const data = levelsData[currentLevel - 1];
+            document.getElementById('ex-title').innerText = `Matemáticas: Nivel ${currentLevel}`;
+            document.getElementById('ex-question').innerHTML = data.question;
+            document.getElementById('ex-matrix-area').innerHTML = data.matrices;
+            
+            const optionsArea = document.getElementById('ex-options');
+            optionsArea.innerHTML = '';
+            let opts = [...data.options].sort(() => Math.random() - 0.5);
+            
+            opts.forEach((opt) => {
+                const b = document.createElement('button');
+                b.className = 'option-btn'; b.innerHTML = opt.text;
+                b.onclick = () => checkAnswer(opt.correct, b);
+                optionsArea.appendChild(b);
+            });
+
+            document.getElementById('ex-feedback').style.display = 'none';
+            document.getElementById('ex-solution').style.display = 'none';
+            document.getElementById('btn-next-level').style.display = 'none';
+            document.getElementById('modal-exercise').style.display = 'flex';
+            if(window.MathJax) MathJax.typeset();
+        }
+
+        function checkAnswer(isCorrect, btnElement) {
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+            const feedback = document.getElementById('ex-feedback');
+            const data = levelsData[currentLevel - 1];
+            feedback.style.display = 'block';
+            
+            if(isCorrect) {
+                btnElement.style.backgroundColor = '#80FFDB'; btnElement.style.color = 'black';
+                feedback.className = 'feedback correct';
+                feedback.innerHTML = "<i class='fas fa-check-circle'></i> ¡Precisión Matemática!";
+                score += 200;
+            } else {
+                btnElement.style.backgroundColor = '#F72585';
+                feedback.className = 'feedback incorrect';
+                feedback.innerHTML = `<i class='fas fa-exclamation-triangle'></i> Error de cálculo. <br><br><b>Pista:</b> ${data.hint}`;
+                document.getElementById('ex-solution').innerHTML = `<b>Solución:</b><br>${data.solution}`;
+                document.getElementById('ex-solution').style.display = 'block';
+                if(window.MathJax) MathJax.typeset();
+            }
+            document.getElementById('ui-score').innerText = score;
+            document.getElementById('btn-next-level').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('modal-exercise').style.display = 'none';
+            if(currentLevel < 4) {
+                currentLevel++; document.getElementById('ui-level').innerText = currentLevel;
+                gameActive = true; lastTime = performance.now(); // Retomar tiempo
+            } else {
+                endGame(true); // Verdadero = Victoria
+            }
+        }
+
+        function endGame(won) {
+            gameActive = false;
+            showScreen('screen-end');
+            
+            const finalScore = (score / 800) * 10; 
+            const finalRoundedVal = Math.min(Math.max(finalScore, 0), 10);
+            const finalRounded = finalRoundedVal.toFixed(1);
+            
+            let evalMsg = ""; let color = ""; let title = "";
+            
+            if(!won || lives <= 0) {
+                title = "GAME OVER";
+                evalMsg = "Has perdido tus 10 vidas. Debes reiniciar la simulación desde cero y repasar la teoría de matrices.";
+                color = "#F72585"; // Rosa peligro
+            } else if(finalScore >= 9) {
+                title = "SIMULACIÓN SUPERADA";
+                evalMsg = "RANGO: ALMIRANTE (Experto). Dominas el producto de matrices.";
+                color = "#80FFDB"; // Celeste
+            } else if(finalScore >= 7) {
+                title = "SIMULACIÓN SUPERADA";
+                evalMsg = "RANGO: CAPITÁN (Logrado). Buen trabajo, pero la matriz puede optimizarse.";
+                color = "#48BFE3"; // Turquesa
+            } else {
+                title = "SIMULACIÓN TERMINADA";
+                evalMsg = "RANGO: CADETE (Necesita Refuerzo). Revisa el procedimiento paso a paso.";
+                color = "#FFEA00"; // Amarillo
+            }
+
+            document.getElementById('end-title').innerText = title;
+            document.getElementById('end-stats').innerHTML = won ? `Puntuación: ${score}<br>Nota: ${finalRounded}/10` : `Vidas Agotadas<br>Nivel Alcanzado: ${currentLevel}`;
+            
+            const evalDiv = document.getElementById('end-evaluation');
+            evalDiv.innerText = evalMsg; evalDiv.style.borderColor = color; evalDiv.style.color = color;
+
+            if (won) {
+                const summary = {
+                    notaFinal: finalRoundedVal,
+                    porcentajeFinal: Math.round(finalRoundedVal * 10),
+                    nivel: finalRoundedVal >= 9 ? "Excelente" : finalRoundedVal >= 8 ? "Logrado" : "En proceso",
+                    estado: finalRoundedVal >= 7 ? "Aprobado" : "Requiere refuerzo",
+                    erroresEjercicios: 10 - lives,
+                    observacion: `Juego Matrix-Space completado. Rango: ${finalRoundedVal >= 9 ? "ALMIRANTE" : finalRoundedVal >= 7 ? "CAPITÁN" : "CADETE"}. Nota: ${finalRounded}/10.`
+                };
+                lastSummary = summary;
+                submitResultToSheets(summary);
+            }
+        }
+    </script>
+</body>
+</html>
