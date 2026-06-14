@@ -73,6 +73,17 @@ export function limpiarDatosLocales() {
     "ueeh_unidad3_result_deber",
     "deber_matrices_unidad3_enviado_v1",
     "deber_matrices_unidad3_progreso_v1",
-    "ueeh_escape_matrices_unidad3_estado_v1"
+    "ueeh_escape_matrices_unidad3_estado_v1",
+    // Unidad 4
+    "ueeh_unidad4_presentation_viewed",
+    "ueeh_unidad4_result_gamificacion",
+    "ueeh_unidad4_result_deber",
+    "ueeh_unidad4_results_viewed",
+    "ueeh_deber_producto_matrices_unidad4_resultado_v1",
+    "ueeh_u4_deber_pending_queue",
+    "ueeh_u4_deber_enviado",
+    "ueeh_u4_gamificacion_pending_queue",
+    "ueeh_u4_gamificacion_enviado",
+    "ueeh_escape_producto_matrices_unidad4_estado_v1"
   ].forEach((key) => localStorage.removeItem(key));
 }
