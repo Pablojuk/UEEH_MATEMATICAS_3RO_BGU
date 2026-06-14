@@ -13,6 +13,8 @@ const HERO_IMAGE_URL = "https://images.unsplash.com/photo-1523240795612-9a054b0d
 let currentActivity = "";
 let currentGamificationUnit = 1;
 let currentHomeworkUnit = 1;
+let currentActiveUnit = null;
+let shouldOpenActiveUnitModal = false;
 
 function getStoredStudent() {
   const appStudent = obtenerDatosEstudiante();
@@ -607,6 +609,11 @@ function goToDashboard() {
   `);
 
   bindDashboardEvents();
+
+  if (shouldOpenActiveUnitModal && currentActiveUnit) {
+    openModal(`unit-${currentActiveUnit}`);
+    shouldOpenActiveUnitModal = false;
+  }
 }
 
 function openModal(id) {
@@ -619,6 +626,10 @@ function openModal(id) {
 
   if (id === "unit-1" || id === "unit-2" || id === "unit-3" || id === "unit-4") {
     document.body.classList.add("overflow-hidden");
+    const match = id.match(/unit-(\d+)/);
+    if (match) {
+      currentActiveUnit = parseInt(match[1], 10);
+    }
   }
 }
 
@@ -680,6 +691,8 @@ function startActivity() {
 
   showToast(`Datos asegurados. Iniciando ${currentActivity}...`);
 
+  shouldOpenActiveUnitModal = true;
+
   if (currentActivity === "Gamificación") {
     if (currentGamificationUnit === 4) {
       goToProductoMatricesGame();
@@ -738,6 +751,7 @@ function bindDashboardEvents() {
 
   bindClick("#btn-unit-2-slides", () => {
     closeModal("unit-2");
+    shouldOpenActiveUnitModal = true;
     showToast("Abriendo presentación de Derivadas...");
     goToDerivadasSlides();
   });
@@ -754,12 +768,14 @@ function bindDashboardEvents() {
 
   bindClick("#btn-unit-2-results", () => {
     closeModal("unit-2");
+    shouldOpenActiveUnitModal = true;
     showToast("Cargando panel de resultados de Unidad 2...");
     goToDerivadasResults();
   });
 
   bindClick("#btn-unit-3-slides", () => {
     closeModal("unit-3");
+    shouldOpenActiveUnitModal = true;
     showToast("Abriendo presentación de Matrices...");
     goToMatricesSlides();
   });
@@ -776,12 +792,14 @@ function bindDashboardEvents() {
 
   bindClick("#btn-unit-3-results", () => {
     closeModal("unit-3");
+    shouldOpenActiveUnitModal = true;
     showToast("Cargando panel de resultados de Unidad 3...");
     goToMatricesResults();
   });
 
   bindClick("#btn-unit-4-slides", () => {
     closeModal("unit-4");
+    shouldOpenActiveUnitModal = true;
     showToast("Abriendo presentación de Producto de Matrices...");
     goToProductoMatricesSlides();
   });
@@ -798,12 +816,14 @@ function bindDashboardEvents() {
 
   bindClick("#btn-unit-4-results", () => {
     closeModal("unit-4");
+    shouldOpenActiveUnitModal = true;
     showToast("Cargando panel de resultados de Unidad 4...");
     goToProductoMatricesResults();
   });
 
   bindClick("#btn-modal-slides", () => {
     closeModal("unit-1");
+    shouldOpenActiveUnitModal = true;
     showToast("Abriendo diapositivas...");
     goToSlides();
   });
@@ -820,6 +840,7 @@ function bindDashboardEvents() {
 
   bindClick("#btn-modal-results", () => {
     closeModal("unit-1");
+    shouldOpenActiveUnitModal = true;
     showToast("Cargando panel de resultados...");
     goToResults();
   });
