@@ -909,6 +909,13 @@ function setupFullscreenButton() {
       }
     });
   }
+
+  const btnBack = document.getElementById("btn-back-to-unit");
+  if (btnBack) {
+    btnBack.addEventListener("click", () => {
+      goToDashboard();
+    });
+  }
 }
 
 function renderMatricesUnitModal() {
