@@ -677,7 +677,7 @@
 
             // Movimiento e IA de Fantasmas
             ghosts.forEach(g => {
-                moveEntity(g, currentSpeed * 0.45); // Fantasmas un 10% más lentos
+                moveEntity(g, currentSpeed * 0.30); // Fantasmas un 10% más lentos
 
                 if (g.x === g.tx && g.y === g.ty) {
                     if (g.tx === -1) { g.x = gridWidth - 1; g.tx = gridWidth - 1; }
