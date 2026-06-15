@@ -522,6 +522,7 @@
 
         /* --- VARIABLES GLOBALES --- */
         let score = 0, currentLevel = 1, lives = 10, attemptsThisLevel = 1;
+        let exerciseGrades = [0, 0, 0, 0];
         let gameActive = false, lastTime = 0;
         let dots = [], superDots = [];
         
@@ -756,7 +757,8 @@
         }
 
         function startGame() {
-            score = 0; currentLevel = 1; lives = 10;
+            score = 0; currentLevel = 1; lives = 10; attemptsThisLevel = 1;
+            exerciseGrades = [0, 0, 0, 0];
             document.getElementById('ui-score').innerText = score;
             document.getElementById('ui-level').innerText = currentLevel;
             document.getElementById('ui-lives').innerText = lives;
@@ -812,10 +814,12 @@
                 
                 // Calculate points based on attempts: 1st=200(10), 2nd=180(9), 3rd=160(8), 4th+=140(7)
                 let points = 200;
-                if (attemptsThisLevel === 2) points = 180;
-                else if (attemptsThisLevel === 3) points = 160;
-                else if (attemptsThisLevel >= 4) points = 140;
+                let grade = 10;
+                if (attemptsThisLevel === 2) { points = 180; grade = 9; }
+                else if (attemptsThisLevel === 3) { points = 160; grade = 8; }
+                else if (attemptsThisLevel >= 4) { points = 140; grade = 7; }
                 
+                exerciseGrades[currentLevel - 1] = grade;
                 score += points;
                 document.getElementById('ui-score').innerText = score;
                 
@@ -846,7 +850,8 @@
             gameActive = false;
             showScreen('screen-end');
             
-            const finalScore = (score / 800) * 10; 
+            const sumGrades = exerciseGrades.reduce((a, b) => a + b, 0);
+            const finalScore = sumGrades / exerciseGrades.length; 
             const finalRoundedVal = Math.min(Math.max(finalScore, 0), 10);
             const finalRounded = finalRoundedVal.toFixed(1);
             
