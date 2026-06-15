@@ -70,8 +70,20 @@
             text-shadow: 0 0 5px #48BFE3; font-size: 1.2rem;
         }
 
-        #game-container { position: relative; background: #000; border: 3px solid #B5179E; border-radius: 15px; box-shadow: 0 0 30px rgba(181, 23, 158, 0.4); touch-action: none; }
-        #game-canvas { display: block; border-radius: 10px; }
+        #game-container {
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            touch-action: none;
+            width: 380px;
+            height: 380px;
+        }
+        #game-canvas {
+            display: block;
+            border-radius: 10px;
+            width: 100%;
+            height: 100%;
+        }
 
         .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
         .ctrl-btn {
@@ -509,7 +521,7 @@
         canvas.height = gridHeight * tileSize;
 
         /* --- VARIABLES GLOBALES --- */
-        let score = 0, currentLevel = 1, lives = 10;
+        let score = 0, currentLevel = 1, lives = 10, attemptsThisLevel = 1;
         let gameActive = false, lastTime = 0;
         let dots = [], superDots = [];
         
@@ -763,6 +775,7 @@
 
         /* --- EJERCICIOS MATEMÁTICOS --- */
         function openExercise() {
+            attemptsThisLevel = 1;
             const data = levelsData[currentLevel - 1];
             document.getElementById('ex-title').innerText = `Matemáticas: Nivel ${currentLevel}`;
             document.getElementById('ex-question').innerHTML = data.question;
@@ -787,26 +800,36 @@
         }
 
         function checkAnswer(isCorrect, btnElement) {
-            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
             const feedback = document.getElementById('ex-feedback');
             const data = levelsData[currentLevel - 1];
             feedback.style.display = 'block';
             
             if(isCorrect) {
+                document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
                 btnElement.style.backgroundColor = '#80FFDB'; btnElement.style.color = 'black';
                 feedback.className = 'feedback correct';
                 feedback.innerHTML = "<i class='fas fa-check-circle'></i> ¡Precisión Matemática!";
-                score += 200;
-            } else {
-                btnElement.style.backgroundColor = '#F72585';
-                feedback.className = 'feedback incorrect';
-                feedback.innerHTML = `<i class='fas fa-exclamation-triangle'></i> Error de cálculo. <br><br><b>Pista:</b> ${data.hint}`;
+                
+                // Calculate points based on attempts: 1st=200(10), 2nd=180(9), 3rd=160(8), 4th+=140(7)
+                let points = 200;
+                if (attemptsThisLevel === 2) points = 180;
+                else if (attemptsThisLevel === 3) points = 160;
+                else if (attemptsThisLevel >= 4) points = 140;
+                
+                score += points;
+                document.getElementById('ui-score').innerText = score;
+                
                 document.getElementById('ex-solution').innerHTML = `<b>Solución:</b><br>${data.solution}`;
                 document.getElementById('ex-solution').style.display = 'block';
+                document.getElementById('btn-next-level').style.display = 'block';
                 if(window.MathJax) MathJax.typeset();
+            } else {
+                btnElement.disabled = true;
+                btnElement.style.backgroundColor = '#F72585';
+                feedback.className = 'feedback incorrect';
+                feedback.innerHTML = `<i class='fas fa-exclamation-triangle'></i> Error de cálculo. Intenta de nuevo. <br><br><b>Pista:</b> ${data.hint}`;
+                attemptsThisLevel++;
             }
-            document.getElementById('ui-score').innerText = score;
-            document.getElementById('btn-next-level').style.display = 'block';
         }
 
         function closeModal() {
