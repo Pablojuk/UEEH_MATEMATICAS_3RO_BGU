@@ -1,0 +1,12 @@
+# Node dependencies
+node_modules/
+package-lock.json
+
+# Local scratch and logs
+scratch/
+*.log
+.env
+.env.*
+
+# Deno lock file
+deno.lock

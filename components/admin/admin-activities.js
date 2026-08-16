@@ -1,0 +1,566 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Admin Activities Component — UEEH Matemáticas 3ro BGU (Unidad 5+)
+// ═══════════════════════════════════════════════════════════════════════════
+
+import {
+  fetchActivitiesAdminList,
+  fetchActivityAdminDetail,
+  upsertActivity,
+  setActivityActive,
+  reopenActivity,
+  fetchAcademicYears,
+  fetchClassSections
+} from "../../core/admin-service.js";
+
+let currentActivities = [];
+let academicYears = [];
+let classSections = [];
+
+export async function renderAdminActivitiesView(container) {
+  container.innerHTML = `
+    <div class="space-y-6 animate-fade-in">
+      <!-- Header -->
+      <div class="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="heading-font text-2xl font-bold text-moodle-text-blue">Gestión de Actividades (Unidad 5+)</h2>
+          <p class="text-xs text-neutral-500 mt-0.5">Crea, administra y configura pautas privadas de actividades evaluables.</p>
+        </div>
+        <button id="btn-new-activity" class="px-5 py-3 rounded-2xl bg-moodle-blue hover:bg-moodle-blue/90 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2">
+          <span>➕</span> Nueva Actividad
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="bg-white p-4 rounded-3xl border border-neutral-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <div>
+          <label class="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Tipo</label>
+          <select id="filter-type" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none">
+            <option value="all">Todos los tipos</option>
+            <option value="gamification">🎮 Gamificación</option>
+            <option value="classwork">📝 Trabajo en clase</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Unidad</label>
+          <select id="filter-unit" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none">
+            <option value="all">Todas las unidades</option>
+            <option value="5">Unidad 5</option>
+            <option value="6">Unidad 6</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Estado</label>
+          <select id="filter-status" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none">
+            <option value="all">Todos los estados</option>
+            <option value="active">Solo activas</option>
+            <option value="inactive">Solo inactivas</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Buscar</label>
+          <input id="filter-search" type="text" placeholder="Clave o título..." class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none">
+        </div>
+      </div>
+
+      <!-- Tabla de Actividades -->
+      <div class="bg-white rounded-3xl border border-neutral-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-neutral-600">
+            <thead class="bg-neutral-50 border-b border-neutral-200/80 text-neutral-500 font-bold uppercase tracking-wider text-[10px]">
+              <tr>
+                <th class="p-4">Actividad</th>
+                <th class="p-4">Tipo</th>
+                <th class="p-4">Curso / Periodo</th>
+                <th class="p-4">Apertura / Cierre</th>
+                <th class="p-4">Estadísticas</th>
+                <th class="p-4">Estado</th>
+                <th class="p-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="activities-table-body" class="divide-y divide-neutral-100">
+              <tr>
+                <td colspan="7" class="p-8 text-center text-neutral-400">Cargando actividades...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Container para Modales -->
+    <div id="modal-container"></div>
+  `;
+
+  // Cargar datos de apoyo
+  try {
+    academicYears = await fetchAcademicYears();
+    classSections = await fetchClassSections();
+    await loadActivities();
+  } catch (err) {
+    console.error("Error inicializando actividades:", err);
+  }
+
+  // Event Listeners
+  document.getElementById("btn-new-activity")?.addEventListener("click", () => openActivityModal(null));
+  document.getElementById("filter-type")?.addEventListener("change", applyFilters);
+  document.getElementById("filter-unit")?.addEventListener("change", applyFilters);
+  document.getElementById("filter-status")?.addEventListener("change", applyFilters);
+  document.getElementById("filter-search")?.addEventListener("input", applyFilters);
+}
+
+async function loadActivities() {
+  const tbody = document.getElementById("activities-table-body");
+  try {
+    currentActivities = await fetchActivitiesAdminList();
+    applyFilters();
+  } catch (err) {
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-red-500 font-semibold">Error al cargar actividades: ${err.message}</td></tr>`;
+    }
+  }
+}
+
+function applyFilters() {
+  const typeVal = document.getElementById("filter-type")?.value || "all";
+  const unitVal = document.getElementById("filter-unit")?.value || "all";
+  const statusVal = document.getElementById("filter-status")?.value || "all";
+  const searchVal = (document.getElementById("filter-search")?.value || "").toLowerCase().trim();
+
+  let filtered = [...currentActivities];
+
+  if (typeVal !== "all") {
+    filtered = filtered.filter(a => a.activity_type === typeVal);
+  }
+  if (unitVal !== "all") {
+    filtered = filtered.filter(a => a.unit_number === parseInt(unitVal, 10));
+  }
+  if (statusVal !== "all") {
+    filtered = filtered.filter(a => statusVal === "active" ? a.is_active : !a.is_active);
+  }
+  if (searchVal) {
+    filtered = filtered.filter(a =>
+      a.activity_key.toLowerCase().includes(searchVal) ||
+      a.title.toLowerCase().includes(searchVal)
+    );
+  }
+
+  renderActivitiesTable(filtered);
+}
+
+function renderActivitiesTable(list) {
+  const tbody = document.getElementById("activities-table-body");
+  if (!tbody) return;
+
+  if (list.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-8 text-center text-neutral-400">
+          No hay actividades registradas para esta vista. Haz clic en "Nueva Actividad" para registrar la primera.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = list.map((a) => {
+    const typeBadge = a.activity_type === "gamification"
+      ? `<span class="px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px]">🎮 Gamificación</span>`
+      : `<span class="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px]">📝 Trabajo en clase</span>`;
+
+    const statusBadge = a.is_active
+      ? `<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">Activa</span>`
+      : `<span class="px-2.5 py-1 rounded-full bg-neutral-200 text-neutral-600 font-bold text-[10px]">Inactiva</span>`;
+
+    const opensStr = a.opens_at ? formatDateSpanish(a.opens_at) : "Inmediata";
+    const dueStr = a.due_at ? formatDateSpanish(a.due_at) : "Sin plazo de cierre";
+
+    return `
+      <tr class="hover:bg-neutral-50/80 transition-colors">
+        <td class="p-4">
+          <div class="font-bold text-neutral-800">${escapeHTML(a.title)}</div>
+          <div class="text-[10px] font-mono text-neutral-400 mt-0.5">${escapeHTML(a.activity_key)} | U${a.unit_number} (Ord: ${a.display_order})</div>
+        </td>
+        <td class="p-4">${typeBadge}</td>
+        <td class="p-4">
+          <div class="font-semibold text-neutral-700">${escapeHTML(a.section_name)}</div>
+          <div class="text-[10px] text-neutral-400">${escapeHTML(a.academic_term_name)}</div>
+        </td>
+        <td class="p-4 text-[11px]">
+          <div><span class="text-neutral-400">Abre:</span> ${opensStr}</div>
+          <div><span class="text-neutral-400">Cierra:</span> ${dueStr}</div>
+        </td>
+        <td class="p-4 text-[11px]">
+          <div class="font-semibold text-neutral-700">${a.completed_count} entregadas / ${a.not_submitted_count} vencidas</div>
+          <div class="text-[10px] text-neutral-400">${a.attempts_count} intentos totales</div>
+        </td>
+        <td class="p-4">${statusBadge}</td>
+        <td class="p-4 text-right space-x-2">
+          <button data-id="${a.id}" class="btn-edit-act px-2.5 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-[11px] transition-all">
+            ✏️ Editar
+          </button>
+          <button data-id="${a.id}" data-active="${a.is_active}" class="btn-toggle-act px-2.5 py-1.5 rounded-xl ${a.is_active ? "bg-amber-100 hover:bg-amber-200 text-amber-800" : "bg-emerald-100 hover:bg-emerald-200 text-emerald-800"} font-bold text-[11px] transition-all">
+            ${a.is_active ? "⏸️ Desactivar" : "▶️ Activar"}
+          </button>
+          <button data-id="${a.id}" class="btn-reopen-act px-2.5 py-1.5 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold text-[11px] transition-all">
+            🔄 Reabrir
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  // Event Listeners de acciones en filas
+  document.querySelectorAll(".btn-edit-act").forEach(b => {
+    b.addEventListener("click", () => openActivityModal(b.getAttribute("data-id")));
+  });
+
+  document.querySelectorAll(".btn-toggle-act").forEach(b => {
+    b.addEventListener("click", async () => {
+      const id = b.getAttribute("data-id");
+      const currentActive = b.getAttribute("data-active") === "true";
+      try {
+        await setActivityActive(id, !currentActive);
+        await loadActivities();
+      } catch (err) {
+        alert("Error al cambiar estado de la actividad: " + err.message);
+      }
+    });
+  });
+
+  document.querySelectorAll(".btn-reopen-act").forEach(b => {
+    b.addEventListener("click", () => openReopenModal(b.getAttribute("data-id")));
+  });
+}
+
+async function openActivityModal(activityId) {
+  const container = document.getElementById("modal-container");
+  let actDetail = null;
+
+  if (activityId) {
+    try {
+      actDetail = await fetchActivityAdminDetail(activityId);
+    } catch (err) {
+      return alert("Error al cargar detalle de actividad: " + err.message);
+    }
+  }
+
+  // Pre-seleccionar año activo, periodo 2 y primera sección
+  const activeYear = academicYears.find(y => y.is_active) || academicYears[0];
+  const defaultTerm = activeYear?.academic_terms?.find(t => t.term_number === 2) || activeYear?.academic_terms?.[0];
+  const defaultSection = classSections.find(s => s.academic_year_id === activeYear?.id) || classSections[0];
+
+  const answersObj = actDetail?.grading_config?.answers || { q1: "A" };
+  const answerEntries = Object.entries(answersObj);
+
+  container.innerHTML = `
+    <div class="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-neutral-200 overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="p-6 bg-neutral-50 border-b border-neutral-200 flex justify-between items-center">
+          <div>
+            <h3 class="heading-font text-lg font-bold text-moodle-text-blue">${actDetail ? "Editar Actividad" : "Nueva Actividad (Unidad 5+)"}</h3>
+            <p class="text-xs text-neutral-500 mt-0.5">Configura la metadata pública y la pauta de evaluación privada.</p>
+          </div>
+          <button id="btn-close-act-modal" class="text-neutral-400 hover:text-neutral-600 font-bold text-xl">✕</button>
+        </div>
+
+        <form id="form-act-modal" class="p-6 space-y-4 overflow-y-auto flex-1">
+          ${actDetail?.has_history ? `
+            <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 flex items-center gap-2">
+              <span>⚠️</span>
+              <span>Esta actividad posee entregas registradas. Los campos estructurales clave (clave, tipo, curso, unidad, notas) se encuentran bloqueados para proteger el historial académico.</span>
+            </div>
+          ` : ""}
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Clave Única (activity_key) *</label>
+              <input type="text" id="act-key" required placeholder="ej: u5-gam-01" ${actDetail?.has_history ? "disabled" : ""} value="${actDetail?.activity_key || ""}" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-mono focus:ring-2 focus:ring-moodle-blue outline-none disabled:bg-neutral-100">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Título de la Actividad *</label>
+              <input type="text" id="act-title" required placeholder="ej: Actividad 01: Gamificación de Derivadas" value="${actDetail?.title || ""}" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Tipo de Actividad *</label>
+              <select id="act-type" ${actDetail?.has_history ? "disabled" : ""} class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none disabled:bg-neutral-100">
+                <option value="gamification" ${actDetail?.activity_type === "gamification" ? "selected" : ""}>🎮 Gamificación</option>
+                <option value="classwork" ${actDetail?.activity_type === "classwork" ? "selected" : ""}>📝 Trabajo en clase</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Curso / Sección *</label>
+              <select id="act-section" ${actDetail?.has_history ? "disabled" : ""} class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none disabled:bg-neutral-100">
+                ${classSections.map(s => `
+                  <option value="${s.id}" ${actDetail?.class_section_id === s.id || (!actDetail && s.id === defaultSection?.id) ? "selected" : ""}>
+                    ${s.grade_number}.º ${s.education_level || "BGU"} ${s.parallel} (${s.academic_years?.name || "Año Activo"})
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Periodo Académico *</label>
+              <select id="act-term" ${actDetail?.has_history ? "disabled" : ""} class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none disabled:bg-neutral-100">
+                ${(activeYear?.academic_terms || []).map(t => `
+                  <option value="${t.id}" ${actDetail?.academic_term_id === t.id || (!actDetail && t.id === defaultTerm?.id) ? "selected" : ""}>
+                    ${t.term_number}.º Trimestre (${t.name})
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Unidad *</label>
+              <input type="number" id="act-unit" min="5" required ${actDetail?.has_history ? "disabled" : ""} value="${actDetail?.unit_number || 5}" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none disabled:bg-neutral-100">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Orden *</label>
+              <input type="number" id="act-order" min="1" required value="${actDetail?.display_order || 1}" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Nota Máxima *</label>
+              <input type="number" step="0.5" id="act-max-score" min="1" max="10" required ${actDetail?.has_history ? "disabled" : ""} value="${actDetail?.max_score || 10}" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none disabled:bg-neutral-100">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Nota Mínima *</label>
+              <input type="number" step="0.5" id="act-min-score" min="0.1" max="10" required ${actDetail?.has_history ? "disabled" : ""} value="${actDetail?.minimum_score || 1}" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none disabled:bg-neutral-100">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-neutral-700 mb-1">Ruta Relativa del Módulo (source_path)</label>
+            <input type="text" id="act-source-path" placeholder="ej: topics/introduccion-derivadas/gamificacion.html" value="${actDetail?.source_path || ""}" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-mono focus:ring-2 focus:ring-moodle-blue outline-none">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Fecha / Hora de Apertura (opens_at)</label>
+              <input type="datetime-local" id="act-opens-at" value="${formatDatetimeLocal(actDetail?.opens_at)}" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-neutral-700 mb-1">Fecha / Hora de Cierre (due_at)</label>
+              <input type="datetime-local" id="act-due-at" value="${formatDatetimeLocal(actDetail?.due_at)}" class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none">
+            </div>
+          </div>
+
+          <!-- Pauta de Respuestas Privada -->
+          <div class="p-4 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-3">
+            <div class="flex justify-between items-center">
+              <div>
+                <h4 class="font-bold text-xs text-purple-900 flex items-center gap-1.5">
+                  <span>🔒</span> Configuración Privada de Calificación (auto_mcq)
+                </h4>
+                <p class="text-[10px] text-purple-700 mt-0.5">La pauta de respuestas se evalúa únicamente en servidor y nunca se expone al estudiante.</p>
+              </div>
+              <button type="button" id="btn-add-answer-row" class="px-2.5 py-1 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-[10px] transition-all">
+                + Añadir Pregunta
+              </button>
+            </div>
+
+            <div id="answers-container" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+              ${answerEntries.map(([qId, ansVal]) => `
+                <div class="flex items-center gap-2 answer-row">
+                  <input type="text" placeholder="ID Pregunta (ej: q1)" value="${qId}" class="ans-qid w-1/2 px-2.5 py-1.5 rounded-lg border border-purple-200 text-xs font-mono">
+                  <input type="text" placeholder="Respuesta Correcta (ej: B)" value="${ansVal}" class="ans-val w-1/2 px-2.5 py-1.5 rounded-lg border border-purple-200 text-xs font-mono">
+                  <button type="button" class="btn-del-ans text-purple-400 hover:text-purple-700 font-bold px-1 text-sm">✕</button>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-neutral-200 flex justify-end gap-3">
+            <button type="button" id="btn-cancel-act-modal" class="px-5 py-2.5 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-xs hover:bg-neutral-100 transition-all">
+              Cancelar
+            </button>
+            <button type="submit" class="px-6 py-2.5 rounded-xl bg-moodle-blue hover:bg-moodle-blue/90 text-white font-bold text-xs shadow-md transition-all">
+              ${actDetail ? "Guardar Cambios" : "Crear Actividad"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  // Event Listeners del Modal Form
+  document.getElementById("btn-close-act-modal")?.addEventListener("click", closeModal);
+  document.getElementById("btn-cancel-act-modal")?.addEventListener("click", closeModal);
+
+  document.getElementById("btn-add-answer-row")?.addEventListener("click", () => {
+    const answersContainer = document.getElementById("answers-container");
+    if (!answersContainer) return;
+    const count = answersContainer.querySelectorAll(".answer-row").length + 1;
+    const div = document.createElement("div");
+    div.className = "flex items-center gap-2 answer-row";
+    div.innerHTML = `
+      <input type="text" placeholder="ID Pregunta (ej: q${count})" value="q${count}" class="ans-qid w-1/2 px-2.5 py-1.5 rounded-lg border border-purple-200 text-xs font-mono">
+      <input type="text" placeholder="Respuesta Correcta (ej: A)" value="A" class="ans-val w-1/2 px-2.5 py-1.5 rounded-lg border border-purple-200 text-xs font-mono">
+      <button type="button" class="btn-del-ans text-purple-400 hover:text-purple-700 font-bold px-1 text-sm">✕</button>
+    `;
+    answersContainer.appendChild(div);
+    div.querySelector(".btn-del-ans")?.addEventListener("click", () => div.remove());
+  });
+
+  document.querySelectorAll(".btn-del-ans").forEach(b => {
+    b.addEventListener("click", (e) => e.target.closest(".answer-row")?.remove());
+  });
+
+  document.getElementById("form-act-modal")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const key = document.getElementById("act-key").value.trim();
+    const title = document.getElementById("act-title").value.trim();
+    const type = document.getElementById("act-type").value;
+    const sectionId = document.getElementById("act-section").value;
+    const termId = document.getElementById("act-term").value;
+    const unit = parseInt(document.getElementById("act-unit").value, 10);
+    const order = parseInt(document.getElementById("act-order").value, 10);
+    const maxScore = parseFloat(document.getElementById("act-max-score").value);
+    const minScore = parseFloat(document.getElementById("act-min-score").value);
+    const sourcePath = document.getElementById("act-source-path").value.trim();
+    const opensAtVal = document.getElementById("act-opens-at").value;
+    const dueAtVal = document.getElementById("act-due-at").value;
+
+    // Recopilar pauta de respuestas
+    const answersObj = {};
+    document.querySelectorAll(".answer-row").forEach(row => {
+      const qid = row.querySelector(".ans-qid")?.value.trim();
+      const val = row.querySelector(".ans-val")?.value.trim();
+      if (qid && val) {
+        answersObj[qid] = val;
+      }
+    });
+
+    if (Object.keys(answersObj).length === 0) {
+      return alert("Se requiere configurar al menos 1 pregunta en la pauta de evaluación privada.");
+    }
+
+    const payload = {
+      id: actDetail?.id || null,
+      activity_key: key,
+      title: title,
+      activity_type: type,
+      class_section_id: sectionId,
+      academic_term_id: termId,
+      unit_number: unit,
+      display_order: order,
+      max_score: maxScore,
+      minimum_score: minScore,
+      source_path: sourcePath || null,
+      is_active: actDetail ? actDetail.is_active : true,
+      opens_at: opensAtVal ? new Date(opensAtVal).toISOString() : null,
+      due_at: dueAtVal ? new Date(dueAtVal).toISOString() : null,
+      grader_type: "auto_mcq",
+      grading_config: { answers: answersObj }
+    };
+
+    try {
+      await upsertActivity(payload);
+      closeModal();
+      await loadActivities();
+    } catch (err) {
+      alert("Error al guardar la actividad: " + err.message);
+    }
+  });
+}
+
+function openReopenModal(activityId) {
+  const container = document.getElementById("modal-container");
+  const act = currentActivities.find(a => a.id === activityId);
+  if (!act) return;
+
+  container.innerHTML = `
+    <div class="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-neutral-200 overflow-hidden">
+        <div class="p-6 bg-blue-50 border-b border-blue-100">
+          <h3 class="heading-font text-lg font-bold text-blue-900">Reabrir Plazo de Actividad</h3>
+          <p class="text-xs text-blue-700 mt-0.5">${escapeHTML(act.title)} (${escapeHTML(act.activity_key)})</p>
+        </div>
+
+        <form id="form-reopen-modal" class="p-6 space-y-4">
+          <div class="p-3 bg-blue-50/50 border border-blue-200/80 rounded-2xl text-xs text-blue-900">
+            <span>ℹ️</span>
+            <span>Los registros automáticos por no entrega de estudiantes que nunca realizaron la actividad serán retirados para permitirles entregar durante el nuevo plazo. Las entregas reales de estudiantes se conservarán intactas.</span>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-neutral-700 mb-1">Nueva Fecha / Hora de Cierre (due_at) *</label>
+            <input type="datetime-local" id="reopen-due-at" required class="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs focus:ring-2 focus:ring-moodle-blue outline-none">
+          </div>
+
+          <div class="pt-4 border-t border-neutral-200 flex justify-end gap-3">
+            <button type="button" id="btn-cancel-reopen" class="px-4 py-2 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-xs hover:bg-neutral-100 transition-all">
+              Cancelar
+            </button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs shadow-md transition-all">
+              Reabrir Plazo
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("btn-cancel-reopen")?.addEventListener("click", closeModal);
+  document.getElementById("form-reopen-modal")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const newDueVal = document.getElementById("reopen-due-at").value;
+    if (!newDueVal) return alert("Selecciona la nueva fecha de cierre.");
+
+    const newDueIso = new Date(newDueVal).toISOString();
+
+    try {
+      await reopenActivity(activityId, newDueIso);
+      closeModal();
+      await loadActivities();
+      alert("El plazo de la actividad ha sido reabierto con éxito.");
+    } catch (err) {
+      alert("Error al reabrir la actividad: " + err.message);
+    }
+  });
+}
+
+function closeModal() {
+  const container = document.getElementById("modal-container");
+  if (container) container.innerHTML = "";
+}
+
+function formatDateSpanish(isoStr) {
+  if (!isoStr) return "N/A";
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return "N/A";
+  return d.toLocaleDateString("es-EC", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function formatDatetimeLocal(isoStr) {
+  if (!isoStr) return "";
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function escapeHTML(str) {
+  if (!str) return "";
+  return str.replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
+}
