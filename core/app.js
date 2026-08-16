@@ -6,9 +6,19 @@ import { obtenerDatosEstudiante, guardarDatosEstudiante, limpiarDatosLocales } f
 import { crearGameShell, activarGameShell } from "../components/game-shell.js";
 import { crearResultPanel } from "../components/result-panel.js";
 import { crearFeedbackBox } from "../components/feedback-box.js";
+import { initAuthGate } from "../components/auth-gate.js";
+import { logout } from "./auth-service.js";
 
 const LOGO_URL = "./assets/img/logo-ueeh.png";
 const HERO_IMAGE_URL = "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80";
+
+let currentAuthUser = null;
+let currentAuthProfile = null;
+
+export function setAuthenticatedUser(user, profile) {
+  currentAuthUser = user;
+  currentAuthProfile = profile;
+}
 
 let currentActivity = "";
 let currentGamificationUnit = 1;
@@ -57,7 +67,19 @@ function mathSymbolsLayer() {
 
 function renderHeader() {
   const student = getStoredStudent();
-  const initials = initialsFromName(student.nombre);
+  const displayName = currentAuthProfile?.display_name || currentAuthUser?.user_metadata?.full_name || currentAuthUser?.email || student.nombre || "Estudiante";
+  const role = currentAuthProfile?.role || "student";
+  const initials = initialsFromName(displayName);
+
+  const roleBadgeHtml = role === "admin"
+    ? `<span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">Administrador</span>`
+    : `<span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Estudiante</span>`;
+
+  const adminBtnHtml = role === "admin"
+    ? `<button id="btn-header-admin" class="text-xs font-bold px-3.5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 active:bg-purple-900 text-white transition-colors duration-150 flex items-center gap-1.5 shadow-sm border border-purple-800" title="Panel de Administración">
+         <span>🛡️</span> <span class="hidden sm:inline">Administración</span>
+       </button>`
+    : "";
 
   return `
     <header class="w-full bg-white/80 backdrop-blur-xl border-b border-neutral-200 sticky top-0 z-40">
@@ -75,26 +97,30 @@ function renderHeader() {
           <img src="${LOGO_URL}" alt="Logo UEEH" class="h-12 w-auto object-contain">
         </div>
 
-        <div class="flex items-center gap-3 bg-neutral-100 border border-neutral-200 rounded-xl py-1.5 pl-3 pr-4">
-          <div class="relative">
-            <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-neutral-400 to-neutral-500 flex items-center justify-center font-bold text-white text-sm tracking-wider">
-              ${initials}
+        <div class="flex items-center gap-3">
+          ${adminBtnHtml}
+
+          <div class="flex items-center gap-3 bg-neutral-100/80 border border-neutral-200/80 rounded-2xl py-1.5 pl-3 pr-4">
+            <div class="relative">
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-moodle-orange to-amber-600 flex items-center justify-center font-bold text-white text-sm tracking-wider shadow-sm">
+                ${initials}
+              </div>
+              <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
             </div>
-            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
+
+            <div class="hidden sm:flex flex-col text-left">
+              <div class="flex items-center gap-1.5 mb-0.5">
+                ${roleBadgeHtml}
+              </div>
+              <span class="text-xs font-semibold text-moodle-text-blue leading-none">
+                ${displayName}
+              </span>
+            </div>
           </div>
 
-          <div class="hidden sm:flex flex-col text-left">
-            <span class="text-[10px] font-semibold text-moodle-text-gray leading-none mb-1 uppercase tracking-wide">
-              Estudiante
-            </span>
-            <span class="text-sm font-medium text-moodle-text-blue leading-none">
-              ${student.nombre}
-            </span>
-          </div>
-
-          <div class="text-xs font-bold px-2 py-1 rounded bg-neutral-200 text-moodle-text-blue ml-1">
-            Paralelo ${student.paralelo}
-          </div>
+          <button id="btn-header-logout" class="text-xs font-bold px-3 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 text-moodle-text-blue transition-colors duration-150 flex items-center gap-1.5 border border-neutral-200" title="Cerrar sesión">
+            <span>🚪</span> <span class="hidden sm:inline">Salir</span>
+          </button>
         </div>
       </div>
     </header>
@@ -587,6 +613,7 @@ function renderToast() {
 }
 
 function goToDashboard() {
+  sessionStorage.setItem("ueeh_active_view", "campus");
   renderView(`
     ${mathSymbolsLayer()}
 
@@ -734,6 +761,19 @@ function showToast(message) {
 }
 
 function bindDashboardEvents() {
+  bindClick("#btn-header-logout", () => logout());
+  bindClick("#btn-header-admin", () => {
+    if (currentAuthProfile?.role === "admin") {
+      sessionStorage.setItem("ueeh_active_view", "admin");
+      import("../components/admin/admin-shell.js").then((m) => {
+        window.onReturnToCampus = () => {
+          sessionStorage.setItem("ueeh_active_view", "campus");
+          goToDashboard();
+        };
+        m.renderAdminShell("dashboard");
+      });
+    }
+  });
   bindClick("#btn-open-unit-hero", () => openModal("unit-1"));
   bindClick("#btn-open-unit-card", () => openModal("unit-1"));
   bindClick("#btn-open-unit-derivatives", () => openModal("unit-2"));
@@ -1458,5 +1498,21 @@ export function iniciarApp() {
   if (shouldReset) {
     limpiarDatosLocales();
   }
-  goToDashboard();
+
+  initAuthGate((user, profile) => {
+    setAuthenticatedUser(user, profile);
+
+    const activeView = sessionStorage.getItem("ueeh_active_view");
+    if (activeView === "admin" && profile?.role === "admin") {
+      import("../components/admin/admin-shell.js").then((m) => {
+        window.onReturnToCampus = () => {
+          sessionStorage.setItem("ueeh_active_view", "campus");
+          goToDashboard();
+        };
+        m.renderAdminShell("dashboard");
+      });
+    } else {
+      goToDashboard();
+    }
+  });
 }

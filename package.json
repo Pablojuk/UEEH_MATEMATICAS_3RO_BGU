@@ -1,0 +1,29 @@
+{
+  "name": "ueeh_matematicas_3ro_bgu",
+  "version": "1.0.0",
+  "description": "Plataforma web educativa estática, modular y mobile-first para estudiantes de 3ro de BGU, pensada para publicarse en GitHub Pages.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pablojuk/UEEH_MATEMATICAS_3RO_BGU.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Pablojuk/UEEH_MATEMATICAS_3RO_BGU/issues"
+  },
+  "homepage": "https://github.com/Pablojuk/UEEH_MATEMATICAS_3RO_BGU#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "xlsx": "^0.18.5"
+  }
+}

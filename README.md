@@ -21,7 +21,34 @@ Construir una mini app educativa moderna que permita:
 
 ## Estado actual
 
-✅ **Fase 2 completada:** arquitectura base + sistema de slides interactivas con LaTeX renderizado por MathJax (aún sin juego/deber/recuperación reales).
+✅ **Unidad 5+ Arquitectura Académica Desplegada (Release Estable):**
+- **Supabase Cloud (`fetfzizgkrdmocnlkgco`)**: Fuente única y oficial de calificaciones.
+- **Autenticación**: Google Auth exclusivo con flujo de vinculación por código institucional (`UEEH-STU-XXXXXX`) y código de activación de un solo uso.
+- **Calificación Server-side**: Evaluación 100% en backend (Edge Function `submit-activity-result`) con pautas privadas en esquema `private`.
+- **Regla Académica Institucional**: Calificación oficial mínima de `1.00/10.00` para entregas procesadas o no entregas por vencimiento de plazo.
+- **Idempotencia y Reintentos**: Uso de `submission_id` UUID para evitar calificaciones duplicadas por pérdida de conexión a Internet.
+- **Exportación Excel Real (.xlsx)**: Generación binaria OpenXML PK-ZIP mediante vendor estático SheetJS (`assets/vendor/xlsx.full.min.js`), sin dependencias CDN externas.
+
+## Comandos de Pruebas Automatizadas
+
+```bash
+# Ejecutar verificación de contratos RPC y firmas PostgreSQL
+node tests/rpc-contract.test.mjs
+
+# Ejecutar verificación de acciones del panel de administración
+node tests/admin-contract.test.mjs
+
+# Ejecutar pruebas unitarias de activity-service y 5 estados de resumen
+node tests/activity-service.test.mjs
+
+# Ejecutar verificación de generación binaria de Excel OpenXML (.xlsx)
+node tests/xlsx-export.test.mjs
+
+# Ejecutar verificación de sintaxis TypeScript / Deno en Edge Functions
+npx -y deno check supabase/functions/claim-student-code/index.ts
+npx -y deno check supabase/functions/admin-api/index.ts
+npx -y deno check supabase/functions/submit-activity-result/index.ts
+```
 
 ## Estructura de carpetas
 
@@ -32,26 +59,34 @@ Construir una mini app educativa moderna que permita:
 ├── assets/
 │   ├── css/styles.css
 │   ├── js/main.js
-│   ├── img/.gitkeep
-│   └── audio/.gitkeep
+│   └── vendor/xlsx.full.min.js (SheetJS v0.18.5)
 ├── core/
-│   ├── app.js
-│   ├── navigation.js
-│   ├── storage.js
-│   ├── scoring.js
-│   └── sheets-api.js
+│   ├── activity-service.js
+│   ├── admin-service.js
+│   ├── auth-service.js
+│   ├── supabase-client.js
+│   └── supabase-config.js
 ├── components/
-│   ├── student-form.js
-│   ├── slide-viewer.js
-│   ├── game-shell.js
-│   ├── feedback-box.js
-│   └── result-panel.js
-├── topics/plantilla-tema/
-│   ├── config.js
-│   ├── content.js
-│   └── exercises.js
-└── docs/arquitectura.md
+│   ├── activity-summary.js
+│   ├── auth-gate.js
+│   └── admin/
+│       ├── admin-shell.js
+│       ├── admin-activities.js
+│       ├── admin-students.js
+│       ├── admin-student-detail.js
+│       ├── admin-enrollments.js
+│       ├── admin-academic-years.js
+│       └── admin-exports.js
+├── supabase/
+│   ├── functions/ (claim-student-code, admin-api, submit-activity-result)
+│   └── migrations/ (Unidad 5+ esquema, seguridad, plazos, administración)
+└── tests/
+    ├── rpc-contract.test.mjs
+    ├── admin-contract.test.mjs
+    ├── activity-service.test.mjs
+    └── xlsx-export.test.mjs
 ```
+
 
 ## Tecnologías usadas
 
