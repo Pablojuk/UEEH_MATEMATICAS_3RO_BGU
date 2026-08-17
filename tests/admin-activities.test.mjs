@@ -29,9 +29,8 @@ assert.ok(
 
 // 4. Verificar etiquetas amigables en los encabezados dinámicos
 assert.ok(
-  content.includes('if (act.activity_type === "gamification") shortTitle = "Gamificación";') &&
-  content.includes('else if (act.activity_type === "classwork") shortTitle = "Trabajo en Clase";'),
-  "❌ ERROR: admin-activities.js debe convertir gamification -> Gamificación y classwork -> Trabajo en Clase"
+  content.includes('Gamificación') && content.includes('Trabajo Inicial') && content.includes('Recuperación') && content.includes('Nota Final Trabajo'),
+  "❌ ERROR: admin-activities.js debe mostrar los encabezados Gamificación, Trabajo Inicial, Recuperación y Nota Final Trabajo"
 );
 
 // 5. Verificar modal de detalle

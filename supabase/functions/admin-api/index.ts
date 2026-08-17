@@ -776,8 +776,10 @@ serve(async (req) => {
         (s.enrollments || []).some((e: any) => e.status === "active")
       );
 
-      // 3. Consultar resultados oficiales (public.activity_results.best_score)
+      // 3. Consultar resultados oficiales y desgloses de intentos
       const resultsMap = new Map<string, any>();
+      const attemptsMap = new Map<string, any[]>();
+
       if (activityIds.length > 0) {
         const { data: results, error: resErr } = await serviceClient
           .from("activity_results")
@@ -786,6 +788,19 @@ serve(async (req) => {
         if (!resErr && results) {
           for (const r of results) {
             resultsMap.set(`${r.student_id}_${r.activity_id}`, r);
+          }
+        }
+
+        const { data: attempts, error: attErr } = await serviceClient
+          .from("activity_attempts")
+          .select("student_id, activity_id, score, submission_data, completed_at")
+          .in("activity_id", activityIds);
+
+        if (!attErr && attempts) {
+          for (const att of attempts) {
+            const key = `${att.student_id}_${att.activity_id}`;
+            if (!attemptsMap.has(key)) attemptsMap.set(key, []);
+            attemptsMap.get(key)!.push(att);
           }
         }
       }
@@ -805,12 +820,29 @@ serve(async (req) => {
 
         for (const act of actList) {
           const res = resultsMap.get(`${s.id}_${act.id}`);
+          const atts = attemptsMap.get(`${s.id}_${act.id}`) || [];
+
+          let initialScore: number | null = null;
+          let recoveryScore: number | null = null;
+
+          for (const att of atts) {
+            const p = att.submission_data?.phase;
+            if (p === "initial") {
+              initialScore = Number(att.submission_data?.raw_initial_score ?? att.score);
+            } else if (p === "recovery") {
+              recoveryScore = Number(att.submission_data?.recovery_score ?? att.submission_data?.recovery_average ?? att.score);
+            }
+          }
+
           if (res) {
             grades[act.activity_key] = {
               result_status: res.result_status,
               best_score: Number(res.best_score),
               attempt_count: res.attempt_count,
-              last_completed_at: res.last_completed_at
+              last_completed_at: res.last_completed_at,
+              initial_score: initialScore,
+              recovery_score: recoveryScore,
+              final_score: Number(res.best_score)
             };
           } else {
             grades[act.activity_key] = null;

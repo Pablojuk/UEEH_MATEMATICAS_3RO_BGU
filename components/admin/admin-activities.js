@@ -176,53 +176,63 @@ function filterAndRenderLocalGrades() {
     return;
   }
 
-  // Transformar encabezados dinámicamente según activity_type
-  const activityHeadersHtml = activities
-    .map((act) => {
-      let shortTitle = act.title;
-      if (act.activity_type === "gamification") shortTitle = "Gamificación";
-      else if (act.activity_type === "classwork") shortTitle = "Trabajo en Clase";
+  // Transformar encabezados dinámicamente según actividades devueltas
+  let activityHeadersHtml = "";
+  const hasClasswork = activities.some(a => a.activity_type === "classwork");
+  const hasGamification = activities.some(a => a.activity_type === "gamification");
 
-      return `
-        <th class="px-6 py-3.5 text-center whitespace-nowrap" title="${escapeHTML(act.title)}">
-          ${shortTitle}
-        </th>
-      `;
-    })
-    .join("");
+  if (hasGamification) {
+    activityHeadersHtml += `<th class="px-5 py-3.5 text-center whitespace-nowrap">Gamificación</th>`;
+  }
+  if (hasClasswork) {
+    activityHeadersHtml += `
+      <th class="px-5 py-3.5 text-center whitespace-nowrap">Trabajo Inicial</th>
+      <th class="px-5 py-3.5 text-center whitespace-nowrap">Recuperación</th>
+      <th class="px-5 py-3.5 text-center whitespace-nowrap">Nota Final Trabajo</th>
+    `;
+  }
 
   // Construir filas de estudiantes
   const rowsHtml = filteredStudents
     .map((st) => {
       let completedCount = 0;
       let notSubmittedCount = 0;
-      let pendingCount = 0;
 
-      const activityCellsHtml = activities
-        .map((act) => {
-          const gradeInfo = st.grades?.[act.activity_key];
+      let gamificationCell = `<td class="px-5 py-4 text-center font-bold text-neutral-400">—</td>`;
+      let classworkInitCell = `<td class="px-5 py-4 text-center font-bold text-neutral-400">—</td>`;
+      let classworkRecCell = `<td class="px-5 py-4 text-center font-bold text-neutral-400">—</td>`;
+      let classworkFinalCell = `<td class="px-5 py-4 text-center font-bold text-neutral-400">—</td>`;
 
-          if (!gradeInfo) {
-            pendingCount++;
-            return `<td class="px-6 py-4 text-center font-bold text-neutral-400">—</td>`;
-          }
+      for (const act of activities) {
+        const gradeInfo = st.grades?.[act.activity_key];
 
-          if (gradeInfo.result_status === "completed") {
+        if (act.activity_type === "gamification") {
+          if (gradeInfo?.result_status === "completed") {
             completedCount++;
-            const scoreNum = Number(gradeInfo.best_score || 0).toFixed(2);
-            return `<td class="px-6 py-4 text-center font-bold text-purple-950">${scoreNum} / 10</td>`;
+            gamificationCell = `<td class="px-5 py-4 text-center font-bold text-purple-950">${Number(gradeInfo.best_score).toFixed(2)} / 10</td>`;
+          } else if (gradeInfo?.result_status === "not_submitted") {
+            notSubmittedCount++;
+            gamificationCell = `<td class="px-5 py-4 text-center font-bold text-red-600">${Number(act.minimum_score || 1).toFixed(2)} / 10</td>`;
           }
+        } else if (act.activity_type === "classwork") {
+          if (gradeInfo?.result_status === "completed") {
+            completedCount++;
+            const initVal = gradeInfo.initial_score !== null ? Number(gradeInfo.initial_score).toFixed(2) : Number(gradeInfo.best_score).toFixed(2);
+            const recVal = gradeInfo.recovery_score !== null ? Number(gradeInfo.recovery_score).toFixed(2) : null;
+            const finalVal = Number(gradeInfo.best_score).toFixed(2);
 
-          if (gradeInfo.result_status === "not_submitted") {
+            classworkInitCell = `<td class="px-5 py-4 text-center font-bold text-neutral-800">${initVal} / 10</td>`;
+            classworkRecCell = `<td class="px-5 py-4 text-center font-bold ${recVal !== null ? 'text-blue-900' : 'text-neutral-400'}">${recVal !== null ? `${recVal} / 10` : '—'}</td>`;
+            classworkFinalCell = `<td class="px-5 py-4 text-center font-extrabold text-purple-950">${finalVal} / 10</td>`;
+          } else if (gradeInfo?.result_status === "not_submitted") {
             notSubmittedCount++;
             const minScoreNum = Number(act.minimum_score || 1.00).toFixed(2);
-            return `<td class="px-6 py-4 text-center font-bold text-red-600">${minScoreNum} / 10</td>`;
+            classworkInitCell = `<td class="px-5 py-4 text-center font-bold text-red-600">${minScoreNum} / 10</td>`;
+            classworkRecCell = `<td class="px-5 py-4 text-center font-bold text-neutral-400">—</td>`;
+            classworkFinalCell = `<td class="px-5 py-4 text-center font-bold text-red-600">${minScoreNum} / 10</td>`;
           }
-
-          pendingCount++;
-          return `<td class="px-6 py-4 text-center font-bold text-neutral-400">—</td>`;
-        })
-        .join("");
+        }
+      }
 
       // Estado General por Estudiante
       let overallStatusBadge = `<span class="px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-600 text-[10px] font-bold">🟡 Pendiente</span>`;
@@ -234,13 +244,17 @@ function filterAndRenderLocalGrades() {
         overallStatusBadge = `<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">🟡 Parcial</span>`;
       }
 
+      let cellsHtml = "";
+      if (hasGamification) cellsHtml += gamificationCell;
+      if (hasClasswork) cellsHtml += classworkInitCell + classworkRecCell + classworkFinalCell;
+
       return `
         <tr class="hover:bg-neutral-50/80 transition-colors border-b border-neutral-100 last:border-none text-xs">
-          <td class="px-6 py-4 font-bold text-neutral-800">${escapeHTML(st.official_full_name)}</td>
-          <td class="px-6 py-4 font-mono font-bold text-moodle-text-blue">${escapeHTML(st.student_code)}</td>
-          ${activityCellsHtml}
-          <td class="px-6 py-4 text-center">${overallStatusBadge}</td>
-          <td class="px-6 py-4 text-right">
+          <td class="px-5 py-4 font-bold text-neutral-800">${escapeHTML(st.official_full_name)}</td>
+          <td class="px-5 py-4 font-mono font-bold text-moodle-text-blue">${escapeHTML(st.student_code)}</td>
+          ${cellsHtml}
+          <td class="px-5 py-4 text-center">${overallStatusBadge}</td>
+          <td class="px-5 py-4 text-right">
             <button data-student-code="${escapeHTML(st.student_code)}" class="btn-detail-student-grades px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold transition-colors">
               Ver detalle →
             </button>
@@ -255,11 +269,11 @@ function filterAndRenderLocalGrades() {
       <table class="w-full text-left border-collapse">
         <thead>
           <tr class="bg-neutral-50 border-b border-neutral-200 text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
-            <th class="px-6 py-3.5">Estudiante</th>
-            <th class="px-6 py-3.5">Código</th>
+            <th class="px-5 py-3.5">Estudiante</th>
+            <th class="px-5 py-3.5">Código</th>
             ${activityHeadersHtml}
-            <th class="px-6 py-3.5 text-center">Estado</th>
-            <th class="px-6 py-3.5 text-right">Acciones</th>
+            <th class="px-5 py-3.5 text-center">Estado</th>
+            <th class="px-5 py-3.5 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -309,22 +323,23 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
       const gradeInfo = student.grades?.[act.activity_key];
 
       let statusBadge = `<span class="px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-600 text-[10px] font-bold">🟡 Pendiente</span>`;
-      let noteDisplay = "—";
-      let attemptsDisplay = "0";
-      let bestScoreDisplay = "—";
+      let initialNote = "—";
+      let recoveryNote = "—";
+      let finalNote = "—";
       let regDateDisplay = "—";
 
       if (gradeInfo) {
-        attemptsDisplay = String(gradeInfo.attempt_count || 1);
         if (gradeInfo.result_status === "completed") {
           statusBadge = `<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">✅ Enviado y registrado</span>`;
-          noteDisplay = `${Number(gradeInfo.best_score || 0).toFixed(2)} / 10`;
-          bestScoreDisplay = noteDisplay;
+          initialNote = gradeInfo.initial_score !== null ? `${Number(gradeInfo.initial_score).toFixed(2)} / 10` : `${Number(gradeInfo.best_score).toFixed(2)} / 10`;
+          recoveryNote = gradeInfo.recovery_score !== null ? `${Number(gradeInfo.recovery_score).toFixed(2)} / 10` : "—";
+          finalNote = `${Number(gradeInfo.best_score).toFixed(2)} / 10`;
           regDateDisplay = formatDate(gradeInfo.last_completed_at);
         } else if (gradeInfo.result_status === "not_submitted") {
           statusBadge = `<span class="px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold">🔴 No entregado — plazo vencido</span>`;
-          noteDisplay = `${Number(act.minimum_score || 1.00).toFixed(2)} / 10`;
-          bestScoreDisplay = noteDisplay;
+          initialNote = `${Number(act.minimum_score || 1.00).toFixed(2)} / 10`;
+          recoveryNote = "—";
+          finalNote = `${Number(act.minimum_score || 1.00).toFixed(2)} / 10`;
           regDateDisplay = "—";
         }
       }
@@ -335,9 +350,9 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
         <tr class="border-b border-neutral-100 text-xs">
           <td class="px-5 py-4 font-bold text-neutral-800">${escapeHTML(act.title)}</td>
           <td class="px-5 py-4">${statusBadge}</td>
-          <td class="px-5 py-4 font-bold text-purple-950">${noteDisplay}</td>
-          <td class="px-5 py-4 text-center font-bold text-neutral-700">${attemptsDisplay}</td>
-          <td class="px-5 py-4 font-bold text-emerald-800">${bestScoreDisplay}</td>
+          <td class="px-5 py-4 font-bold text-neutral-800">${initialNote}</td>
+          <td class="px-5 py-4 font-bold text-blue-900">${recoveryNote}</td>
+          <td class="px-5 py-4 font-extrabold text-purple-950">${finalNote}</td>
           <td class="px-5 py-4 text-neutral-500 font-mono text-[11px]">${regDateDisplay}</td>
           <td class="px-5 py-4 text-neutral-500 font-mono text-[11px]">${dueDateDisplay}</td>
         </tr>

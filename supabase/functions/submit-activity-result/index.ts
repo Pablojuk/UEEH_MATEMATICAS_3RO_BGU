@@ -258,8 +258,10 @@ serve(async (req: Request) => {
         );
       }
 
-      computedScore = 10.00;
-      submissionDetails.planets_completed = 6;
+      // Promedio oficial de las notas de los 6 ejercicios/planetas (10/9/8/7 según intento)
+      const totalGamificationScore = runSummaryData.reduce((acc: number, q: any) => acc + Number(q.terminal_score || 0), 0);
+      computedScore = totalGamificationScore / Number(runSummaryData.length || 6);
+      submissionDetails.planets_completed = runSummaryData.length;
 
     } else if (graderType === "determinants_classwork_v1") {
       if (currentPhase === "initial") {
@@ -275,8 +277,8 @@ serve(async (req: Request) => {
           return new Response(JSON.stringify({ error: "No se encontraron intentos para el Trabajo en Clase" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
         }
 
-        // Servidor exige exactamente 14 ejercicios terminales (is_correct=true O attempt_count>=3)
-        const terminalQuestions = runSummaryData.filter((q: any) => q.locked === true || q.is_correct === true || q.attempt_count >= 3);
+        // Servidor exige exactamente 14 ejercicios terminales (is_correct=true O locked=true O attempt_count>=4)
+        const terminalQuestions = runSummaryData.filter((q: any) => q.locked === true || q.is_correct === true || q.attempt_count >= 4);
         if (terminalQuestions.length < 14) {
           return new Response(
             JSON.stringify({ error: `Trabajo en Clase incompleto. Debes resolver los 14 ejercicios iniciales (Finalizados: ${terminalQuestions.length}/14).` }),
@@ -337,7 +339,7 @@ serve(async (req: Request) => {
           return new Response(JSON.stringify({ error: "No se encontraron intentos para la fase de recuperación" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
         }
 
-        const terminalRecovery = recSummaryData.filter((q: any) => q.locked === true || q.is_correct === true || q.attempt_count >= 3);
+        const terminalRecovery = recSummaryData.filter((q: any) => q.locked === true || q.is_correct === true || q.attempt_count >= 4);
         if (terminalRecovery.length < 8) {
           return new Response(
             JSON.stringify({ error: `Fase de recuperación incompleta. Debes completar los 8 ejercicios (Finalizados: ${terminalRecovery.length}/8).` }),
@@ -348,12 +350,14 @@ serve(async (req: Request) => {
         const totalRecScore = terminalRecovery.reduce((acc: number, q: any) => acc + Number(q.terminal_score || 0), 0);
         const recoveryAvg = totalRecScore / 8.0;
 
-        const finalRaw = (rawInitialScore + recoveryAvg) / 2.0;
+        // REGLA INMUTABLE: MAX(rawInitialScore, recoveryAvg)
+        const finalRaw = Math.max(rawInitialScore, recoveryAvg);
         computedScore = finalRaw;
 
         submissionDetails.phase = "recovery";
         submissionDetails.initial_run_id = initial_run_id;
         submissionDetails.raw_initial_score = rawInitialScore;
+        submissionDetails.recovery_score = recoveryAvg;
         submissionDetails.recovery_average = recoveryAvg;
         submissionDetails.final_raw_score = finalRaw;
 
