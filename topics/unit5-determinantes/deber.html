@@ -994,6 +994,8 @@
         const actModule = await import('../../core/activity-service.js');
         const res = await actModule.submitActivityResult({
           activityKey: "u5-determinantes-class-01",
+          runId: currentRunId,
+          phase: state.phase,
           submission: {
             run_id: currentRunId,
             phase: state.phase,
@@ -1004,7 +1006,10 @@
         const noticeBox = document.getElementById("summaryNotice");
         if (noticeBox && res && res.success && res.data) {
           noticeBox.className = "notice show ok";
-          noticeBox.innerHTML = `✅ <strong>Nota Registrada Oficialmente en Supabase:</strong> ${Number(res.data.score).toFixed(2)} / 10 (Intento #${res.data.attempt_number})`;
+          noticeBox.innerHTML = `✅ <strong>Nota registrada oficialmente:</strong> ${Number(res.data.score).toFixed(2)} / 10 — Intento #${res.data.attempt_number}`;
+        } else if (noticeBox && res && !res.success) {
+          noticeBox.className = "notice show warn";
+          noticeBox.innerHTML = `⚠️ ${res.error || "Error al registrar la nota"}`;
         }
       } catch (err) {
         console.warn("Fallo al registrar nota en Supabase:", err);

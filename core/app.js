@@ -832,13 +832,17 @@ function bindDashboardEvents() {
   });
 
   bindClick("#btn-unit-5-game", () => {
-    currentGamificationUnit = 5;
-    openDataModal("Gamificación");
+    closeModal("unit-5");
+    shouldOpenActiveUnitModal = true;
+    showToast("Cargando Odisea Espacial...");
+    goToDeterminantesGame();
   });
 
   bindClick("#btn-unit-5-homework", () => {
-    currentHomeworkUnit = 5;
-    openDataModal("Trabajo en Clase");
+    closeModal("unit-5");
+    shouldOpenActiveUnitModal = true;
+    showToast("Cargando Trabajo en Clase...");
+    goToDeterminantesHomework();
   });
 
   bindClick("#btn-unit-5-results", () => {

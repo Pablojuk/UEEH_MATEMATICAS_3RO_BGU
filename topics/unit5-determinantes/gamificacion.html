@@ -622,7 +622,8 @@
       <div class="lore-box" style="border-left-color: var(--pastel-yellow);">
         <p>🎉 ¡Felicitaciones Comandante! Has completado la ruta por los 6 planetas descifrando cada determinante.</p>
         <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0;">
-        <p>⭐ <strong>Puntos Obtenidos:</strong> <span id="final-points" style="color: var(--pastel-yellow); font-weight: 800;">60</span> / 60 pts</p>
+        <p style="font-size: 1.25rem;">📋 <strong>Calificación Oficial:</strong> <span id="final-official-grade" style="color: var(--pastel-mint); font-weight: 800;">Registrando...</span></p>
+        <p style="font-size: 0.85rem; opacity: 0.7;">⭐ Puntos del juego: <span id="final-points" style="color: var(--pastel-yellow); font-weight: 800;">60</span> / 60 pts</p>
         <p>🎖️ <strong>Nivel:</strong> <span style="color: var(--pastel-mint); font-weight: 700;">Capitán Maestro en Matrices</span></p>
       </div>
 
@@ -1168,31 +1169,53 @@
       document.getElementById('final-points').innerText = score;
       switchView('view-victory');
 
+      const gradeEl = document.getElementById('final-official-grade');
+
       // Enviar resultado final a Supabase server-side grading
       try {
         const actModule = await import('../../core/activity-service.js');
         const res = await actModule.submitActivityResult({
           activityKey: "u5-determinantes-gam-01",
+          runId: currentGameRunId,
+          phase: "gamification",
           submission: {
             run_id: currentGameRunId,
             completed_at: new Date().toISOString()
           }
         });
 
-        const loreBox = document.querySelector('#view-victory .lore-box');
-        if (loreBox && res && res.success && res.data) {
-          const statusDiv = document.createElement('div');
-          statusDiv.style.marginTop = '12px';
-          statusDiv.style.padding = '10px';
-          statusDiv.style.background = 'rgba(168, 230, 207, 0.15)';
-          statusDiv.style.border = '1px solid var(--pastel-mint)';
-          statusDiv.style.borderRadius = '10px';
-          statusDiv.style.color = 'var(--pastel-mint)';
-          statusDiv.style.fontSize = '0.85rem';
-          statusDiv.innerHTML = `✅ <strong>Nota Registrada Oficialmente en Supabase:</strong> ${Number(res.data.score).toFixed(2)} / 10 (Intento #${res.data.attempt_number})`;
-          loreBox.appendChild(statusDiv);
+        if (res && res.success && res.data) {
+          const officialScore = Number(res.data.score).toFixed(2);
+          if (gradeEl) {
+            gradeEl.innerText = `${officialScore} / 10`;
+            gradeEl.style.color = 'var(--pastel-mint)';
+          }
+
+          const loreBox = document.querySelector('#view-victory .lore-box');
+          if (loreBox) {
+            const statusDiv = document.createElement('div');
+            statusDiv.style.marginTop = '12px';
+            statusDiv.style.padding = '10px';
+            statusDiv.style.background = 'rgba(168, 230, 207, 0.15)';
+            statusDiv.style.border = '1px solid var(--pastel-mint)';
+            statusDiv.style.borderRadius = '10px';
+            statusDiv.style.color = 'var(--pastel-mint)';
+            statusDiv.style.fontSize = '0.85rem';
+            statusDiv.innerHTML = `✅ <strong>Nota registrada oficialmente</strong> — Intento #${res.data.attempt_number}`;
+            loreBox.appendChild(statusDiv);
+          }
+        } else {
+          if (gradeEl) {
+            gradeEl.innerText = '⚠️ Error al registrar';
+            gradeEl.style.color = 'var(--pastel-coral)';
+          }
+          console.warn("Resultado no exitoso:", res?.error);
         }
       } catch (err) {
+        if (gradeEl) {
+          gradeEl.innerText = '⚠️ Sin conexión';
+          gradeEl.style.color = 'var(--pastel-coral)';
+        }
         console.warn("Fallo al registrar resultado final en Supabase:", err);
       }
     }

@@ -43,14 +43,41 @@ serve(async (req: Request) => {
 
   try {
     const MAX_BYTES = 65536;
-    const bodyBuffer = await req.arrayBuffer();
-    if (bodyBuffer.byteLength > MAX_BYTES) {
+    const contentLength = Number(req.headers.get("content-length") || "0");
+    if (contentLength > MAX_BYTES) {
       return new Response(JSON.stringify({ error: "Payload demasiado grande" }), {
         status: 413,
         headers: { ...cors, "Content-Type": "application/json" }
       });
     }
 
+    const reader = req.body?.getReader();
+    if (!reader) {
+      return new Response(JSON.stringify({ error: "Body vacío" }), {
+        status: 400, headers: { ...cors, "Content-Type": "application/json" }
+      });
+    }
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_BYTES) {
+        reader.cancel();
+        return new Response(JSON.stringify({ error: "Payload demasiado grande" }), {
+          status: 413,
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+      chunks.push(value);
+    }
+    const bodyBuffer = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bodyBuffer.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
     const bodyText = new TextDecoder().decode(bodyBuffer);
     let payload: any;
     try {
@@ -63,7 +90,7 @@ serve(async (req: Request) => {
     }
 
     // Rechazar parámetros de calificación enviados desde el navegador (autoridad exclusiva de servidor)
-    const FORBIDDEN_FIELDS = ["student_id", "score", "officialScore", "attempt_number", "is_correct"];
+    const FORBIDDEN_FIELDS = ["student_id", "score", "rawScore", "officialScore", "minimum_score", "attempt_number", "best_score", "admin_user_id", "question_score", "correct_answer", "expected_answer", "is_correct"];
     for (const field of FORBIDDEN_FIELDS) {
       if (field in payload) {
         return new Response(
@@ -140,21 +167,13 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "No tienes permiso para entregar actividades de esta sección" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const now = new Date();
-    if (activity.opens_at && new Date(activity.opens_at) > now) {
-      return new Response(JSON.stringify({ error: "La actividad aún no se encuentra abierta" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
-    }
-    if (activity.due_at && new Date(activity.due_at) < now) {
-      return new Response(JSON.stringify({ error: "El plazo de entrega para esta actividad ha vencido" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
-    }
-
-    // Idempotencia por submission_id en activity_attempts
+    // Idempotencia: buscar intento existente ANTES de validar fechas (permite retry tras vencimiento)
     const { data: existingAttempt } = await serviceClient
       .from("activity_attempts")
-      .select("id, attempt_number, score, submission_data")
+      .select("id, attempt_number, score")
       .eq("activity_id", activity.id)
       .eq("student_id", student.id)
-      .contains("submission_data", { submission_id })
+      .eq("submission_id", submission_id)
       .maybeSingle();
 
     if (existingAttempt) {
@@ -169,15 +188,24 @@ serve(async (req: Request) => {
         JSON.stringify({
           success: true,
           idempotent: true,
-          activity_id: activity.id,
-          student_id: student.id,
+          activity_key,
           attempt_number: existingAttempt.attempt_number,
           score: existingAttempt.score,
+          max_score: Number(activity.max_score) || 10.00,
           best_score: bestRes?.best_score ?? existingAttempt.score,
-          attempt_count: bestRes?.attempt_count ?? existingAttempt.attempt_number
+          attempt_count: bestRes?.attempt_count ?? existingAttempt.attempt_number,
+          registered_at: new Date().toISOString()
         }),
         { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
       );
+    }
+
+    const now = new Date();
+    if (activity.opens_at && new Date(activity.opens_at) > now) {
+      return new Response(JSON.stringify({ error: "La actividad aún no se encuentra abierta" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    if (activity.due_at && new Date(activity.due_at) < now) {
+      return new Response(JSON.stringify({ error: "El plazo de entrega para esta actividad ha vencido" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     // Obtener la configuración privada de calificación mediante RPC
@@ -316,6 +344,7 @@ serve(async (req: Request) => {
     const { data: recordResult, error: recordError } = await serviceClient.rpc("record_activity_attempt", {
       p_activity_id: activity.id,
       p_student_id: student.id,
+      p_submission_id: submission_id,
       p_score: finalOfficialScore,
       p_submission_data: submissionDetails
     });
@@ -328,13 +357,13 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        activity_id: activity.id,
-        student_id: student.id,
+        activity_key,
         attempt_number: recordResult.attempt_number,
         score: finalOfficialScore,
         max_score: maxScore,
         best_score: recordResult.best_score,
-        attempt_count: recordResult.attempt_count
+        attempt_count: recordResult.attempt_count,
+        registered_at: new Date().toISOString()
       }),
       { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
     );
