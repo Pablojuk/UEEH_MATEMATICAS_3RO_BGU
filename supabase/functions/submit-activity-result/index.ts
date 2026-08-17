@@ -100,7 +100,7 @@ serve(async (req: Request) => {
       }
     }
 
-    const { activity_key, submission_id, run_id, phase } = payload;
+    const { activity_key, submission_id, run_id, phase, initial_run_id } = payload;
 
     if (!activity_key || typeof activity_key !== "string") {
       return new Response(JSON.stringify({ error: "activity_key requerido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
@@ -167,10 +167,10 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "No tienes permiso para entregar actividades de esta sección" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // Idempotencia: buscar intento existente ANTES de validar fechas (permite retry tras vencimiento)
+    // Idempotencia: buscar intento existente ANTES de validar disponibilidad/fechas (permite retry tras vencimiento/desactivación)
     const { data: existingAttempt } = await serviceClient
       .from("activity_attempts")
-      .select("id, attempt_number, score")
+      .select("id, attempt_number, score, completed_at")
       .eq("activity_id", activity.id)
       .eq("student_id", student.id)
       .eq("submission_id", submission_id)
@@ -194,10 +194,15 @@ serve(async (req: Request) => {
           max_score: Number(activity.max_score) || 10.00,
           best_score: bestRes?.best_score ?? existingAttempt.score,
           attempt_count: bestRes?.attempt_count ?? existingAttempt.attempt_number,
-          registered_at: new Date().toISOString()
+          registered_at: existingAttempt.completed_at || new Date().toISOString()
         }),
         { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
       );
+    }
+
+    // Para entregas NUEVAS: comprobar is_active y ventana de tiempo (opens_at / due_at)
+    if (!activity.is_active) {
+      return new Response(JSON.stringify({ error: "La actividad no se encuentra disponible." }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     const now = new Date();
@@ -217,8 +222,18 @@ serve(async (req: Request) => {
     }
 
     const graderType = gradingConfigData.grader_type;
+    const currentPhase = phase || (graderType === "determinants_gamification_v1" ? "gamification" : "initial");
+
+    // Validar concordancia de fase según grader_type
+    if (graderType === "determinants_gamification_v1" && currentPhase !== "gamification") {
+      return new Response(JSON.stringify({ error: "Fase no válida para este tipo de actividad" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    if (graderType === "determinants_classwork_v1" && !["initial", "recovery"].includes(currentPhase)) {
+      return new Response(JSON.stringify({ error: "Fase no válida para este tipo de actividad" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
     let computedScore = 0.0;
-    let submissionDetails: any = { submission_id, run_id, phase: phase || "initial" };
+    let submissionDetails: any = { submission_id, run_id, phase: currentPhase };
 
     if (graderType === "determinants_gamification_v1") {
       // Obtener intentos de preguntas del servidor para esta corrida y fase
@@ -247,8 +262,6 @@ serve(async (req: Request) => {
       submissionDetails.planets_completed = 6;
 
     } else if (graderType === "determinants_classwork_v1") {
-      const currentPhase = phase || "initial";
-
       if (currentPhase === "initial") {
         const { data: runSummaryData, error: summaryErr } = await serviceClient
           .rpc("get_activity_run_summary", {
@@ -280,16 +293,32 @@ serve(async (req: Request) => {
         submissionDetails.questions_count = 14;
 
       } else if (currentPhase === "recovery") {
-        // Verificar que el estudiante haya obtenido una nota inicial inferior a 7.00 en DB
-        const { data: pastAttempts } = await serviceClient
+        if (!initial_run_id || typeof initial_run_id !== "string" || !UUID_REGEX.test(initial_run_id)) {
+          return new Response(JSON.stringify({ error: "initial_run_id debe ser un UUID válido para la fase de recuperación" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+        }
+
+        // Consultar el intento initial específico correspondiente a initial_run_id
+        const { data: pastAttempts, error: pastErr } = await serviceClient
           .from("activity_attempts")
-          .select("score")
+          .select("submission_data")
           .eq("activity_id", activity.id)
           .eq("student_id", student.id)
           .order("completed_at", { ascending: false });
 
-        const previousScore = pastAttempts && pastAttempts.length > 0 ? Number(pastAttempts[0].score) : 10.0;
-        if (previousScore >= 7.00) {
+        const targetAttempt = (pastAttempts || []).find((att: any) =>
+          att.submission_data?.phase === "initial" && att.submission_data?.run_id === initial_run_id
+        );
+
+        if (!targetAttempt || targetAttempt.submission_data?.raw_initial_score === undefined || targetAttempt.submission_data?.raw_initial_score === null) {
+          return new Response(
+            JSON.stringify({ error: "No se encontró una entrega inicial registrada correspondiente a este initial_run_id" }),
+            { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+          );
+        }
+
+        const rawInitialScore = Number(targetAttempt.submission_data.raw_initial_score);
+
+        if (rawInitialScore >= 7.00) {
           return new Response(
             JSON.stringify({ error: "La fase de recuperación solo está disponible si la nota inicial es menor a 7.00" }),
             { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
@@ -319,18 +348,16 @@ serve(async (req: Request) => {
         const totalRecScore = terminalRecovery.reduce((acc: number, q: any) => acc + Number(q.terminal_score || 0), 0);
         const recoveryAvg = totalRecScore / 8.0;
 
-        const finalRaw = (previousScore + recoveryAvg) / 2.0;
+        const finalRaw = (rawInitialScore + recoveryAvg) / 2.0;
         computedScore = finalRaw;
 
         submissionDetails.phase = "recovery";
-        submissionDetails.initial_score = previousScore;
+        submissionDetails.initial_run_id = initial_run_id;
+        submissionDetails.raw_initial_score = rawInitialScore;
         submissionDetails.recovery_average = recoveryAvg;
         submissionDetails.final_raw_score = finalRaw;
 
-      } else {
-        return new Response(JSON.stringify({ error: `Fase '${currentPhase}' no válida` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       }
-
     } else {
       return new Response(JSON.stringify({ error: `Tipo de calificador '${graderType}' no reconocido` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }

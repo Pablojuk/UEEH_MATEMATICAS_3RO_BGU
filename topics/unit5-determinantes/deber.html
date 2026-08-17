@@ -955,7 +955,11 @@
       }
     }
 
+    let initialRunId = currentRunId;
+
     function startRecovery() {
+      initialRunId = currentRunId;
+      currentRunId = crypto.randomUUID();
       state.phase = "recovery";
       state.currentIndex = 0;
       showScreen("workScreen");
@@ -992,7 +996,7 @@
       // Transmitir entrega oficial a Supabase server-side grading
       try {
         const actModule = await import('../../core/activity-service.js');
-        const res = await actModule.submitActivityResult({
+        const submitPayload = {
           activityKey: "u5-determinantes-class-01",
           runId: currentRunId,
           phase: state.phase,
@@ -1001,7 +1005,14 @@
             phase: state.phase,
             completed_at: new Date().toISOString()
           }
-        });
+        };
+
+        if (state.phase === "recovery") {
+          submitPayload.initialRunId = initialRunId;
+          submitPayload.submission.initial_run_id = initialRunId;
+        }
+
+        const res = await actModule.submitActivityResult(submitPayload);
 
         const noticeBox = document.getElementById("summaryNotice");
         if (noticeBox && res && res.success && res.data) {

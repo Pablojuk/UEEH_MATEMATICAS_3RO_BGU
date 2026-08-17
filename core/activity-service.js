@@ -64,7 +64,7 @@ export function getPendingSubmission(activityKey) {
 /**
  * Envía una actividad a la Edge Function de Supabase con garantía de idempotencia (submission_id).
  */
-export async function submitActivityResult({ activityKey, submission, submissionId, runId, phase, isRetry = false }) {
+export async function submitActivityResult({ activityKey, submission, submissionId, runId, phase, initialRunId, isRetry = false }) {
   let subId = submissionId;
   const pending = getPendingSubmission(activityKey);
 
@@ -88,6 +88,7 @@ export async function submitActivityResult({ activityKey, submission, submission
 
     const payloadRunId = runId || submission?.run_id;
     const payloadPhase = phase || submission?.phase || "initial";
+    const payloadInitialRunId = initialRunId || submission?.initial_run_id;
 
     const res = await fetch(SUBMIT_FUNCTION_URL, {
       method: "POST",
@@ -100,6 +101,7 @@ export async function submitActivityResult({ activityKey, submission, submission
         submission_id: subId,
         run_id: payloadRunId,
         phase: payloadPhase,
+        initial_run_id: payloadInitialRunId,
         submission: submission
       })
     });

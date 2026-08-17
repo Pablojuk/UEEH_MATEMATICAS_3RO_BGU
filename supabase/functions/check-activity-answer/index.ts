@@ -43,16 +43,42 @@ serve(async (req: Request) => {
   }
 
   try {
-    // 2. Control de Payload Máximo (64 KB real)
     const MAX_BYTES = 65536;
-    const bodyBuffer = await req.arrayBuffer();
-    if (bodyBuffer.byteLength > MAX_BYTES) {
+    const contentLength = Number(req.headers.get("content-length") || "0");
+    if (contentLength > MAX_BYTES) {
       return new Response(JSON.stringify({ error: "Payload demasiado grande" }), {
         status: 413,
         headers: { ...cors, "Content-Type": "application/json" }
       });
     }
 
+    const reader = req.body?.getReader();
+    if (!reader) {
+      return new Response(JSON.stringify({ error: "Body vacío" }), {
+        status: 400, headers: { ...cors, "Content-Type": "application/json" }
+      });
+    }
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_BYTES) {
+        reader.cancel();
+        return new Response(JSON.stringify({ error: "Payload demasiado grande" }), {
+          status: 413,
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+      chunks.push(value);
+    }
+    const bodyBuffer = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bodyBuffer.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
     const bodyText = new TextDecoder().decode(bodyBuffer);
     let payload: any;
     try {
@@ -163,7 +189,12 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Actividad no encontrada" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // Hallazgo Crítico 4: Validar pertenencia de sección
+    // Validar disponibilidad activa
+    if (!activity.is_active) {
+      return new Response(JSON.stringify({ error: "La actividad no se encuentra disponible." }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    // Validar pertenencia de sección
     if (activity.class_section_id !== enrollment.class_section_id) {
       return new Response(JSON.stringify({ error: "No tienes permiso para responder en esta sección académica" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }

@@ -739,6 +739,101 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, data: rpcRes }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // --- ACCIÓN: STUDENT GRADES MATRIX (Notas por Estudiante) ---
+    if (action === "student_grades_matrix" || action === "admin_student_grades_matrix") {
+      const unitNumber = Number(payload?.unit_number || 5);
+
+      // 1. Consultar actividades activas de la unidad indicada
+      const { data: activities, error: actErr } = await serviceClient
+        .from("activities")
+        .select("id, activity_key, title, activity_type, max_score, minimum_score, due_at, display_order, created_at")
+        .eq("unit_number", unitNumber)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (actErr) throw new Error("ADMIN_FETCH_ACTIVITIES_FAILED");
+
+      const actList = activities || [];
+      const activityIds = actList.map(a => a.id);
+
+      // 2. Consultar todos los estudiantes activos
+      const { data: students, error: stErr } = await serviceClient
+        .from("students")
+        .select(`
+          id,
+          student_code,
+          official_full_name,
+          enrollments ( status )
+        `)
+        .eq("status", "active")
+        .order("official_full_name", { ascending: true });
+
+      if (stErr) throw new Error("ADMIN_FETCH_STUDENTS_FAILED");
+
+      // Estudiantes con al menos una matrícula activa
+      const activeStudents = (students || []).filter((s: any) =>
+        (s.enrollments || []).some((e: any) => e.status === "active")
+      );
+
+      // 3. Consultar resultados oficiales (public.activity_results.best_score)
+      const resultsMap = new Map<string, any>();
+      if (activityIds.length > 0) {
+        const { data: results, error: resErr } = await serviceClient
+          .from("activity_results")
+          .select("student_id, activity_id, best_score, attempt_count, result_status, result_source, last_completed_at");
+
+        if (!resErr && results) {
+          for (const r of results) {
+            resultsMap.set(`${r.student_id}_${r.activity_id}`, r);
+          }
+        }
+      }
+
+      // 4. Construir matriz sanitizada (NUNCA exponer UUIDs ni datos sensibles)
+      const sanitizedActivities = actList.map(a => ({
+        activity_key: a.activity_key,
+        title: a.title,
+        activity_type: a.activity_type,
+        max_score: Number(a.max_score),
+        minimum_score: Number(a.minimum_score),
+        due_at: a.due_at
+      }));
+
+      const sanitizedStudents = activeStudents.map((s: any) => {
+        const grades: Record<string, any> = {};
+
+        for (const act of actList) {
+          const res = resultsMap.get(`${s.id}_${act.id}`);
+          if (res) {
+            grades[act.activity_key] = {
+              result_status: res.result_status,
+              best_score: Number(res.best_score),
+              attempt_count: res.attempt_count,
+              last_completed_at: res.last_completed_at
+            };
+          } else {
+            grades[act.activity_key] = null;
+          }
+        }
+
+        return {
+          student_code: s.student_code,
+          official_full_name: s.official_full_name,
+          grades
+        };
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: {
+          unit_number: unitNumber,
+          activities: sanitizedActivities,
+          students: sanitizedStudents
+        }
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // --- ACCIONES DE LECTURA ---
     if (action === "fetch_enrollments" || action === "enrollments_admin_list") {
       const { data: enrollments, error: enErr } = await serviceClient

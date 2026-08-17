@@ -230,3 +230,12 @@ export async function fetchGradebookData() {
     throw err;
   }
 }
+
+export async function fetchStudentGradesMatrix(unitNumber = 5) {
+  try {
+    return await invokeAdminApi("student_grades_matrix", { unit_number: unitNumber });
+  } catch (err) {
+    console.error("Error al obtener matriz de notas por estudiante:", err);
+    throw err;
+  }
+}
