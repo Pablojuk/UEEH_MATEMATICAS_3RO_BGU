@@ -26,7 +26,7 @@ Construir una mini app educativa moderna que permita:
 - **Autenticación**: Google Auth exclusivo con flujo de vinculación por código institucional (`UEEH-STU-XXXXXX`) y código de activación de un solo uso.
 - **Calificación Server-side**: Evaluación 100% en backend (Edge Function `submit-activity-result`) con pautas privadas en esquema `private`.
 - **Regla Académica Institucional**: Calificación oficial mínima de `1.00/10.00` para entregas procesadas o no entregas por vencimiento de plazo.
-- **Idempotencia y Reintentos**: Uso de `submission_id` UUID para evitar calificaciones duplicadas por pérdida de conexión a Internet.
+- **Seguridad de Evaluaciones**: Las configuraciones y pautas privadas de evaluación se provisionan de forma segura fuera del repositorio público en el esquema privado del servidor de base de datos (`private.activity_grading_configs`).
 - **Exportación Excel Real (.xlsx)**: Generación binaria OpenXML PK-ZIP mediante vendor estático SheetJS (`assets/vendor/xlsx.full.min.js`), sin dependencias CDN externas.
 
 ## Comandos de Pruebas Automatizadas
