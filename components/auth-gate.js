@@ -5,6 +5,7 @@
 import { renderView, bindClick } from "../core/navigation.js";
 import { loginWithGoogle, logout, getCurrentSession, getUserProfile, onAuthStateChange } from "../core/auth-service.js";
 import { claimStudentCode } from "../core/admin-service.js";
+import { supabase } from "../core/supabase-client.js";
 
 const LOGO_URL = "./assets/img/logo-ueeh.png";
 let globalOnAuthorizedCallback = null;
@@ -300,6 +301,52 @@ export function renderAuthInactiveView(user) {
 }
 
 /**
+ * Renderiza la pantalla de recuperación cuando ocurre un error al verificar la sesión.
+ */
+export function renderAuthErrorView(onRetry) {
+  renderView(`
+    <div class="min-h-screen bg-moodle-bg-light flex flex-col items-center justify-center p-4">
+      <div class="bg-white rounded-3xl border border-neutral-200 shadow-xl p-8 max-w-md w-full text-center space-y-6">
+        <div class="flex justify-center mb-2">
+          <img src="${LOGO_URL}" alt="Logo UEEH" class="h-16 w-auto object-contain" />
+        </div>
+        <div class="space-y-2">
+          <h2 class="heading-font text-xl font-bold text-red-600">
+            No pudimos verificar tu sesión
+          </h2>
+          <p class="text-xs text-moodle-text-gray">
+            Ocurrió un inconveniente al comprobar las credenciales de acceso.
+          </p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <button id="btn-auth-retry" class="px-5 py-2.5 bg-moodle-text-blue text-white rounded-xl font-bold text-xs hover:bg-moodle-dark-blue transition-colors">
+            Intentar nuevamente
+          </button>
+          <button id="btn-auth-home" class="px-5 py-2.5 bg-neutral-100 text-neutral-700 rounded-xl font-bold text-xs hover:bg-neutral-200 transition-colors">
+            Volver al inicio
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  bindClick("#btn-auth-retry", () => {
+    if (typeof onRetry === "function") {
+      onRetry();
+    } else {
+      window.location.reload();
+    }
+  });
+
+  bindClick("#btn-auth-home", () => {
+    sessionStorage.clear();
+    renderAuthLoginView();
+  });
+}
+
+let activeAuthStateListener = null;
+
+/**
  * Inicializa la puerta de autenticación centralizada y escucha cambios de sesión.
  */
 export async function initAuthGate(onAuthorized) {
@@ -307,68 +354,108 @@ export async function initAuthGate(onAuthorized) {
   renderAuthLoadingView();
 
   let currentHandledUserId = null;
+  let isResolved = false;
 
   const handleStateChange = async (session, forceRefresh = false) => {
-    if (!session) {
-      currentHandledUserId = null;
-      renderAuthLoginView();
-      return;
-    }
-
-    const userId = session.user.id;
-
-    if (currentHandledUserId === userId && !forceRefresh) {
-      return;
-    }
-
-    const profile = await getUserProfile(userId);
-
-    if (!profile || profile.role === "unlinked") {
-      currentHandledUserId = userId;
-      renderAuthUnlinkedView(session.user, profile);
-      return;
-    }
-
-    if (profile.role === "student") {
-      const { data: studentRecord } = await supabase
-        .from("students")
-        .select("status")
-        .eq("linked_user_id", userId)
-        .maybeSingle();
-
-      if (studentRecord && studentRecord.status === "inactive") {
-        currentHandledUserId = userId;
-        renderAuthInactiveView(session.user);
+    try {
+      if (!session) {
+        currentHandledUserId = null;
+        renderAuthLoginView();
         return;
       }
 
-      currentHandledUserId = userId;
-      if (typeof onAuthorized === "function") {
-        onAuthorized(session.user, profile);
+      const userId = session.user.id;
+
+      if (currentHandledUserId === userId && !forceRefresh) {
+        return;
       }
-    } else if (profile.role === "admin") {
-      currentHandledUserId = userId;
-      if (typeof onAuthorized === "function") {
-        onAuthorized(session.user, profile);
+
+      const profile = await getUserProfile(userId);
+
+      if (!profile || profile.role === "unlinked") {
+        currentHandledUserId = userId;
+        renderAuthUnlinkedView(session.user, profile);
+        return;
       }
-    } else {
-      currentHandledUserId = userId;
-      renderAuthUnlinkedView(session.user, profile);
+
+      if (profile.role === "student") {
+        const { data: studentRecord, error: stErr } = await supabase
+          .from("students")
+          .select("status")
+          .eq("linked_user_id", userId)
+          .maybeSingle();
+
+        if (stErr) {
+          console.warn("Advertencia al consultar estado de estudiante:", stErr.message);
+        }
+
+        if (studentRecord && studentRecord.status === "inactive") {
+          currentHandledUserId = userId;
+          renderAuthInactiveView(session.user);
+          return;
+        }
+
+        currentHandledUserId = userId;
+        if (typeof onAuthorized === "function") {
+          onAuthorized(session.user, profile);
+        }
+      } else if (profile.role === "admin") {
+        currentHandledUserId = userId;
+        if (typeof onAuthorized === "function") {
+          onAuthorized(session.user, profile);
+        }
+      } else {
+        currentHandledUserId = userId;
+        renderAuthUnlinkedView(session.user, profile);
+      }
+    } catch (err) {
+      console.error("Excepción al procesar cambio de estado de autenticación:", err);
+      renderAuthLoginView();
     }
   };
 
-  const session = await getCurrentSession();
-  await handleStateChange(session);
-
-  onAuthStateChange(async (event, currentSession) => {
-    if (event === "SIGNED_OUT" || !currentSession) {
-      currentHandledUserId = null;
-      sessionStorage.removeItem("ueeh_active_view");
+  // Timeout defensivo de 8 segundos para evitar spinner infinito si la red falla
+  const timeoutId = setTimeout(() => {
+    if (!isResolved) {
+      console.warn("Timeout defensivo de verificación de sesión alcanzado. Redirigiendo a Login.");
+      isResolved = true;
       renderAuthLoginView();
-    } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
-      const isNewUser = !currentHandledUserId || currentHandledUserId !== currentSession.user.id;
-      await handleStateChange(currentSession, isNewUser);
+    }
+  }, 8000);
+
+  try {
+    const session = await getCurrentSession();
+    isResolved = true;
+    clearTimeout(timeoutId);
+    await handleStateChange(session);
+  } catch (err) {
+    isResolved = true;
+    clearTimeout(timeoutId);
+    console.error("Excepción en verificación inicial de sesión:", err);
+    renderAuthLoginView();
+  }
+
+  // Prevenir escuchadores de eventos auth duplicados
+  if (activeAuthStateListener && typeof activeAuthStateListener.unsubscribe === "function") {
+    try { activeAuthStateListener.unsubscribe(); } catch (_) {}
+  }
+
+  const { data: listenerData } = onAuthStateChange(async (event, currentSession) => {
+    try {
+      if (event === "SIGNED_OUT" || !currentSession) {
+        currentHandledUserId = null;
+        sessionStorage.removeItem("ueeh_active_view");
+        renderAuthLoginView();
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+        const isNewUser = !currentHandledUserId || currentHandledUserId !== currentSession.user.id;
+        await handleStateChange(currentSession, isNewUser);
+      }
+    } catch (err) {
+      console.error("Excepción en evento de onAuthStateChange:", err);
+      renderAuthLoginView();
     }
   });
+
+  activeAuthStateListener = listenerData?.subscription || null;
 }
 

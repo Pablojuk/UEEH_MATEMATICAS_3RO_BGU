@@ -121,12 +121,20 @@ function averageExerciseScores(scores = exerciseScores) {
   return Math.max(7, Math.min(10, average));
 }
 
-const sounds = {
-  click: new Audio("./sounds/click.wav"),
-  match: new Audio("./sounds/match.wav"),
-  error: new Audio("./sounds/error.wav"),
-  win: new Audio("./sounds/win.wav")
-};
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = type === "click" ? 440 : (type === "match" ? 587.33 : (type === "win" ? 880 : 220));
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (_) {}
+}
 
 export function crearGameShell() {
   return `
