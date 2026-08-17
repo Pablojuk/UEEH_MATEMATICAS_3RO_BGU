@@ -928,19 +928,6 @@ function shuffleArray(array) {
   return copy;
 }
 
-function playSound(type) {
-  try {
-    const sound = sounds[type];
-
-    if (!sound) return;
-
-    sound.currentTime = 0;
-    sound.play().catch(() => {});
-  } catch {
-    // Los navegadores pueden bloquear audio automático. El juego continúa sin romperse.
-  }
-}
-
 function normalizeAnswer(value) {
   return String(value)
     .trim()
