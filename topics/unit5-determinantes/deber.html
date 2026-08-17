@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Deber Interactivo | Determinantes de Matrices 2x2 y 3x3</title>
+
+  <!-- MathJax 3 Configuration -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      --bg1: #f4f9ff;
+      --bg2: #e8f4fc;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --navy: #0f2744;
+      --line: #d8e5f2;
+      --card: #ffffff;
+      --soft: #f8fafc;
+      --mint: #c6f7df;
+      --aqua: #9ce8f0;
+      --lilac: #dacbff;
+      --cream: #fff0b8;
+      --peach: #ffd1bd;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --shadow: 0 16px 40px rgba(15, 39, 68, 0.08);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 12%, rgba(218,203,255,0.6), transparent 25%),
+        radial-gradient(circle at 90% 15%, rgba(156,232,240,0.6), transparent 28%),
+        radial-gradient(circle at 15% 90%, rgba(255,209,189,0.5), transparent 25%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow-x: hidden;
+    }
+
+    button, input { font: inherit; }
+    button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 14px;
+      padding: 0.85rem 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--navy);
+      background: linear-gradient(135deg, var(--cream), var(--peach));
+      box-shadow: 0 4px 14px rgba(15, 39, 68, 0.08);
+      transition: transform 0.15s ease, filter 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    button:active { transform: scale(0.98); }
+    button:hover:not(:disabled) { filter: brightness(1.02); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    
+    .btnBlue { background: linear-gradient(135deg, var(--blue), #38bdf8); color: white; }
+    .btnGhost { background: white; border: 2px solid var(--line); box-shadow: none; color: var(--navy); }
+    .btnGood { background: linear-gradient(135deg, #dcfce7, var(--mint)); color: #14532d; }
+    .btnRed { background: linear-gradient(135deg, #fee2e2, #fca5a5); color: #7f1d1d; }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: auto;
+      padding: clamp(10px, 2vw, 20px);
+      min-height: 100dvh;
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; color: var(--navy); }
+    .brandIcon {
+      width: 46px; height: 46px; border-radius: 14px;
+      display: grid; place-items: center; font-size: 1.5rem;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(255,255,255,0.9);
+      box-shadow: 0 4px 12px rgba(15,39,68,0.06);
+    }
+    .brand small { display: block; color: var(--muted); font-weight: 600; font-size: 0.82rem; }
+    .topPills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tinyPill {
+      padding: 0.45rem 0.75rem; border-radius: 999px;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid var(--line);
+      font-weight: 700; font-size: 0.8rem; color: var(--navy);
+    }
+
+    .deck {
+      min-height: calc(100dvh - 84px);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.9);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+    }
+    .screen { display: none; padding: clamp(14px, 2.5vw, 30px); }
+    .screen.active { display: block; animation: fadeIn 0.25s ease both; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: clamp(16px, 3vw, 32px);
+      align-items: center;
+    }
+    .panel, .sidebar, .mainCard {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: clamp(16px, 2.5vw, 26px);
+      box-shadow: 0 6px 20px rgba(15, 39, 68, 0.04);
+    }
+    .visualCover {
+      min-height: 320px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #c7eeff, #e3d9ff 50%, #ffe8c2);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 4px solid white;
+    }
+    .visualCover span { position: absolute; filter: drop-shadow(0 10px 12px rgba(15,39,68,0.12)); }
+    .visualCover .icon1 { font-size: 5.5rem; top: 12%; left: 10%; animation: float 3.5s ease-in-out infinite; }
+    .visualCover .icon2 { font-size: 5rem; top: 14%; right: 12%; animation: spin 20s linear infinite; }
+    .visualCover .icon3 { font-size: 5.5rem; bottom: 12%; right: 15%; animation: pulse 2.6s ease-in-out infinite; }
+    .visualCover .icon4 { font-size: 4rem; bottom: 15%; left: 16%; }
+    @keyframes float { 50% { transform: translateY(-10px); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 50% { transform: scale(1.06); } }
+
+    h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.1; color: var(--navy); margin: 0 0 12px; font-weight: 800; }
+    h2 { font-size: clamp(1.3rem, 2.5vw, 1.8rem); color: var(--navy); margin: 0 0 10px; font-weight: 800; }
+    h3 { margin: 0 0 8px; color: #1e3a8a; }
+    p { margin: 0 0 10px; line-height: 1.55; font-size: 1rem; }
+    .lead { font-size: 1.05rem; font-weight: 600; color: #334155; }
+
+    .duaRow, .pillRow, .btnRow { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .dua, .pill, .tag {
+      display: inline-flex; align-items: center; gap: 5px; border-radius: 999px;
+      padding: 0.42rem 0.75rem; font-weight: 800; font-size: 0.82rem;
+    }
+    .dua.green { background: #dcfce7; color: #15803d; }
+    .dua.purple { background: #f3e8ff; color: #7e22ce; }
+    .dua.blue { background: #e0f2fe; color: #0369a1; }
+    .pill { background: #f1f5f9; color: var(--navy); border: 1px solid var(--line); }
+    .tag { background: #eff6ff; color: var(--blue); }
+
+    /* Work Layout */
+    .workLayout { display: grid; grid-template-columns: 290px 1fr; gap: 16px; }
+    .sidebar { position: sticky; top: 12px; align-self: start; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+    .stat { background: var(--soft); border: 1px solid var(--line); border-radius: 14px; padding: 10px; text-align: center; }
+    .stat strong { display: block; font-size: 1.4rem; color: var(--navy); }
+    .stat span { font-size: 0.8rem; color: var(--muted); font-weight: 700; }
+
+    .bar { height: 12px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 6px; }
+    .bar span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--mint), var(--aqua), var(--lilac)); transition: width 0.3s ease; }
+
+    .exerciseGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0; }
+    .exBtn { min-height: 42px; height: 42px; padding: 0; border-radius: 12px; background: #e2e8f0; color: #334155; box-shadow: none; font-size: 0.95rem; }
+    .exBtn.active { background: linear-gradient(135deg, var(--blue), #38bdf8); color: white; }
+    .exBtn.done { background: #dcfce7; color: #166534; }
+    .exBtn.partial { background: #fef3c7; color: #92400e; }
+    .exBtn.fail { background: #fee2e2; color: #991b1b; }
+
+    .mathBox {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 16px;
+      padding: 12px;
+      margin: 12px 0;
+      text-align: center;
+    }
+
+    .choiceGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+    .choice {
+      text-align: left; background: white; border: 2px solid var(--line); box-shadow: none;
+      border-radius: 14px; min-height: 52px; color: var(--ink); font-weight: 600; padding: 10px 14px;
+    }
+    .choice.selected { border-color: var(--blue); background: #eff6ff; }
+    .choice.correct { border-color: var(--green); background: #f0fdf4; }
+    .choice.wrong { border-color: var(--red); background: #fef2f2; }
+
+    .inputDirect {
+      width: 100%; border: 2px solid var(--line); border-radius: 14px;
+      padding: 0.85rem 1rem; outline: none; background: white;
+      color: var(--ink); font-size: 1.1rem; font-weight: 700;
+    }
+    .inputDirect:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+
+    .fillGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 12px 0; }
+    .fillItem { background: var(--soft); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+    .fillItem label { display: block; font-weight: 700; margin-bottom: 4px; font-size: 0.9rem; color: var(--navy); }
+    .fillInput {
+      width: 100%; border: 2px solid var(--line); border-radius: 10px; padding: 0.6rem;
+      font-size: 1rem; font-weight: 700; outline: none; background: white;
+    }
+
+    .feedback { display: none; margin: 10px 0; padding: 12px 14px; border-radius: 14px; font-weight: 700; font-size: 0.92rem; }
+    .feedback.show { display: block; }
+    .feedback.ok { background: #dcfce7; color: #166534; }
+    .feedback.bad { background: #fee2e2; color: #991b1b; }
+    .feedback.warn { background: #fef3c7; color: #92400e; }
+
+    .hintBox, .solutionBox {
+      display: none; margin-top: 10px; padding: 14px; border-radius: 14px;
+      background: #f8fafc; border-left: 5px solid #38bdf8; font-size: 0.95rem;
+    }
+    .hintBox.show, .solutionBox.show { display: block; animation: fadeIn 0.2s ease both; }
+    .solutionBox { border-left-color: #a855f7; }
+
+    /* Summary */
+    .summaryGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+    .summaryItem { background: var(--soft); border: 1px solid var(--line); border-radius: 16px; padding: 12px; text-align: center; }
+    .summaryItem strong { display: block; font-size: clamp(1.4rem, 3vw, 2rem); color: var(--navy); font-weight: 800; }
+    .summaryItem span { font-size: 0.8rem; color: var(--muted); font-weight: 700; }
+
+    .notice { display: none; padding: 12px 14px; border-radius: 14px; font-weight: 700; margin-top: 10px; font-size: 0.92rem; }
+    .notice.show { display: block; }
+    .notice.ok { background: #dcfce7; color: #166534; }
+    .notice.warn { background: #fef3c7; color: #92400e; }
+    .notice.bad { background: #fee2e2; color: #991b1b; }
+
+    @media (max-width: 900px) {
+      .hero, .workLayout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .visualCover { min-height: 220px; }
+      .summaryGrid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .choiceGrid { grid-template-columns: 1fr; }
+      .exerciseGrid { grid-template-columns: repeat(5, 1fr); }
+      .btnRow button { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brandIcon">📐</div>
+        <div>Deber Interactivo<br><small>Determinantes 2x2 y 3x3 · 3.º BGU A</small></div>
+      </div>
+      <div class="topPills">
+        <span class="tinyPill">🎯 14 Retos</span>
+        <span class="tinyPill">⏱️ 3 Intentos</span>
+        <span class="tinyPill">📅 Límite: 27 de agosto de 2026</span>
+      </div>
+    </header>
+
+    <main class="deck">
+      
+      <!-- PANTALLA 1: INICIO DIRECTO (SIN FORMULARIO DE DATOS) -->
+      <section class="screen active" id="introScreen">
+        <div class="hero">
+          <div class="panel">
+            <div class="duaRow">
+              <span class="dua green">DUA · Compromiso</span>
+              <span class="dua purple">DUA · Representación</span>
+              <span class="dua blue">DUA · Acción y expresión</span>
+            </div>
+            <h1>Determinantes de matrices de \(2\times2\) y \(3\times3\)</h1>
+            <p class="lead">
+              Aplica los métodos de multiplicación cruzada, la Regla de Sarrus y la Regla de Cramer para resolver los 14 ejercicios propuestos en el deber.
+            </p>
+            <div class="pillRow">
+              <span class="pill">✅ Corrección automática</span>
+              <span class="pill">💡 Pistas pedagógicas</span>
+              <span class="pill">📝 Solución paso a paso</span>
+              <span class="pill">🔄 Recuperación si nota &lt; 7/10</span>
+            </div>
+            <div class="btnRow" style="margin-top: 20px;">
+              <button class="btnBlue" onclick="startHomework()" style="font-size: 1.05rem; padding: 0.9rem 1.8rem;">
+                🚀 Iniciar Deber
+              </button>
+            </div>
+          </div>
+          <div class="visualCover" aria-hidden="true">
+            <span class="icon1">📐</span>
+            <span class="icon2">🔢</span>
+            <span class="icon3">✨</span>
+            <span class="icon4">📊</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANTALLA 2: TRABAJO Y EJERCICIOS -->
+      <section class="screen" id="workScreen">
+        <div class="workLayout">
+          <aside class="sidebar">
+            <h3 id="panelTitle">Panel de Avance</h3>
+            <div class="stats">
+              <div class="stat"><strong id="doneCount">0/14</strong><span>Resueltos</span></div>
+              <div class="stat"><strong id="avgNow">0</strong><span>Promedio</span></div>
+            </div>
+            <div style="background: var(--soft); border: 1px solid var(--line); border-radius: 14px; padding: 10px; margin-bottom: 10px;">
+              <span style="font-weight: 700; font-size: 0.85rem; color: var(--navy);">Progreso general</span>
+              <div class="bar"><span id="progressBar"></span></div>
+            </div>
+            <div class="exerciseGrid" id="exerciseGrid"></div>
+            <div class="btnRow" style="margin-top: 14px;">
+              <button class="btnBlue" onclick="finishCurrentPhase()" id="finishBtn" disabled style="width: 100%;">
+                📊 Generar Resumen
+              </button>
+            </div>
+          </aside>
+
+          <section class="mainCard">
+            <div id="exercisePanel"></div>
+            <div class="btnRow" style="justify-content: space-between; margin-top: 16px;">
+              <button class="btnGhost" onclick="prevExercise()">⬅ Anterior</button>
+              <button class="btnBlue" onclick="nextExercise()">Siguiente ➡</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- PANTALLA 3: RESUMEN FINAL Y RECUPERACIÓN -->
+      <section class="screen" id="summaryScreen">
+        <div class="panel">
+          <div class="duaRow">
+            <span class="dua blue">Evaluación Formativa</span>
+            <span class="dua green">Recuperación Guiada</span>
+          </div>
+          <h2>Resumen de Calificación</h2>
+          <p class="lead">
+            Revisa los resultados obtenidos. Si tu nota inicial es menor a 7/10, se activará la fase de recuperación para mejorar tu promedio.
+          </p>
+
+          <div class="summaryGrid">
+            <div class="summaryItem"><strong id="sumInitial">0</strong><span>Nota Inicial</span></div>
+            <div class="summaryItem"><strong id="sumRecovery">No aplica</strong><span>Recuperación</span></div>
+            <div class="summaryItem"><strong id="sumFinal">0</strong><span>Nota Final</span></div>
+            <div class="summaryItem"><strong id="sumLevel">Inicial</strong><span>Nivel</span></div>
+          </div>
+
+          <div class="notice show ok" id="summaryNotice">Resumen completado exitosamente.</div>
+
+          <div id="recoveryArea" style="display: none; margin-top: 16px;">
+            <div class="panel" style="background: #fffbeb; border-color: #fde68a;">
+              <h3 style="color: #b45309;">🔄 Recuperación Automática Habilitada</h3>
+              <p>Tu nota inicial fue menor a 7/10. Resuelve los 8 ejercicios complementarios para promediar y subir tu calificación final.</p>
+              <button class="btnBlue" onclick="startRecovery()">Comenzar Recuperación</button>
+            </div>
+          </div>
+
+          <div class="panel" style="background: var(--soft); margin-top: 16px;">
+            <h3>Observación Pedagógica</h3>
+            <p id="observationText">Observación detallada...</p>
+          </div>
+
+          <div class="btnRow" style="margin-top: 16px;">
+            <button class="btnGhost" onclick="goWork()">🔍 Revisar Ejercicios</button>
+            <button class="btnGood" onclick="restartAll()">🔄 Reiniciar Práctica</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    /************************************************************
+     * BASE DE DATOS DE LOS 14 EJERCICIO    const exercises = [
+      {
+        id: 1,
+        type: "Determinante 2x2",
+        mode: "input",
+        statement: "1. Calcula el valor del siguiente determinante de orden \\(2 \\times 2\\):",
+        eq: "\\[ \\begin{vmatrix} 3 & 2 \\\\ 4 & 5 \\end{vmatrix} \\]",
+        hint: "Multiplica en cruz: (diagonal principal) − (diagonal secundaria) = \\( (3)(5) - (2)(4) \\).",
+        solution: null
+      },
+      {
+        id: 2,
+        type: "Determinante 2x2",
+        mode: "mcq",
+        statement: "2. Calcula el valor del siguiente determinante de orden \\(2 \\times 2\\):",
+        eq: "\\[ \\begin{vmatrix} -2 & 6 \\\\ 3 & 1 \\end{vmatrix} \\]",
+        options: ["\\(-20\\)", "\\(20\\)", "\\(-16\\)", "\\(16\\)"],
+        hint: "Cuidado con los signos: \\( (-2)(1) - (6)(3) = -2 - 18 \\).",
+        solution: null
+      },
+      {
+        id: 3,
+        type: "Determinante 2x2",
+        mode: "input",
+        statement: "3. Calcula el valor del determinante:",
+        eq: "\\[ \\begin{vmatrix} 7 & -1 \\\\ 2 & 4 \\end{vmatrix} \\]",
+        hint: "Resta el producto secundario: \\( 7(4) - (-1)(2) = 28 - (-2) \\).",
+        solution: null
+      },
+      {
+        id: 4,
+        type: "Determinante 2x2",
+        mode: "fill",
+        statement: "4. Completa los pasos para hallar el determinante:",
+        eq: "\\[ \\begin{vmatrix} 0 & 5 \\\\ -3 & 2 \\end{vmatrix} \\]",
+        fillIntro: "Completa los productos parciales:",
+        blanks: [
+          { label: "(0)(2)" },
+          { label: "(5)(-3)" },
+          { label: "Resultado final" }
+        ],
+        hint: "\\( 0(2) - 5(-3) = 0 - (-15) = 15 \\).",
+        solution: null
+      },
+      {
+        id: 5,
+        type: "Determinante 2x2",
+        mode: "input",
+        statement: "5. Calcula el determinante de la matriz:",
+        eq: "\\[ \\begin{vmatrix} -4 & -3 \\\\ 6 & -2 \\end{vmatrix} \\]",
+        hint: "\\( (-4)(-2) - (-3)(6) = 8 - (-18) = 8 + 18 \\).",
+        solution: null
+      },
+      {
+        id: 6,
+        type: "Determinante 2x2",
+        mode: "mcq",
+        statement: "6. Determina el valor numérico:",
+        eq: "\\[ \\begin{vmatrix} 9 & 2 \\\\ -1 & 3 \\end{vmatrix} \\]",
+        options: ["\\(29\\)", "\\(25\\)", "\\(-25\\)", "\\(-29\\)"],
+        hint: "\\( (9)(3) - (2)(-1) = 27 - (-2) = 29 \\).",
+        solution: null
+      },
+      {
+        id: 7,
+        type: "Determinante 3x3",
+        mode: "mcq",
+        statement: "7. Calcula el determinante de orden \\(3 \\times 3\\) (Regla de Sarrus o cofactores):",
+        eq: "\\[ \\begin{vmatrix} 1 & 2 & 0 \\\\ 3 & -1 & 4 \\\\ 2 & 1 & 1 \\end{vmatrix} \\]",
+        options: ["\\(5\\)", "\\(-5\\)", "\\(15\\)", "\\(10\\)"],
+        hint: "Por primera fila: \\( 1((-1)(1)-4(1)) - 2(3(1)-4(2)) + 0 \\).",
+        solution: null
+      },
+      {
+        id: 8,
+        type: "Determinante 3x3",
+        mode: "input",
+        statement: "8. Calcula el determinante de orden \\(3 \\times 3\\):",
+        eq: "\\[ \\begin{vmatrix} 2 & 0 & 1 \\\\ -1 & 3 & 2 \\\\ 0 & 4 & -2 \\end{vmatrix} \\]",
+        hint: "Desarrollando por la primera columna: \\( 2(3(-2)-2(4)) - (-1)(0(-2)-1(4)) \\).",
+        solution: null
+      },
+      {
+        id: 9,
+        type: "Determinante 3x3",
+        mode: "fill",
+        statement: "9. Completa la Regla de Sarrus para la siguiente matriz:",
+        eq: "\\[ \\begin{vmatrix} -1 & 2 & 3 \\\\ 0 & 1 & -2 \\\\ 4 & 0 & 1 \\end{vmatrix} \\]",
+        fillIntro: "Completa la suma de diagonales:",
+        blanks: [
+          { label: "Suma Diag. Principales" },
+          { label: "Suma Diag. Secundarias" },
+          { label: "Determinante Final" }
+        ],
+        hint: "Calcula la suma de diagonales principales y réstale la suma de secundarias.",
+        solution: null
+      },
+      {
+        id: 10,
+        type: "Determinante 3x3",
+        mode: "input",
+        statement: "10. Calcula el valor del determinante de orden \\(3 \\times 3\\):",
+        eq: "\\[ \\begin{vmatrix} 3 & 1 & -1 \\\\ 2 & 0 & 4 \\\\ 1 & -2 & 2 \\end{vmatrix} \\]",
+        hint: "Desarrollando por cofactores de la fila 2.",
+        solution: null
+      },
+      {
+        id: 11,
+        type: "Ecuación con Determinantes",
+        mode: "mcq",
+        statement: "11. Determina los valores de la incógnita \\(x\\) en la ecuación:",
+        eq: "\\[ \\begin{vmatrix} x & 3 \\\\ 2 & x \\end{vmatrix} = 10 \\]",
+        options: ["\\(x = 4, \\; x = -4\\)", "\\(x = 2, \\; x = -2\\)", "\\(x = 16\\)", "\\(x = 5, \\; x = -5\\)"],
+        hint: "\\( x(x) - (3)(2) = 10 \\implies x^2 - 6 = 10 \\implies x^2 = 16 \\).",
+        solution: null
+      },
+      {
+        id: 12,
+        type: "Ecuación con Determinantes",
+        mode: "input",
+        statement: "12. Halla los valores de \\(x\\) que satisfacen la ecuación (escríbelos como 2, -2 o ±2):",
+        eq: "\\[ \\begin{vmatrix} x & 1 \\\\ 4 & x \\end{vmatrix} = 0 \\]",
+        hint: "\\( x^2 - 4 = 0 \\implies x^2 = 4 \\implies x = \\pm 2 \\).",
+        solution: null
+      },
+      {
+        id: 13,
+        type: "Aplicación: Regla de Cramer",
+        mode: "fill",
+        statement: "13. Resuelve el sistema lineal mediante la <strong>Regla de Cramer</strong>:",
+        eq: "\\[ \\begin{cases} 2x + 3y = 7 \\\\ x - y = 1 \\end{cases} \\]",
+        fillIntro: "Calcula los determinantes del sistema y las incógnitas:",
+        blanks: [
+          { label: "\\(\\Delta = \\begin{vmatrix} 2 & 3 \\\\ 1 & -1 \\end{vmatrix}\\)" },
+          { label: "\\(\\Delta_x = \\begin{vmatrix} 7 & 3 \\\\ 1 & -1 \\end{vmatrix}\\)" },
+          { label: "\\(\\Delta_y = \\begin{vmatrix} 2 & 7 \\\\ 1 & 1 \\end{vmatrix}\\)" },
+          { label: "Valor de \\(x = \\frac{\\Delta_x}{\\Delta}\\)" },
+          { label: "Valor de \\(y = \\frac{\\Delta_y}{\\Delta}\\)" }
+        ],
+        hint: "\\( \\Delta = -2 - 3 = -5 \\), \\( \\Delta_x = -7 - 3 = -10 \\implies x = 2 \\), \\( \\Delta_y = -5 \\implies y = 1 \\).",
+        solution: null
+      },
+      {
+        id: 14,
+        type: "Reto Matemático",
+        mode: "mcq",
+        statement: "14. <strong>Reto Matemático:</strong> Sin desarrollar, justifica la igualdad mediante propiedades:",
+        eq: "\\[ \\begin{vmatrix} a & b & c \\\\ a & b & c \\\\ d & e & f \\end{vmatrix} = 0 \\]",
+        options: [
+          "Si una matriz tiene dos filas (o columnas) idénticas, su determinante es automáticamente cero.",
+          "El determinante de toda matriz cuadrada siempre es igual a 0.",
+          "Al multiplicar la fila 3 por las filas 1 y 2, los términos se anulan entre sí.",
+          "Porque el producto de su diagonal principal es nulo."
+        ],
+        hint: "Observa la Fila 1 y la Fila 2: son exactamente iguales \\((a, b, c)\\).",
+        solution: null
+      }
+    ];
+
+    /************************************************************
+     * 8 EJERCICIOS DE RECUPERACIÓN AUTOMÁTICA
+     ************************************************************/
+    const recoveryExercises = [
+      {
+        id: 1,
+        type: "Recuperación 2x2",
+        mode: "input",
+        statement: "R1. Calcula el determinante:",
+        eq: "\\[ \\begin{vmatrix} 4 & 1 \\\\ 3 & 2 \\end{vmatrix} \\]",
+        hint: "\\( (4)(2) - (1)(3) = 8 - 3 \\).",
+        solution: null
+      },
+      {
+        id: 2,
+        type: "Recuperación 2x2",
+        mode: "mcq",
+        statement: "R2. Calcula el determinante con números negativos:",
+        eq: "\\[ \\begin{vmatrix} -3 & 5 \\\\ 2 & 4 \\end{vmatrix} \\]",
+        options: ["\\(-22\\)", "\\(22\\)", "\\(-2\\)", "\\(2\\)"],
+        hint: "\\( (-3)(4) - (5)(2) = -12 - 10 = -22 \\).",
+        solution: null
+      },
+      {
+        id: 3,
+        type: "Recuperación 2x2",
+        mode: "input",
+        statement: "R3. Calcula el determinante:",
+        eq: "\\[ \\begin{vmatrix} 6 & -2 \\\\ 1 & 5 \\end{vmatrix} \\]",
+        hint: "\\( 6(5) - (-2)(1) = 30 - (-2) = 32 \\).",
+        solution: null
+      },
+      {
+        id: 4,
+        type: "Recuperación 3x3",
+        mode: "mcq",
+        statement: "R4. Calcula el determinante 3x3:",
+        eq: "\\[ \\begin{vmatrix} 1 & 0 & 2 \\\\ 0 & 3 & 1 \\\\ 2 & 1 & 0 \\end{vmatrix} \\]",
+        options: ["\\(-13\\)", "\\(13\\)", "\\(-7\\)", "\\(7\\)"],
+        hint: "Desarrolla por fila 1: \\( 1(0-1) - 0 + 2(0-6) = -1 - 12 = -13 \\).",
+        solution: null
+      },
+      {
+        id: 5,
+        type: "Recuperación 3x3",
+        mode: "input",
+        statement: "R5. Calcula el determinante 3x3:",
+        eq: "\\[ \\begin{vmatrix} 2 & 1 & 0 \\\\ 3 & -1 & 2 \\\\ 1 & 0 & 1 \\end{vmatrix} \\]",
+        hint: "Por fila 3: \\( 1(2-0) - 0 + 1(-2-3) = 2 - 5 = -3 \\).",
+        solution: null
+      },
+      {
+        id: 6,
+        type: "Recuperación Incógnita",
+        mode: "mcq",
+        statement: "R6. Halla \\(x\\) en la ecuación:",
+        eq: "\\[ \\begin{vmatrix} x & 5 \\\\ 5 & x \\end{vmatrix} = 0 \\]",
+        options: ["\\(x = 5, \\; x = -5\\)", "\\(x = 25\\)", "\\(x = 10, \\; x = -10\\)", "\\(x = 0\\)"],
+        hint: "\\( x^2 - 25 = 0 \\implies x^2 = 25 \\implies x = \\pm 5 \\).",
+        solution: null
+      },
+      {
+        id: 7,
+        type: "Recuperación Incógnita",
+        mode: "input",
+        statement: "R7. Halla los valores de \\(x\\) para \\(\\begin{vmatrix} x & 2 \\\\ 8 & x \\end{vmatrix} = 0\\):",
+        eq: "\\[ x^2 - 16 = 0 \\]",
+        hint: "\\( x^2 - 16 = 0 \\implies x = \\pm 4 \\).",
+        solution: null
+      },
+      {
+        id: 8,
+        type: "Recuperación Cramer",
+        mode: "fill",
+        statement: "R8. Resuelve por Cramer el sistema lineal:",
+        eq: "\\[ \\begin{cases} x + y = 5 \\\\ x - y = 1 \\end{cases} \\]",
+        fillIntro: "Calcula los valores:",
+        blanks: [
+          { label: "\\(\\Delta = \\begin{vmatrix} 1 & 1 \\\\ 1 & -1 \\end{vmatrix}\\)" },
+          { label: "\\(\\Delta_x = \\begin{vmatrix} 5 & 1 \\\\ 1 & -1 \\end{vmatrix}\\)" },
+          { label: "Valor de \\(x\\)" },
+          { label: "Valor de \\(y\\)" }
+        ],
+        hint: "\\( \\Delta = -2 \\), \\( \\Delta_x = -6 \\implies x = 3 \\), \\( \\Delta_y = -4 \\implies y = 2 \\).",
+        solution: null
+      }
+    ];2 \\).",
+        solution: "\\[ \\Delta = -2, \\quad \\Delta_x = -6 \\implies x = 3, \\quad y = 2 \\]"
+      }
+    ];
+
+    /************************************************************
+     * ESTADO Y MOTOR DE EVALUACIÓN
+     ************************************************************/
+    let state = {
+      phase: "initial", // "initial" | "recovery"
+      currentIndex: 0,
+      initial: [],
+      recovery: [],
+      initialFinished: false,
+      recoveryEnabled: false,
+      recoveryFinished: false
+    };
+
+    function buildRuntime(list) {
+      return list.map(item => ({
+        ...item,
+        attempts: 0,
+        score: null,
+        status: "pending",
+        selectedOption: null,
+        textInput: "",
+        blankInputs: Array((item.blanks || []).length).fill(""),
+        feedbackMsg: "",
+        feedbackType: "",
+        showHint: false,
+        showSolution: false
+      }));
+    }
+
+    function activeList() {
+      return state.phase === "recovery" ? state.recovery : state.initial;
+    }
+
+    function currentEx() {
+      return activeList()[state.currentIndex];
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      document.getElementById(screenId).classList.add("active");
+      typeset();
+    }
+
+    function startHomework() {
+      state.initial = buildRuntime(exercises);
+      state.recovery = buildRuntime(recoveryExercises);
+      state.phase = "initial";
+      state.currentIndex = 0;
+      state.initialFinished = false;
+      state.recoveryEnabled = false;
+      state.recoveryFinished = false;
+
+      showScreen("workScreen");
+      renderWork();
+    }
+
+    function renderWork() {
+      const list = activeList();
+      const total = list.length;
+      const done = list.filter(e => e.score !== null).length;
+      const avg = done ? (list.reduce((acc, e) => acc + (e.score || 0), 0) / done).toFixed(2) : "0";
+
+      document.getElementById("panelTitle").innerText = state.phase === "initial" ? "Panel de Avance" : "Panel de Recuperación";
+      document.getElementById("doneCount").innerText = `${done}/${total}`;
+      document.getElementById("avgNow").innerText = avg;
+      document.getElementById("progressBar").style.width = `${Math.round((done / total) * 100)}%`;
+      document.getElementById("finishBtn").disabled = done < total;
+      document.getElementById("finishBtn").innerText = state.phase === "initial" ? "📊 Generar Resumen" : "🏁 Finalizar Recuperación";
+
+      renderNavGrid();
+      renderExercisePanel();
+      typeset();
+    }
+
+    function renderNavGrid() {
+      const list = activeList();
+      const grid = document.getElementById("exerciseGrid");
+      grid.innerHTML = list.map((e, idx) => {
+        let cls = "";
+        if (idx === state.currentIndex) cls += " active";
+        if (e.status === "correct") cls += " done";
+        if (e.status === "partial") cls += " partial";
+        if (e.status === "fail") cls += " fail";
+        return `<button class="exBtn${cls}" onclick="navTo(${idx})">${idx + 1}</button>`;
+      }).join("");
+    }
+
+    function renderExercisePanel() {
+      const ex = currentEx();
+      const isLocked = ex.score !== null;
+      const attemptsText = `${ex.attempts}/3`;
+      const scoreBadge = ex.score === null ? "Pendiente" : `${ex.score}/10`;
+
+      let inputHtml = "";
+
+      if (ex.mode === "mcq") {
+        inputHtml = `
+          <div class="choiceGrid">
+            ${ex.options.map((opt, i) => {
+              let cls = "choice";
+              if (ex.selectedOption === i) cls += " selected";
+              if (isLocked && i === ex.correctIndex) cls += " correct";
+              if (isLocked && ex.selectedOption === i && i !== ex.correctIndex) cls += " wrong";
+              return `<button class="${cls}" onclick="selectMCQ(${i})" ${isLocked ? "disabled" : ""}>${opt}</button>`;
+            }).join("")}
+          </div>
+        `;
+      } else if (ex.mode === "input") {
+        inputHtml = `
+          <div style="margin: 12px 0;">
+            <label style="display:block; font-weight:700; margin-bottom:6px;">Ingresa tu respuesta:</label>
+            <input class="inputDirect" value="${escapeHtml(ex.textInput)}" oninput="updateInput(this.value)" placeholder="Ej: 7 o 4, -4" ${isLocked ? "disabled" : ""} />
+          </div>
+        `;
+      } else if (ex.mode === "fill") {
+        inputHtml = `
+          <p style="font-weight:700; color:var(--navy);">${ex.fillIntro}</p>
+          <div class="fillGrid">
+            ${ex.blanks.map((b, i) => {
+              const val = ex.blankInputs[i] || "";
+              return `
+                <div class="fillItem">
+                  <label>${b.label}</label>
+                  <input class="fillInput" value="${escapeHtml(val)}" oninput="updateFillBlank(${i}, this.value)" placeholder="Valor..." ${isLocked ? "disabled" : ""} />
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }
+
+      document.getElementById("exercisePanel").innerHTML = `
+        <div class="duaRow">
+          <span class="tag">${state.phase === "initial" ? "Ejercicio" : "Recuperación"} ${state.currentIndex + 1}</span>
+          <span class="tag">${ex.type}</span>
+          <span class="tag">Intentos: ${attemptsText}</span>
+          <span class="tag" style="background:#fef3c7; color:#92400e;">Puntaje: ${scoreBadge}</span>
+        </div>
+        <h2>${ex.statement}</h2>
+        <div class="mathBox">${ex.eq}</div>
+        ${inputHtml}
+        <div class="btnRow" style="margin-top: 14px;">
+          <button class="btnGood" onclick="checkCurrent()" ${isLocked ? "disabled" : ""}>Comprobar</button>
+          <button class="btnGhost" onclick="toggleHint()">💡 Ver Pista</button>
+          <button class="btnGhost" onclick="toggleSolution()" ${ex.score === null ? "disabled" : ""}>📝 Ver Solución</button>
+        </div>
+        <div class="feedback ${ex.feedbackMsg ? "show " + ex.feedbackType : ""}">${ex.feedbackMsg}</div>
+        <div class="hintBox ${ex.showHint ? "show" : ""}"><strong>💡 Pista Pedagógica:</strong><br>${ex.hint}</div>
+        <div class="solutionBox ${ex.showSolution ? "show" : ""}"><strong>📝 Solución Paso a Paso:</strong><br>${ex.solution}</div>
+      `;
+    }
+
+    function navTo(i) {
+      state.currentIndex = i;
+      renderWork();
+    }
+    function prevExercise() {
+      const list = activeList();
+      state.currentIndex = (state.currentIndex - 1 + list.length) % list.length;
+      renderWork();
+    }
+    function nextExercise() {
+      const list = activeList();
+      state.currentIndex = (state.currentIndex + 1) % list.length;
+      renderWork();
+    }
+
+    function selectMCQ(i) {
+      const ex = currentEx();
+      if (ex.score !== null) return;
+      ex.selectedOption = i;
+      renderWork();
+    }
+    function updateInput(val) {
+      currentEx().textInput = val;
+    }
+    function updateFillBlank(i, val) {
+      currentEx().blankInputs[i] = val;
+    }
+
+    let currentRunId = crypto.randomUUID();
+
+    async function getAuthSessionToken() {
+      try {
+        const authModule = await import('../../core/supabase-client.js');
+        const { data: { session } } = await authModule.supabase.auth.getSession();
+        return session ? session.access_token : null;
+      } catch (err) {
+        console.warn("Could not retrieve auth session token:", err);
+        return null;
+      }
+    }
+
+    async function checkCurrent() {
+      const ex = currentEx();
+      if (ex.score !== null) return;
+
+      if (ex.mode === "mcq" && ex.selectedOption === null) {
+        setFeedback("Por favor selecciona una de las opciones.", "warn");
+        return;
+      }
+      if (ex.mode === "input" && !ex.textInput.trim()) {
+        setFeedback("Escribe un resultado antes de comprobar.", "warn");
+        return;
+      }
+      if (ex.mode === "fill" && ex.blankInputs.every(v => !v.trim())) {
+        setFeedback("Completa los campos antes de comprobar.", "warn");
+        return;
+      }
+
+      let userAns;
+      if (ex.mode === "mcq") userAns = ex.selectedOption;
+      else if (ex.mode === "input") userAns = ex.textInput.trim();
+      else if (ex.mode === "fill") userAns = ex.blankInputs;
+
+      const token = await getAuthSessionToken();
+      if (!token) {
+        setFeedback("⚠️ Tu sesión ha expirado. Por favor regresa al Campus Virtual.", "bad");
+        return;
+      }
+
+      const questionSubmissionId = crypto.randomUUID();
+
+      let res = null;
+      try {
+        const response = await fetch("https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/check-activity-answer", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            activity_key: "u5-determinantes-class-01",
+            run_id: currentRunId,
+            phase: state.phase,
+            question_id: String(ex.id),
+            question_submission_id: questionSubmissionId,
+            user_answer: userAns
+          })
+        });
+
+        res = await response.json();
+      } catch (err) {
+        console.error("Error conectando con servidor:", err);
+        setFeedback("⚠️ Error de conexión con el servidor. Intenta nuevamente.", "bad");
+        return;
+      }
+
+      if (!res || !res.success) {
+        setFeedback(res?.error || "Error al verificar la respuesta.", "bad");
+        return;
+      }
+
+      ex.attempts = res.attempt_number;
+      ex.score = res.question_score;
+
+      if (res.is_correct) {
+        ex.status = "correct";
+        ex.feedbackMsg = `¡Correcto! Puntaje otorgado por servidor: ${ex.score}/10.`;
+        ex.feedbackType = "ok";
+      } else if (res.locked) {
+        ex.status = ex.score > 0 ? "partial" : "fail";
+        ex.feedbackMsg = `Intentos agotados. Puntaje otorgado por servidor: ${ex.score}/10.`;
+        ex.feedbackType = ex.score > 0 ? "warn" : "bad";
+      } else {
+        ex.feedbackMsg = `Respuesta incorrecta. Te quedan ${res.attempts_remaining} intento(s).`;
+        ex.feedbackType = "bad";
+        ex.score = null; // No finalizado todavía, permite reintento
+      }
+
+      if (res.solution_html) {
+        ex.solution = res.solution_html;
+        ex.showSolution = true;
+      }
+
+      renderWork();
+    }
+
+    function setFeedback(msg, type) {
+      const ex = currentEx();
+      ex.feedbackMsg = msg;
+      ex.feedbackType = type;
+      renderWork();
+    }
+
+    function toggleHint() {
+      const ex = currentEx();
+      ex.showHint = !ex.showHint;
+      renderWork();
+    }
+
+    function toggleSolution() {
+      const ex = currentEx();
+      if (ex.score === null) return;
+      ex.showSolution = !ex.showSolution;
+      renderWork();
+    }
+
+    function finishCurrentPhase() {
+      if (state.phase === "initial") {
+        state.initialFinished = true;
+        const avg = calcAverage(state.initial);
+        state.recoveryEnabled = avg < 7;
+        showSummary();
+      } else {
+        state.recoveryFinished = true;
+        showSummary();
+      }
+    }
+
+    function startRecovery() {
+      state.phase = "recovery";
+      state.currentIndex = 0;
+      showScreen("workScreen");
+      renderWork();
+    }
+
+    async function showSummary() {
+      const notaInit = calcAverage(state.initial);
+      const recAvg = state.recoveryFinished ? calcAverage(state.recovery) : null;
+      let finalNote = notaInit;
+
+      if (state.recoveryEnabled && state.recoveryFinished) {
+        finalNote = (notaInit + recAvg) / 2;
+      }
+
+      finalNote = Math.round(finalNote * 100) / 100;
+      const level = getLevel(finalNote);
+
+      document.getElementById("sumInitial").innerText = notaInit.toFixed(2);
+      document.getElementById("sumRecovery").innerText = state.recoveryEnabled ? (recAvg !== null ? recAvg.toFixed(2) : "Pendiente") : "No aplica";
+      document.getElementById("sumFinal").innerText = finalNote.toFixed(2);
+      document.getElementById("sumLevel").innerText = level;
+
+      const recArea = document.getElementById("recoveryArea");
+      if (state.recoveryEnabled && !state.recoveryFinished) {
+        recArea.style.display = "block";
+      } else {
+        recArea.style.display = "none";
+      }
+
+      document.getElementById("observationText").innerText = getObservation(finalNote);
+      showScreen("summaryScreen");
+
+      // Transmitir entrega oficial a Supabase server-side grading
+      try {
+        const actModule = await import('../../core/activity-service.js');
+        const res = await actModule.submitActivityResult({
+          activityKey: "u5-determinantes-class-01",
+          submission: {
+            run_id: currentRunId,
+            phase: state.phase,
+            completed_at: new Date().toISOString()
+          }
+        });
+
+        const noticeBox = document.getElementById("summaryNotice");
+        if (noticeBox && res && res.success && res.data) {
+          noticeBox.className = "notice show ok";
+          noticeBox.innerHTML = `✅ <strong>Nota Registrada Oficialmente en Supabase:</strong> ${Number(res.data.score).toFixed(2)} / 10 (Intento #${res.data.attempt_number})`;
+        }
+      } catch (err) {
+        console.warn("Fallo al registrar nota en Supabase:", err);
+      }
+    }
+
+    function calcAverage(list) {
+      if (!list.length) return 0;
+      const sum = list.reduce((acc, e) => acc + (e.score || 0), 0);
+      return Math.round((sum / list.length) * 100) / 100;
+    }
+
+    function getLevel(n) {
+      if (n >= 9) return "Destacado";
+      if (n >= 7) return "Alcanzado";
+      if (n >= 4) return "En desarrollo";
+      return "Inicial";
+    }
+
+    function getObservation(n) {
+      if (n >= 9) return "¡Excelente desempeño! Demuestras dominio completo en el cálculo de determinantes 2x2, 3x3, aplicación de Sarrus y Regla de Cramer.";
+      if (n >= 7) return "Buen trabajo. Has alcanzado los aprendizajes requeridos. Te recomendamos repasar los signos negativos en los productos diagonales.";
+      if (n >= 4) return "Desempeño en desarrollo. Es fundamental repasar la regla de los signos y el procedimiento de Sarrus para consolidar la destreza.";
+      return "Nivel inicial. Se sugiere realizar tutorías de refuerzo sobre matrices y determinantes para afianzar los conceptos básicos.";
+    }
+
+    function goWork() {
+      showScreen("workScreen");
+      renderWork();
+    }
+
+    function restartAll() {
+      currentRunId = crypto.randomUUID();
+      startHomework();
+    }
+
+    function escapeHtml(str) {
+      return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function typeset() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise().catch(() => {});
+      }
+    }
+  </script>
+</body>
+</html>
