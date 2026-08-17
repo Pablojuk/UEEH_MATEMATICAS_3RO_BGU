@@ -311,6 +311,32 @@ function renderCurriculumRoute() {
             Entrar a la Unidad
           </button>
         </div>
+
+        <div class="unit-card bg-white border border-neutral-200 hover:border-moodle-orange/40 rounded-2xl p-6 flex flex-col justify-between transition-all hover:shadow-lg">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-10 h-10 rounded-lg bg-orange-50 text-moodle-orange flex items-center justify-center font-bold text-xs">
+                |A|
+              </div>
+              <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 animate-pulse">
+                ACTIVA
+              </span>
+            </div>
+
+            <div>
+              <h4 class="heading-font text-xl font-bold text-moodle-text-blue">
+                Determinantes de matrices 2x2 y 3x3
+              </h4>
+              <p class="text-moodle-text-gray text-sm mt-2 leading-relaxed">
+                Propiedades, regla de Sarrus, determinantes de orden 2 y 3, e invertibilidad.
+              </p>
+            </div>
+          </div>
+
+          <button id="btn-open-unit-determinantes" class="mt-8 w-full py-3 rounded-xl bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors">
+            Entrar a la Unidad
+          </button>
+        </div>
       </div>
     </section>
   `;
@@ -631,6 +657,7 @@ function goToDashboard() {
     ${renderDerivativesUnitModal()}
     ${renderMatricesUnitModal()}
     ${renderProductoMatricesUnitModal()}
+    ${renderDeterminantesUnitModal()}
     ${renderStudentDataModal()}
     ${renderToast()}
   `);
@@ -651,7 +678,7 @@ function openModal(id) {
   modal.firstElementChild?.classList.remove("scale-95");
   modal.firstElementChild?.classList.add("scale-100");
 
-  if (id === "unit-1" || id === "unit-2" || id === "unit-3" || id === "unit-4") {
+  if (id === "unit-1" || id === "unit-2" || id === "unit-3" || id === "unit-4" || id === "unit-5") {
     document.body.classList.add("overflow-hidden");
     const match = id.match(/unit-(\d+)/);
     if (match) {
@@ -668,7 +695,7 @@ function closeModal(id) {
   modal.firstElementChild?.classList.remove("scale-100");
   modal.firstElementChild?.classList.add("scale-95");
 
-  if (id === "unit-1" || id === "unit-2" || id === "unit-3" || id === "unit-4") {
+  if (id === "unit-1" || id === "unit-2" || id === "unit-3" || id === "unit-4" || id === "unit-5") {
     document.body.classList.remove("overflow-hidden");
   }
 }
@@ -715,13 +742,16 @@ function startActivity() {
   closeModal("unit-2");
   closeModal("unit-3");
   closeModal("unit-4");
+  closeModal("unit-5");
 
   showToast(`Datos asegurados. Iniciando ${currentActivity}...`);
 
   shouldOpenActiveUnitModal = true;
 
   if (currentActivity === "Gamificación") {
-    if (currentGamificationUnit === 4) {
+    if (currentGamificationUnit === 5) {
+      goToDeterminantesGame();
+    } else if (currentGamificationUnit === 4) {
       goToProductoMatricesGame();
     } else if (currentGamificationUnit === 3) {
       goToMatricesGame();
@@ -733,8 +763,10 @@ function startActivity() {
     return;
   }
 
-  if (currentActivity === "Trabajo para la Casa") {
-    if (currentHomeworkUnit === 4) {
+  if (currentActivity === "Trabajo para la Casa" || currentActivity === "Trabajo en Clase") {
+    if (currentHomeworkUnit === 5) {
+      goToDeterminantesHomework();
+    } else if (currentHomeworkUnit === 4) {
       goToProductoMatricesHomework();
     } else if (currentHomeworkUnit === 3) {
       goToMatricesHomework();
@@ -779,6 +811,7 @@ function bindDashboardEvents() {
   bindClick("#btn-open-unit-derivatives", () => openModal("unit-2"));
   bindClick("#btn-open-unit-matrices", () => openModal("unit-3"));
   bindClick("#btn-open-unit-producto-matrices", () => openModal("unit-4"));
+  bindClick("#btn-open-unit-determinantes", () => openModal("unit-5"));
 
   bindClick("#btn-close-unit-top", () => closeModal("unit-1"));
   bindClick("#btn-close-unit-bottom", () => closeModal("unit-1"));
@@ -788,6 +821,32 @@ function bindDashboardEvents() {
   bindClick("#btn-close-unit-3-bottom", () => closeModal("unit-3"));
   bindClick("#btn-close-unit-4-top", () => closeModal("unit-4"));
   bindClick("#btn-close-unit-4-bottom", () => closeModal("unit-4"));
+  bindClick("#btn-close-unit-5-top", () => closeModal("unit-5"));
+  bindClick("#btn-close-unit-5-bottom", () => closeModal("unit-5"));
+
+  bindClick("#btn-unit-5-slides", () => {
+    closeModal("unit-5");
+    shouldOpenActiveUnitModal = true;
+    showToast("Abriendo presentación de Determinantes...");
+    goToDeterminantesSlides();
+  });
+
+  bindClick("#btn-unit-5-game", () => {
+    currentGamificationUnit = 5;
+    openDataModal("Gamificación");
+  });
+
+  bindClick("#btn-unit-5-homework", () => {
+    currentHomeworkUnit = 5;
+    openDataModal("Trabajo en Clase");
+  });
+
+  bindClick("#btn-unit-5-results", () => {
+    closeModal("unit-5");
+    shouldOpenActiveUnitModal = true;
+    showToast("Cargando resultados de Unidad 5...");
+    goToDeterminantesResults();
+  });
 
   bindClick("#btn-unit-2-slides", () => {
     closeModal("unit-2");
@@ -1278,6 +1337,168 @@ function renderProductoMatricesUnitModal() {
       </div>
     </div>
   `;
+}
+
+function renderDeterminantesUnitModal() {
+  return `
+    <div id="unit-5" class="fixed inset-0 z-50 bg-moodle-dark-blue/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
+      <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl relative transition-transform duration-300 scale-95 flex flex-col">
+        <div class="p-8 border-b border-neutral-100 flex items-start justify-between bg-white sticky top-0 z-10">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-moodle-orange">Unidad 5</span>
+            <h3 class="heading-font text-3xl font-bold text-moodle-text-blue mt-1">
+              Determinantes de matrices 2x2 y 3x3
+            </h3>
+            <p class="text-moodle-text-gray text-sm mt-1">
+              Cada actividad completada se registra en Supabase como tu calificación oficial.
+            </p>
+          </div>
+
+          <button id="btn-close-unit-5-top" class="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-moodle-text-gray transition-colors" aria-label="Cerrar unidad">
+            ✕
+          </button>
+        </div>
+
+        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 bg-neutral-50/50">
+          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-orange-50 text-moodle-orange flex items-center justify-center text-2xl shrink-0">📽️</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Presentación de la Clase</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  22 diapositivas interactivas explicadas paso a paso.
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+              <button id="btn-unit-5-slides" class="text-sm font-semibold text-moodle-orange cursor-pointer hover:underline">
+                Iniciar lectura →
+              </button>
+            </div>
+          </div>
+
+          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center text-2xl shrink-0">🚀</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Odisea Espacial: La Ruta de los 6 Planetas.
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+              <button id="btn-unit-5-game" class="text-sm font-semibold text-violet-600 cursor-pointer hover:underline">
+                Empezar a jugar →
+              </button>
+            </div>
+          </div>
+
+          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0">📐</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Trabajo en Clase</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Deber interactivo con 14 ejercicios + 8 de recuperación.
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+              <button id="btn-unit-5-homework" class="text-sm font-semibold text-blue-600 cursor-pointer hover:underline">
+                Ver actividades →
+              </button>
+            </div>
+          </div>
+
+          <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">📊</div>
+              <div class="space-y-1">
+                <h4 class="text-base font-bold text-moodle-text-blue">Resultados de las Actividades</h4>
+                <p class="text-moodle-text-gray text-xs leading-relaxed">
+                  Consulta tu desempeño en la plataforma oficial Supabase.
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-neutral-100">
+              <button id="btn-unit-5-results" class="w-full flex justify-between items-center text-[10px] font-bold text-emerald-700 cursor-pointer hover:text-emerald-800">
+                <span>REVISAR DESEMPEÑO</span>
+                <span>VER DETALLES</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 bg-white border-t border-neutral-100 text-right">
+          <button id="btn-close-unit-5-bottom" class="px-8 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors">
+            Cerrar unidad
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function goToDeterminantesSlides() {
+  renderView(
+    layout(
+      "Determinantes de matrices 2x2 y 3x3",
+      crearHtmlLessonViewer({
+        src: "./topics/unit5-determinantes/presentation.html",
+        title: "Determinantes de matrices - Presentación de la Clase"
+      })
+    )
+  );
+
+  bindClick("#btn-back-dashboard", () => goToDashboard());
+  setupFullscreenButton();
+}
+
+function goToDeterminantesGame() {
+  renderView(
+    layout(
+      "Gamificación · Odisea Espacial",
+      crearHtmlLessonViewer({
+        src: "./topics/unit5-determinantes/gamificacion.html",
+        title: "Odisea Espacial: Ruta de los 6 Planetas · Unidad 5"
+      })
+    )
+  );
+
+  bindClick("#btn-back-dashboard", () => goToDashboard());
+  setupFullscreenButton();
+}
+
+function goToDeterminantesHomework() {
+  renderView(
+    layout(
+      "Trabajo en Clase · Determinantes",
+      crearHtmlLessonViewer({
+        src: "./topics/unit5-determinantes/deber.html",
+        title: "Deber Interactivo | Determinantes 2x2 y 3x3 · Unidad 5"
+      })
+    )
+  );
+
+  bindClick("#btn-back-dashboard", () => goToDashboard());
+  setupFullscreenButton();
+}
+
+function goToDeterminantesResults() {
+  import("../components/activity-summary.js").then(({ renderStudentActivitySummary }) => {
+    renderView(
+      layout(
+        "Resultados · Unidad 5 Determinantes",
+        `<section id="summary-container" class="app-card p-6 sm:p-8"></section>`
+      )
+    );
+    const container = document.getElementById("summary-container");
+    if (container) {
+      renderStudentActivitySummary(container);
+    }
+    bindClick("#btn-back-dashboard", () => goToDashboard());
+  });
 }
 
 function goToProductoMatricesSlides() {

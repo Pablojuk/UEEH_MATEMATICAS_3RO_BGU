@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#b8f2e6" />
+  <title>Determinantes de una matriz de 2x2 y de 3x3 · Tercero de BGU</title>
+
+  <!-- MathJax v3 para renderizado matemático formal -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      /* Paleta suave de tonos pastel / colores de helado */
+      --celeste: #cfefff;
+      --turquesa: #b8f2e6;
+      --menta: #d9f7d8;
+      --rosa: #ffdce8;
+      --durazno: #ffe1c6;
+      --crema: #fff4bf;
+      --lila: #e8dcff;
+      --arena: #f7ead7;
+      --blanco: #fffdf8;
+      --tinta: #273142;
+      --texto-suave: #596275;
+      --azul-titulo: #2c5276;
+      --verde-ok: #226f5d;
+      --rojo-alerta: #a83b4b;
+      --sombra: 0 18px 42px rgba(44, 62, 80, 0.12);
+      --sombra-suave: 0 8px 22px rgba(44, 62, 80, 0.08);
+      --radio-pantalla: 32px;
+      --radio-tarjeta: 22px;
+      --borde: rgba(55, 90, 127, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      color: var(--tinta);
+      background:
+        radial-gradient(circle at 8% 10%, rgba(255, 220, 232, 0.7), transparent 26%),
+        radial-gradient(circle at 92% 6%, rgba(184, 242, 230, 0.75), transparent 28%),
+        radial-gradient(circle at 15% 90%, rgba(232, 220, 255, 0.7), transparent 28%),
+        radial-gradient(circle at 85% 92%, rgba(255, 244, 191, 0.65), transparent 25%),
+        linear-gradient(135deg, #fbfdfe 0%, #eafaf7 45%, #fff5e8 100%);
+      overflow-x: hidden;
+    }
+
+    /* Cuadrícula sutil de fondo */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(55, 90, 127, 0.038) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(55, 90, 127, 0.038) 1px, transparent 1px);
+      background-size: 34px 34px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    button, input {
+      font-family: inherit;
+    }
+
+    .app {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    /* Barra Superior */
+    .topbar {
+      width: min(1180px, calc(100% - 22px));
+      margin: 12px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--tinta);
+      background: rgba(255, 253, 248, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: var(--sombra-suave);
+      border-radius: 22px;
+      padding: 10px 14px;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      background: linear-gradient(135deg, var(--turquesa), var(--lila));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+      font-size: 1.4rem;
+      flex: 0 0 auto;
+    }
+
+    .brand-title {
+      font-weight: 900;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: min(50vw, 580px);
+      font-size: 1.02rem;
+      color: var(--azul-titulo);
+    }
+
+    .brand small {
+      display: block;
+      color: var(--texto-suave);
+      font-weight: 700;
+      font-size: 0.82rem;
+      margin-top: 2px;
+    }
+
+    .progress-wrap {
+      flex: 1;
+      max-width: 380px;
+      min-width: 140px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: rgba(235, 242, 248, 0.85);
+      border: 1px solid rgba(55, 90, 127, 0.12);
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      font-weight: 850;
+      color: var(--texto-suave);
+      margin-bottom: 3px;
+    }
+
+    .progress-track {
+      height: 10px;
+      background: rgba(55, 90, 127, 0.12);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #ffdce8, #b8f2e6, #cfefff, #fff4bf);
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Contenedor del Deck */
+    .deck {
+      width: min(1180px, calc(100% - 22px));
+      flex: 1;
+      margin: 14px auto;
+      position: relative;
+    }
+
+    .slide {
+      min-height: calc(100dvh - 170px);
+      display: none;
+      align-items: stretch;
+      justify-content: center;
+      animation: fadeSlide 0.35s ease both;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px) scale(0.995); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .screen {
+      width: 100%;
+      min-height: 600px;
+      border-radius: var(--radio-pantalla);
+      padding: clamp(20px, 4.2vw, 44px);
+      background:
+        linear-gradient(145deg, rgba(255, 253, 248, 0.97), rgba(255, 255, 255, 0.90)),
+        radial-gradient(circle at 12% 14%, rgba(255, 220, 232, 0.35), transparent 25%),
+        radial-gradient(circle at 88% 16%, rgba(184, 242, 230, 0.38), transparent 28%);
+      box-shadow: var(--sombra);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      position: relative;
+    }
+
+    .screen::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: 24px;
+      border: 2px dashed rgba(55, 90, 127, 0.11);
+      pointer-events: none;
+    }
+
+    .screen-content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Tipografía y Jerarquía */
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      font-size: clamp(2.1rem, 5.8vw, 3.8rem);
+      line-height: 1.05;
+      color: var(--azul-titulo);
+      margin-bottom: 14px;
+      letter-spacing: -1px;
+      font-weight: 900;
+    }
+
+    h2 {
+      font-size: clamp(1.65rem, 3.8vw, 2.6rem);
+      line-height: 1.12;
+      color: var(--azul-titulo);
+      margin-bottom: 14px;
+      letter-spacing: -0.5px;
+      font-weight: 850;
+    }
+
+    h3 {
+      font-size: clamp(1.08rem, 2vw, 1.45rem);
+      color: var(--azul-titulo);
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    p, li {
+      font-size: clamp(0.96rem, 1.35vw, 1.12rem);
+      line-height: 1.54;
+    }
+
+    .lead {
+      font-size: clamp(1.02rem, 1.6vw, 1.3rem);
+      font-weight: 650;
+      color: #3d4a5d;
+      max-width: 960px;
+      margin-bottom: 14px;
+    }
+
+    .muted { color: var(--texto-suave); }
+    .center { text-align: center; }
+
+    /* Layouts / Grids */
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: clamp(16px, 3.5vw, 36px);
+      align-items: center;
+      min-height: 500px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: stretch;
+      margin: 10px 0;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      align-items: stretch;
+      margin: 10px 0;
+    }
+
+    .four-col {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+      margin: 10px 0;
+    }
+
+    /* Barras DUA y Píldoras */
+    .pill-row, .dua-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 6px 0 14px;
+    }
+
+    .pill, .dua {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-weight: 850;
+      font-size: 0.84rem;
+      line-height: 1.1;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: inset 0 0 0 1px rgba(55, 90, 127, 0.12);
+    }
+
+    .dua.compromiso { background: rgba(217, 247, 216, 0.85); color: #1e6454; }
+    .dua.representacion { background: rgba(232, 220, 255, 0.85); color: #523f82; }
+    .dua.accion { background: rgba(207, 239, 255, 0.9); color: #235478; }
+
+    /* Tarjetas de Contenido */
+    .card {
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio-tarjeta);
+      padding: clamp(14px, 2vw, 20px);
+      box-shadow: var(--sombra-suave);
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .card.soft-celeste { background: linear-gradient(145deg, rgba(207, 239, 255, 0.88), rgba(255, 255, 255, 0.78)); }
+    .card.soft-menta { background: linear-gradient(145deg, rgba(217, 247, 216, 0.88), rgba(255, 255, 255, 0.78)); }
+    .card.soft-rosa { background: linear-gradient(145deg, rgba(255, 220, 232, 0.88), rgba(255, 255, 255, 0.78)); }
+    .card.soft-crema { background: linear-gradient(145deg, rgba(255, 244, 191, 0.92), rgba(255, 255, 255, 0.78)); }
+    .card.soft-lila { background: linear-gradient(145deg, rgba(232, 220, 255, 0.88), rgba(255, 255, 255, 0.78)); }
+    .card.soft-durazno { background: linear-gradient(145deg, rgba(255, 225, 198, 0.88), rgba(255, 255, 255, 0.78)); }
+
+    .icon-big {
+      font-size: 2rem;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .mini-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--texto-suave);
+      margin-bottom: 4px;
+    }
+
+    /* Cajas Matemáticas */
+    .math-box {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 250, 238, 0.95);
+      border: 1.5px solid rgba(245, 197, 86, 0.35);
+      margin: 10px 0;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    }
+
+    .math-box.center-math {
+      text-align: center;
+    }
+
+    .math-box::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .math-box::-webkit-scrollbar-thumb {
+      background: rgba(55, 90, 127, 0.25);
+      border-radius: 999px;
+    }
+
+    /* Listas de Pasos */
+    .step-list {
+      display: grid;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--borde);
+    }
+
+    .step-number {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--crema), var(--durazno));
+      font-weight: 900;
+      color: #634527;
+      font-size: 1.05rem;
+    }
+
+    /* Callouts */
+    .callout {
+      border-radius: 18px;
+      padding: 12px 16px;
+      margin: 10px 0;
+      border: 1px solid var(--borde);
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: var(--sombra-suave);
+      font-size: 0.95rem;
+      line-height: 1.48;
+    }
+
+    .callout.remember { background: rgba(217, 247, 216, 0.8); border-color: rgba(45, 143, 115, 0.25); }
+    .callout.error { background: rgba(255, 220, 232, 0.82); border-color: rgba(198, 83, 97, 0.25); }
+    .callout.teacher { background: rgba(232, 220, 255, 0.8); border-color: rgba(89, 69, 138, 0.25); }
+
+    /* Tablas */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 18px;
+      border: 1px solid var(--borde);
+      background: rgba(255, 255, 255, 0.8);
+      margin: 10px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(55, 90, 127, 0.10);
+      font-size: 0.94rem;
+    }
+
+    th {
+      background: rgba(207, 239, 255, 0.85);
+      color: #1e4568;
+      font-weight: 900;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    /* Botones */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 18px;
+      min-height: 48px;
+      font-weight: 850;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      font-size: 0.98rem;
+      color: var(--tinta);
+      touch-action: manipulation;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(44, 62, 80, 0.12);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary { background: linear-gradient(135deg, var(--turquesa), var(--celeste)); }
+    .btn-secondary { background: linear-gradient(135deg, var(--crema), var(--durazno)); }
+    .btn-ghost { background: rgba(255, 255, 255, 0.85); box-shadow: inset 0 0 0 2px rgba(55, 90, 127, 0.14); }
+    .btn-alert { background: linear-gradient(135deg, var(--rosa), var(--durazno)); }
+
+    /* Controles de Navegación Inferior */
+    .nav-controls {
+      width: min(1180px, calc(100% - 22px));
+      margin: 0 auto 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 3;
+    }
+
+    .slide-counter {
+      font-weight: 900;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255, 253, 248, 0.9);
+      box-shadow: var(--sombra-suave);
+      font-size: 0.94rem;
+      white-space: nowrap;
+      border: 1px solid rgba(55, 90, 127, 0.1);
+    }
+
+    /* Interacciones: Preguntas con feedback optimizadas para texto fluido y MathJax */
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .option {
+      text-align: left;
+      padding: 14px 18px;
+      border: 2px solid rgba(55, 90, 127, 0.14);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.82);
+      cursor: pointer;
+      min-height: 60px;
+      font-weight: 800;
+      transition: 0.16s ease;
+      color: var(--tinta);
+      font-size: 0.96rem;
+      line-height: 1.48;
+      display: block;
+      width: 100%;
+    }
+
+    .option:hover, .option:focus {
+      outline: none;
+      border-color: rgba(45, 143, 115, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .option.correct { background: rgba(217, 247, 216, 0.95); border-color: var(--verde-ok); color: #104e41; }
+    .option.wrong { background: rgba(255, 220, 232, 0.95); border-color: var(--rojo-alerta); color: #781e2b; }
+
+    .feedback {
+      display: none;
+      margin-top: 10px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-weight: 850;
+      font-size: 0.95rem;
+    }
+
+    .feedback.show { display: block; animation: fadeSlide 0.2s ease both; }
+    .feedback.ok { background: rgba(217, 247, 216, 0.9); color: var(--verde-ok); }
+    .feedback.bad { background: rgba(255, 220, 232, 0.9); color: var(--rojo-alerta); }
+
+    /* Revelados y Acordeones */
+    .reveal {
+      display: none;
+      margin-top: 12px;
+      animation: fadeSlide 0.22s ease both;
+    }
+    .reveal.show { display: block; }
+
+    .accordion { display: grid; gap: 9px; margin-top: 10px; }
+    .acc-item { border-radius: 18px; overflow: hidden; border: 1px solid var(--borde); background: rgba(255, 255, 255, 0.8); }
+    .acc-head {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      padding: 13px 16px;
+      min-height: 48px;
+      cursor: pointer;
+      font-weight: 850;
+      color: var(--azul-titulo);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.96rem;
+    }
+    .acc-body { display: none; padding: 0 16px 14px; font-size: 0.92rem; }
+    .acc-item.open .acc-body { display: block; }
+
+    /* Hero Art & Animaciones */
+    .hero-art {
+      min-height: 380px;
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.8), transparent 15%),
+        radial-gradient(circle at 75% 20%, rgba(255, 244, 191, 0.9), transparent 22%),
+        linear-gradient(145deg, var(--celeste), var(--turquesa) 50%, var(--durazno));
+      box-shadow: var(--sombra-suave);
+      position: relative;
+      overflow: hidden;
+      border: 4px solid rgba(255, 255, 255, 0.65);
+    }
+
+    .hero-art .matrix-card {
+      position: absolute;
+      width: min(88%, 340px);
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) rotate(-1.5deg);
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 253, 248, 0.94);
+      box-shadow: 0 16px 36px rgba(44, 62, 80, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      text-align: center;
+    }
+
+    .floating {
+      position: absolute;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      filter: drop-shadow(0 8px 8px rgba(44, 62, 80, 0.12));
+      animation: float 3.4s ease-in-out infinite;
+    }
+    .float-a { left: 8%; top: 8%; animation-delay: 0s; }
+    .float-b { right: 8%; top: 10%; animation-delay: 0.6s; }
+    .float-c { right: 10%; bottom: 8%; animation-delay: 1.2s; }
+    .float-d { left: 8%; bottom: 10%; animation-delay: 1.8s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50% { transform: translateY(-10px) rotate(1deg); }
+    }
+
+    .footer-author {
+      margin-top: 14px;
+      font-size: 0.82rem;
+      color: var(--texto-suave);
+      font-weight: 750;
+    }
+
+    /* Adaptación Responsiva */
+    @media (max-width: 920px) {
+      .split, .two-col, .three-col, .four-col {
+        grid-template-columns: 1fr;
+      }
+      .hero-art { min-height: 280px; }
+      .screen { min-height: auto; padding: 22px 18px; }
+      .option-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .brand-title { max-width: 100%; white-space: normal; }
+      .progress-wrap { max-width: none; }
+      .slide { min-height: auto; }
+      .screen { border-radius: 22px; padding: 16px; }
+      .screen::after { inset: 6px; border-radius: 16px; }
+      h1 { letter-spacing: -0.5px; }
+      .nav-controls { flex-wrap: wrap; }
+      .nav-controls .btn { flex: 1 1 120px; }
+      .slide-counter { order: -1; width: 100%; text-align: center; }
+      .btn-row .btn { flex: 1 1 100%; }
+      .step { grid-template-columns: 34px 1fr; gap: 10px; }
+      .step-number { width: 34px; height: 34px; font-size: 0.95rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Barra Superior Docente -->
+    <header class="topbar" aria-label="Barra superior de presentación">
+      <div class="brand">
+        <div class="brand-badge">📐</div>
+        <div>
+          <div class="brand-title" id="brandTitle">Matemáticas · Determinantes de matrices 2x2 y 3x3</div>
+          <small id="brandSubtitle">Tercero de BGU · 90 minutos</small>
+        </div>
+      </div>
+      <div class="progress-wrap" aria-label="Progreso de la sesión">
+        <div class="progress-label">
+          <span>Avance de la clase</span>
+          <span id="globalProgressText">1/22</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="globalProgress"></div></div>
+      </div>
+    </header>
+
+    <!-- Deck de Diapositivas -->
+    <main class="deck" id="deck">
+
+      <!-- SLIDE 1: Portada -->
+      <section class="slide active" data-slide-title="Portada">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar">
+                <span class="dua compromiso">DUA · Compromiso</span>
+                <span class="dua representacion">DUA · Representación</span>
+              </div>
+              <h1>Determinantes de una matriz de 2×2 y de 3×3</h1>
+              <p class="lead">Regla de Sarrus, propiedades fundamentales y aplicaciones prácticas en sistemas de ecuaciones lineales y geometría.</p>
+              <div class="pill-row">
+                <span class="pill">📘 Matemáticas</span>
+                <span class="pill">🎓 Tercero de BGU</span>
+                <span class="pill">⏱️ 90 minutos</span>
+                <span class="pill">📌 Nivel Intermedio</span>
+              </div>
+              <div class="callout remember">
+                <strong>Idea Clave:</strong> El determinante es un número real único asociado a una matriz cuadrada. Permite saber si un sistema lineal tiene solución única, hallar áreas y calcular matrices inversas.
+              </div>
+              <div class="footer-author">Módulo pedagógico elaborado por: Econ. Pablo Hernan Juca Farfan</div>
+            </div>
+            <div class="hero-art" aria-label="Ilustración visual de matrices y determinantes">
+              <div class="floating float-a">🔢</div>
+              <div class="floating float-b">✨</div>
+              <div class="floating float-c">📐</div>
+              <div class="floating float-d">📊</div>
+              <div class="matrix-card">
+                <div class="mini-tag">Notación Formal</div>
+                <div class="math-box center-math">
+                  \[
+                  \det(A) = \begin{vmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{vmatrix} = a_{11}a_{22} - a_{12}a_{21}
+                  \]
+                </div>
+                <small class="muted">Diagonal principal − Diagonal secundaria</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 2: Propósito de la clase -->
+      <section class="slide" data-slide-title="Propósito de la clase">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua compromiso">DUA · Compromiso</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Propósito y Marco Curricular</h2>
+            <p class="lead">Al finalizar esta sesión de 90 minutos, calcularás con precisión determinantes de orden 2 y 3, justificarás sus propiedades y los aplicarás en problemas contextualizados.</p>
+            <div class="three-col">
+              <div class="card soft-celeste">
+                <span class="icon-big">🎯</span>
+                <h3>Objetivo (O.M.5.6)</h3>
+                <p>Desarrollar la curiosidad y creatividad mediante herramientas matemáticas al resolver problemas de la realidad con orden y perseverancia.</p>
+              </div>
+              <div class="card soft-menta">
+                <span class="icon-big">🧩</span>
+                <h3>Destreza (M.5.1.18)</h3>
+                <p>Calcular determinantes de matrices reales cuadradas de orden 2 y 3 para resolver sistemas de ecuaciones lineales.</p>
+              </div>
+              <div class="card soft-lila">
+                <span class="icon-big">✅</span>
+                <h3>Indicador (I.M.5.2.2)</h3>
+                <p>Analiza y opera con matrices de hasta tercer orden, y las aplica en sistemas de ecuaciones y situaciones geométricas.</p>
+              </div>
+            </div>
+            <div class="callout teacher">
+              <strong>Meta de la clase:</strong> Dominar el cálculo directo en matrices \(2\times2\), aplicar la Regla de Sarrus en \(3\times3\) sin errores de signo y utilizar la Regla de Cramer.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 3: Ruta de aprendizaje -->
+      <section class="slide" data-slide-title="Ruta de aprendizaje">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Ruta de Aprendizaje de la Sesión</h2>
+            <div class="three-col">
+              <div class="card soft-durazno">
+                <span class="mini-tag">Momento 1 · 15 min</span>
+                <h3>Anticipación</h3>
+                <p>Activación diagnóstica: diferenciar una matriz (tabla ordenada) de un determinante (número escalar escalar).</p>
+                <span class="pill">🗣️ Pregunta detonadora</span>
+              </div>
+              <div class="card soft-celeste">
+                <span class="mini-tag">Momento 2 · 50 min</span>
+                <h3>Construcción</h3>
+                <p>Fórmula \(2\times2\), Regla de Sarrus \(3\times3\), análisis de propiedades algebraicas y resolución de sistemas con Cramer.</p>
+                <span class="pill">🧮 Modelado guiado</span>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Momento 3 · 25 min</span>
+                <h3>Consolidación</h3>
+                <p>Aplicación en cálculo de áreas triangulares, resolución de ecuaciones con determinantes y evaluación formativa.</p>
+                <span class="pill">✍️ Práctica y cierre</span>
+              </div>
+            </div>
+            <div class="callout remember">
+              <strong>Principios DUA:</strong> Múltiples formas de representación visual (fórmulas MathJax, esquemas por colores), implicación activa con retroalimentación inmediata y ejercicios guiados paso a paso.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 4: Activación de conocimientos previos -->
+      <section class="slide" data-slide-title="Activación diagnóstica">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua compromiso">DUA · Compromiso</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Activación: ¿Qué diferencia a una matriz de su determinante?</h2>
+            <p class="lead">Antes de operar numéricamente, reflexionemos sobre la naturaleza matemática de ambos objetos. Selecciona la afirmación correcta:</p>
+            <div class="option-grid" data-question="q_activacion">
+              <button class="option" data-correct="false" onclick="checkOption(this)">Son lo mismo; solo cambia la forma de escribir los paréntesis o barras.</button>
+              <button class="option" data-correct="true" onclick="checkOption(this)">La matriz es un arreglo rectangular de números; el determinante es un número real único asociado a ella.</button>
+              <button class="option" data-correct="false" onclick="checkOption(this)">Cualquier matriz, tenga la forma que tenga (\(2\times 3\), \(3\times 4\)), posee determinante.</button>
+              <button class="option" data-correct="false" onclick="checkOption(this)">El determinante es otra matriz pero con números más pequeños.</button>
+            </div>
+            <div class="feedback ok" id="q_activacion-ok">
+              ✅ ¡Excelente deducción! Una matriz es una estructura de datos ordenada en filas y columnas, mientras que el determinante es un único valor numérico (escalar) que resume propiedades algebraicas clave.
+            </div>
+            <div class="feedback bad" id="q_activacion-bad">
+              💡 Revisa el concepto: Recuerda que una matriz es una tabla, mientras que su determinante se calcula a partir de ella y da como resultado un número real (\(\mathbb{R}\)).
+            </div>
+            <div class="callout error">
+              <strong>Condición indispensable:</strong> ¡Solo las matrices cuadradas (\(n\times n\)) poseen determinante! Una matriz de \(2\times 3\) no tiene determinante.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 5: Conceptos Fundamentales: Matriz Cuadrada -->
+      <section class="slide" data-slide-title="Conceptos Fundamentales">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>01. Conceptos Fundamentales: La Matriz Cuadrada</h2>
+            <p class="lead">Una <strong>matriz cuadrada</strong> es un arreglo rectangular de números organizado en filas y columnas, en el cual el número de filas es exactamente igual al número de columnas (\(n = m\)).</p>
+            <div class="split">
+              <div>
+                <div class="card soft-celeste">
+                  <span class="mini-tag">Notación General de Orden \(n\)</span>
+                  <div class="math-box center-math">
+                    \[
+                    A = \begin{pmatrix}
+                    a_{11} & a_{12} & \cdots & a_{1n} \\
+                    a_{21} & a_{22} & \cdots & a_{2n} \\
+                    \vdots & \vdots & \ddots & \vdots \\
+                    a_{n1} & a_{n2} & \cdots & a_{nn}
+                    \end{pmatrix}
+                    \]
+                  </div>
+                  <p>Cada entrada \(a_{ij}\) indica el elemento situado en la <strong>fila \(i\)</strong> y la <strong>columna \(j\)</strong>.</p>
+                </div>
+              </div>
+              <div class="step-list">
+                <div class="step">
+                  <div class="step-number">1</div>
+                  <div><strong>Orden 2 (\(2\times2\)):</strong> Posee 2 filas y 2 columnas (4 elementos).</div>
+                </div>
+                <div class="step">
+                  <div class="step-number">2</div>
+                  <div><strong>Orden 3 (\(3\times3\)):</strong> Posee 3 filas y 3 columnas (9 elementos).</div>
+                </div>
+                <div class="step">
+                  <div class="step-number">3</div>
+                  <div><strong>Diagonal Principal:</strong> Elementos donde \(i = j\) (\(a_{11}, a_{22}, a_{33}\)).</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 6: ¿Qué es un Determinante? Notación Formal -->
+      <section class="slide" data-slide-title="Definición de Determinante">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>¿Qué es un Determinante y cómo se anota?</h2>
+            <p class="lead">El determinante de una matriz cuadrada \(A\) es un <strong>número real</strong> asociado a dicha matriz. Se denota formalmente como \(\det(A)\) o encerrando los elementos entre barras verticales \(|A|\):</p>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <h3>Notación Matemática Formal</h3>
+                <div class="math-box center-math">
+                  \[
+                  \det(A) = |A| = \begin{vmatrix}
+                  a_{11} & a_{12} \\
+                  a_{21} & a_{22}
+                  \end{vmatrix}
+                  \]
+                </div>
+                <p><strong>Cuidado con los símbolos:</strong> Los paréntesis \(\begin{pmatrix}\dots\end{pmatrix}\) denotan la matriz; las barras verticales \(\begin{vmatrix}\dots\end{vmatrix}\) exigen calcular su determinante escalar.</p>
+              </div>
+              <div class="card soft-lila">
+                <h3>¿Para qué sirven en Bachillerato?</h3>
+                <ul>
+                  <li><strong>Sistemas lineales:</strong> Resolver sistemas mediante la Regla de Cramer.</li>
+                  <li><strong>Existencia de inversa:</strong> Si \(\det(A) \neq 0\), la matriz \(A\) tiene inversa.</li>
+                  <li><strong>Geometría analítica:</strong> Calcular áreas de triángulos y volúmenes en el espacio.</li>
+                  <li><strong>Independencia lineal:</strong> Saber si un conjunto de vectores es base.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 7: Determinante de Orden 2x2 -->
+      <section class="slide" data-slide-title="Determinante 2x2">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua representacion">DUA · Representación</span>
+              <span class="dua accion">DUA · Acción y expresión</span>
+            </div>
+            <h2>02. Determinante de una Matriz de Orden \(2\times2\)</h2>
+            <p class="lead">Dada una matriz cuadrada de orden 2, su determinante es igual a la multiplicación de los elementos de la <strong>diagonal principal</strong> menos el producto de la <strong>diagonal secundaria</strong>.</p>
+            <div class="math-box center-math">
+              \[
+              A = \begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix} \implies \det(A) = \begin{vmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{vmatrix} = \underbrace{(a_{11} \cdot a_{22})}_{\text{Diagonal Principal (+)}} - \underbrace{(a_{12} \cdot a_{21})}_{\text{Diagonal Secundaria (−)}}
+              \]
+            </div>
+            <div class="three-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Paso 1</span>
+                <h3>Diagonal Principal</h3>
+                <p>Multiplica de arriba a la izquierda hacia abajo a la derecha: \(a_{11} \cdot a_{22}\).</p>
+              </div>
+              <div class="card soft-durazno">
+                <span class="mini-tag">Paso 2</span>
+                <h3>Diagonal Secundaria</h3>
+                <p>Multiplica de arriba a la derecha hacia abajo a la izquierda: \(a_{12} \cdot a_{21}\).</p>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Paso 3</span>
+                <h3>Diferencia</h3>
+                <p>Resta el segundo producto del primero: \(\text{Diag. Princ.} - \text{Diag. Sec.}\).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 8: Ejemplo 1 - Nivel Básico (2x2) -->
+      <section class="slide" data-slide-title="Ejemplo 1 (2x2)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 1 · Nivel Básico (\(2\times2\))</h2>
+            <p class="lead">Calcular el determinante de la matriz \(A = \begin{pmatrix} 4 & 3 \\ 2 & 5 \end{pmatrix}\).</p>
+            <div class="split">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Procedimiento Completo</span>
+                <div class="step-list">
+                  <div class="step">
+                    <div class="step-number">1</div>
+                    <div><strong>Identificar elementos:</strong> \(a_{11}=4, \; a_{12}=3, \; a_{21}=2, \; a_{22}=5\).</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">2</div>
+                    <div><strong>Aplicar la fórmula:</strong> \(\det(A) = a_{11}\cdot a_{22} - a_{12}\cdot a_{21}\).</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">3</div>
+                    <div><strong>Operar numéricamente:</strong> \(\det(A) = (4)(5) - (3)(2) = 20 - 6\).</div>
+                  </div>
+                </div>
+                <div class="callout remember">
+                  <strong>Resultado final:</strong> \(\det(A) = 14\).
+                </div>
+              </div>
+              <div class="card soft-crema">
+                <h3>Visualización de Diagonales</h3>
+                <div class="math-box center-math">
+                  \[
+                  \begin{vmatrix}
+                  \mathbf{4} & 3 \\
+                  2 & \mathbf{5}
+                  \end{vmatrix} \to (4)(5) = 20
+                  \]
+                  \[
+                  \begin{vmatrix}
+                  4 & \mathbf{3} \\
+                  \mathbf{2} & 5
+                  \end{vmatrix} \to (3)(2) = 6
+                  \]
+                  \[
+                  \det(A) = 20 - 6 = 14
+                  \]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 9: Ejemplo 2 - Nivel Intermedio con Negativos (2x2) -->
+      <section class="slide" data-slide-title="Ejemplo 2 (2x2 con Negativos)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 2 · Nivel Intermedio (Control de Signos)</h2>
+            <p class="lead">Calcular el determinante de la matriz \(B = \begin{pmatrix} -3 & 5 \\ 6 & -2 \end{pmatrix}\).</p>
+            <div class="two-col">
+              <div class="card soft-rosa">
+                <span class="mini-tag">Paso a Paso Detallado</span>
+                <div class="math-box center-math">
+                  \[
+                  \det(B) = \begin{vmatrix} -3 & 5 \\ 6 & -2 \end{vmatrix}
+                  \]
+                  \[
+                  \det(B) = (-3)(-2) - (5)(6)
+                  \]
+                  \[
+                  \det(B) = 6 - 30
+                  \]
+                  \[
+                  \mathbf{\det(B) = -24}
+                  \]
+                </div>
+              </div>
+              <div class="card soft-menta">
+                <h3>⚠️ Alerta Pedagógica de Signos</h3>
+                <p>Observa que el producto de la diagonal principal es \((-3)\cdot(-2) = +6\) (menos por menos da más).</p>
+                <p>Luego restamos el producto secundario \((5)(6) = 30\).</p>
+                <div class="callout error">
+                  <strong>Error Frecuente:</strong> Sumar en lugar de restar, o equivocarse con los signos negativos de los elementos. Recuerda: el signo menos (\(-\)) de la fórmula siempre antecede a la diagonal secundaria.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 10: Determinante 3x3 y Regla de Sarrus -->
+      <section class="slide" data-slide-title="Regla de Sarrus 3x3">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>03. Determinante de Orden \(3\times3\) · Regla de Sarrus</h2>
+            <p class="lead">Para matrices de orden 3 se emplea la <strong>Regla de Sarrus</strong>, un método mnemotécnico consistente en repetir las dos primeras columnas a la derecha (o las dos primeras filas abajo).</p>
+            <div class="card soft-celeste">
+              <div class="math-box center-math">
+                \[
+                A = \begin{pmatrix}
+                a_{11} & a_{12} & a_{13} \\
+                a_{21} & a_{22} & a_{23} \\
+                a_{31} & a_{32} & a_{33}
+                \end{pmatrix}
+                \]
+                \[
+                \det(A) = (a_{11}a_{22}a_{33} + a_{12}a_{23}a_{31} + a_{13}a_{21}a_{32}) - (a_{13}a_{22}a_{31} + a_{11}a_{23}a_{32} + a_{12}a_{21}a_{33})
+                \]
+              </div>
+            </div>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <h3>🟢 Diagonales Principales (Suman +)</h3>
+                <p>3 productos de izquierda a derecha en sentido descendente.</p>
+              </div>
+              <div class="card soft-rosa">
+                <h3>🔴 Diagonales Secundarias (Restan −)</h3>
+                <p>3 productos de derecha a izquierda en sentido descendente.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 11: Esquema Gráfico de Sarrus -->
+      <section class="slide" data-slide-title="Esquema Gráfico Sarrus">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Esquema Gráfico: Ampliación de Columnas</h2>
+            <p class="lead">Escribimos las dos primeras columnas al lado derecho de la matriz original para visualizar claramente las 6 trayectorias diagonales:</p>
+            <div class="math-box center-math">
+              \[
+              \begin{array}{ccc|cc}
+              \mathbf{a_{11}} & \mathbf{a_{12}} & \mathbf{a_{13}} & a_{11} & a_{12} \\
+              a_{21} & \mathbf{a_{22}} & \mathbf{a_{23}} & \mathbf{a_{21}} & a_{22} \\
+              a_{31} & a_{32} & \mathbf{a_{33}} & \mathbf{a_{31}} & \mathbf{a_{32}}
+              \end{array}
+              \]
+            </div>
+            <div class="two-col">
+              <div class="card soft-crema">
+                <h3>Términos que SUMAN (+)</h3>
+                <ul>
+                  <li>\(D_1 = + (a_{11} \cdot a_{22} \cdot a_{33})\)</li>
+                  <li>\(D_2 = + (a_{12} \cdot a_{23} \cdot a_{31})\)</li>
+                  <li>\(D_3 = + (a_{13} \cdot a_{21} \cdot a_{32})\)</li>
+                </ul>
+              </div>
+              <div class="card soft-durazno">
+                <h3>Términos que RESTAN (−)</h3>
+                <ul>
+                  <li>\(S_1 = - (a_{13} \cdot a_{22} \cdot a_{31})\)</li>
+                  <li>\(S_2 = - (a_{11} \cdot a_{23} \cdot a_{32})\)</li>
+                  <li>\(S_3 = - (a_{12} \cdot a_{21} \cdot a_{33})\)</li>
+                </ul>
+              </div>
+            </div>
+            <div class="callout teacher">
+              <strong>Estrategia Docente:</strong> Agrupa primero la suma de las diagonales principales y luego réstale la suma total de las secundarias: \(\det(A) = (\Sigma \text{ Principales}) - (\Sigma \text{ Secundarias})\).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 12: Ejemplo 3 - Sarrus Paso 1 (Principales) -->
+      <section class="slide" data-slide-title="Ejemplo 3 (Sarrus - Principales)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 3 · Regla de Sarrus (Paso 1: Diagonales Principales)</h2>
+            <p class="lead">Calcular el determinante de: \(A = \begin{pmatrix} 2 & 1 & 3 \\ 0 & -1 & 4 \\ 5 & 2 & -2 \end{pmatrix}\).</p>
+            <div class="split">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Cálculo de Diagonales Principales (+)</span>
+                <div class="step-list">
+                  <div class="step">
+                    <div class="step-number">1</div>
+                    <div>\((2) \cdot (-1) \cdot (-2) = \mathbf{4}\)</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">2</div>
+                    <div>\((1) \cdot (4) \cdot (5) = \mathbf{20}\)</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">3</div>
+                    <div>\((3) \cdot (0) \cdot (2) = \mathbf{0}\)</div>
+                  </div>
+                </div>
+                <div class="callout remember">
+                  <strong>Suma de Principales:</strong> \(4 + 20 + 0 = \mathbf{24}\).
+                </div>
+              </div>
+              <div class="card soft-crema">
+                <h3>Disposición con columnas repetidas</h3>
+                <div class="math-box center-math">
+                  \[
+                  \begin{matrix}
+                  \mathbf{2} & \mathbf{1} & \mathbf{3} & 2 & 1 \\
+                  0 & \mathbf{-1} & \mathbf{4} & \mathbf{0} & -1 \\
+                  5 & 2 & \mathbf{-2} & \mathbf{5} & \mathbf{2}
+                  \end{matrix}
+                  \]
+                </div>
+                <p class="muted">Multiplica con cuidado respetando la ley de signos en cada factor.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 13: Ejemplo 3 - Sarrus Paso 2 (Secundarias y Cierre) -->
+      <section class="slide" data-slide-title="Ejemplo 3 (Sarrus - Secundarias)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 3 · Regla de Sarrus (Paso 2: Secundarias y Resultado)</h2>
+            <p class="lead">Continuamos con las diagonales secundarias y la resta final de los bloques:</p>
+            <div class="two-col">
+              <div class="card soft-rosa">
+                <span class="mini-tag">Cálculo de Diagonales Secundarias (−)</span>
+                <div class="step-list">
+                  <div class="step">
+                    <div class="step-number">1</div>
+                    <div>\((3) \cdot (-1) \cdot (5) = \mathbf{-15}\)</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">2</div>
+                    <div>\((2) \cdot (4) \cdot (2) = \mathbf{16}\)</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">3</div>
+                    <div>\((1) \cdot (0) \cdot (-2) = \mathbf{0}\)</div>
+                  </div>
+                </div>
+                <div class="callout error">
+                  <strong>Suma de Secundarias:</strong> \((-15) + 16 + 0 = \mathbf{1}\).
+                </div>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Fórmula y Resultado Final</span>
+                <div class="math-box center-math">
+                  \[
+                  \det(A) = (\Sigma \text{ Principales}) - (\Sigma \text{ Secundarias})
+                  \]
+                  \[
+                  \det(A) = (4 + 20 + 0) - (-15 + 16 + 0)
+                  \]
+                  \[
+                  \det(A) = 24 - 1
+                  \]
+                  \[
+                  \mathbf{\det(A) = 23}
+                  \]
+                </div>
+                <div class="callout teacher">
+                  <strong>Consejo del Docente:</strong> Colocar los productos en dos columnas separadas minimiza en un 90% las confusiones de signo.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 14: Propiedades de los Determinantes (Parte 1) -->
+      <section class="slide" data-slide-title="Propiedades (Parte 1)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>04. Propiedades Fundamentales de los Determinantes (I)</h2>
+            <p class="lead">Las propiedades permiten simplificar cálculos complejos sin tener que desarrollar toda la fórmula:</p>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Propiedad 1</span>
+                <h3>Fila o Columna Nula</h3>
+                <p>Si una matriz posee una línea completa de ceros, su determinante es automáticamente <strong>cero</strong>:</p>
+                <div class="math-box center-math">
+                  \[
+                  \begin{vmatrix} 0 & 0 & 0 \\ 4 & 5 & 1 \\ 2 & -1 & 3 \end{vmatrix} = 0
+                  \]
+                </div>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Propiedad 2</span>
+                <h3>Filas/Columnas Iguales o Proporcionales</h3>
+                <p>Si dos filas o columnas son idénticas o múltiplos entre sí, el determinante es <strong>cero</strong>:</p>
+                <div class="math-box center-math">
+                  \[
+                  \begin{vmatrix} 1 & 2 & 3 \\ 1 & 2 & 3 \\ 4 & 0 & 5 \end{vmatrix} = 0
+                  \]
+                </div>
+              </div>
+            </div>
+            <div class="two-col">
+              <div class="card soft-durazno">
+                <span class="mini-tag">Propiedad 3</span>
+                <h3>Intercambio de Líneas</h3>
+                <p>Al intercambiar dos filas (o dos columnas), el determinante <strong>cambia de signo</strong>.</p>
+              </div>
+              <div class="card soft-lila">
+                <span class="mini-tag">Propiedad 4</span>
+                <h3>Multiplicación por Escalar \(k\)</h3>
+                <p>Si se multiplica una sola fila por \(k\), el determinante queda multiplicado por \(k\).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 15: Propiedades de los Determinantes (Parte 2: Triangular y Transpuesta) -->
+      <section class="slide" data-slide-title="Propiedades (Parte 2)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Propiedades Fundamentales (II) · Matrices Triangulares</h2>
+            <p class="lead">Cálculo inmediato en estructuras diagonales y transpuestas:</p>
+            <div class="two-col">
+              <div class="card soft-crema">
+                <h3>Matriz Triangular o Diagonal</h3>
+                <p>El determinante de una matriz triangular (superior o inferior) o diagonal es simplemente el <strong>producto de los elementos de su diagonal principal</strong>:</p>
+                <div class="math-box center-math">
+                  \[
+                  T = \begin{pmatrix}
+                  t_{11} & t_{12} & t_{13} \\
+                  0 & t_{22} & t_{23} \\
+                  0 & 0 & t_{33}
+                  \end{pmatrix} \implies \det(T) = t_{11} \cdot t_{22} \cdot t_{33}
+                  \]
+                </div>
+                <small class="muted">¡No necesitas aplicar Sarrus en matrices triangulares!</small>
+              </div>
+              <div class="card soft-celeste">
+                <h3>Determinante de la Transpuesta</h3>
+                <p>El determinante de cualquier matriz cuadrada es exactamente igual al de su transpuesta:</p>
+                <div class="math-box center-math">
+                  \[
+                  \det(A) = \det(A^T)
+                  \]
+                </div>
+                <div class="callout remember">
+                  <strong>Conclusión importante:</strong> Todo lo que se cumple para las filas de un determinante se cumple igualmente para sus columnas.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 16: Aplicación a Sistemas Lineales: Regla de Cramer -->
+      <section class="slide" data-slide-title="Regla de Cramer 2x2">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua representacion">DUA · Representación</span>
+              <span class="dua accion">DUA · Acción y expresión</span>
+            </div>
+            <h2>Aplicación: Resolución de Sistemas con la Regla de Cramer</h2>
+            <p class="lead">Para un sistema lineal de \(2\times2\): \(\begin{cases} a_{11}x + a_{12}y = b_1 \\ a_{21}x + a_{22}y = b_2 \end{cases}\)</p>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <span class="mini-tag">Incógnita \(x\)</span>
+                <div class="math-box center-math">
+                  \[
+                  x = \frac{\begin{vmatrix} \mathbf{b_1} & a_{12} \\ \mathbf{b_2} & a_{22} \end{vmatrix}}{\begin{vmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{vmatrix}} = \frac{\Delta_x}{\Delta_s}
+                  \]
+                </div>
+                <small>Se reemplaza la columna de coeficientes de \(x\) por los términos independientes.</small>
+              </div>
+              <div class="card soft-celeste">
+                <span class="mini-tag">Incógnita \(y\)</span>
+                <div class="math-box center-math">
+                  \[
+                  y = \frac{\begin{vmatrix} a_{11} & \mathbf{b_1} \\ a_{21} & \mathbf{b_2} \end{vmatrix}}{\begin{vmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{vmatrix}} = \frac{\Delta_y}{\Delta_s}
+                  \]
+                </div>
+                <small>Se reemplaza la columna de coeficientes de \(y\) por los términos independientes.</small>
+              </div>
+            </div>
+            <div class="callout error">
+              <strong>Condición de Solución Única:</strong> El determinante del sistema en el denominador debe ser no nulo (\(\Delta_s \neq 0\)).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 17: Ejemplo 4 - Determinante con Incógnita -->
+      <section class="slide" data-slide-title="Ejemplo 4 (Ecuación con Determinante)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 4 · Determinante con Incógnita</h2>
+            <p class="lead">Determinar el o los valores de \(x\) para que el determinante sea igual a cero: \(\begin{vmatrix} x & 4 \\ 2 & x \end{vmatrix} = 0\).</p>
+            <div class="split">
+              <div class="card soft-crema">
+                <span class="mini-tag">Resolución Paso a Paso</span>
+                <div class="step-list">
+                  <div class="step">
+                    <div class="step-number">1</div>
+                    <div><strong>Plantear el determinante:</strong> \(x \cdot x - 4 \cdot 2 = 0 \implies x^2 - 8 = 0\).</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">2</div>
+                    <div><strong>Despejar \(x\):</strong> \(x^2 = 8 \implies x = \pm \sqrt{8}\).</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">3</div>
+                    <div><strong>Simplificar el radical:</strong> \(x = \pm 2\sqrt{2}\).</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card soft-lila">
+                <h3>Conjunto Solución</h3>
+                <div class="math-box center-math">
+                  \[
+                  x_1 = 2\sqrt{2} \quad \text{o} \quad x_2 = -2\sqrt{2}
+                  \]
+                </div>
+                <button class="btn btn-primary" onclick="toggleReveal('verificacionEx4')">Verificar ambas respuestas</button>
+                <div class="reveal" id="verificacionEx4">
+                  <div class="callout remember">
+                    Para \(x = 2\sqrt{2}\): \((2\sqrt{2})(2\sqrt{2}) - 8 = 8 - 8 = 0\).<br>
+                    Para \(x = -2\sqrt{2}\): \((-2\sqrt{2})(-2\sqrt{2}) - 8 = 8 - 8 = 0\). ¡Ambas son válidas!
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 18: Problema 5 - Aplicación Geométrica (Área de Triángulo) -->
+      <section class="slide" data-slide-title="Problema 5 (Geometría)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua compromiso">DUA · Compromiso</span>
+              <span class="dua accion">DUA · Acción y expresión</span>
+            </div>
+            <h2>Problema 5 · Aplicación Geométrica: Área de un Triángulo</h2>
+            <p class="lead">El área de un triángulo con vértices \((x_1, y_1)\), \((x_2, y_2)\) y \((x_3, y_3)\) se calcula con:</p>
+            <div class="math-box center-math">
+              \[
+              \text{Área} = \frac{1}{2} \left| \begin{vmatrix}
+              x_1 & y_1 & 1 \\
+              x_2 & y_2 & 1 \\
+              x_3 & y_3 & 1
+              \end{vmatrix} \right|
+              \]
+            </div>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <h3>Enunciado del Problema</h3>
+                <p>Calcula el área del triángulo formado por los vértices:</p>
+                <p class="center"><strong>\(A(1, 2)\), \(B(4, 2)\) y \(C(2, 6)\)</strong></p>
+                <div class="callout teacher">
+                  <strong>Paso 1:</strong> Ubicar coordenadas en la matriz \(3\times3\) agregando una columna de unos (\(1\)) al final.
+                </div>
+              </div>
+              <div class="card soft-durazno">
+                <h3>Matriz planteada</h3>
+                <div class="math-box center-math">
+                  \[
+                  M = \begin{pmatrix}
+                  1 & 2 & 1 \\
+                  4 & 2 & 1 \\
+                  2 & 6 & 1
+                  \end{pmatrix}
+                  \]
+                </div>
+                <p class="muted">El valor absoluto exterior asegura que el área resultante sea siempre una cantidad positiva.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 19: Solución Detallada del Problema 5 -->
+      <section class="slide" data-slide-title="Solución Problema 5">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Solución Completa del Problema 5</h2>
+            <p class="lead">Aplicamos la Regla de Sarrus al determinante de coordenadas:</p>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <span class="mini-tag">Cálculo de Sarrus</span>
+                <div class="math-box center-math">
+                  \[
+                  \text{Diag. Principales} = (1)(2)(1) + (2)(1)(2) + (1)(4)(6) = 2 + 4 + 24 = \mathbf{30}
+                  \]
+                  \[
+                  \text{Diag. Secundarias} = (1)(2)(2) + (1)(1)(6) + (2)(4)(1) = 4 + 6 + 8 = \mathbf{18}
+                  \]
+                  \[
+                  \det(M) = 30 - 18 = \mathbf{12}
+                  \]
+                </div>
+              </div>
+              <div class="card soft-crema">
+                <span class="mini-tag">Cálculo Final del Área</span>
+                <div class="math-box center-math">
+                  \[
+                  \text{Área} = \frac{1}{2} |\det(M)| = \frac{1}{2} |12| = \mathbf{6}
+                  \]
+                </div>
+                <div class="callout remember">
+                  <strong>Respuesta:</strong> \(\mathbf{\text{Área} = 6\text{ unidades}^2}\)
+                </div>
+                <small class="muted">¡Un método analítico exacto sin necesidad de medir bases ni alturas complejas!</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 20: Errores Frecuentes (Acordeón Interactivo) -->
+      <section class="slide" data-slide-title="Errores Frecuentes">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua representacion">DUA · Representación</span>
+              <span class="dua accion">DUA · Acción y expresión</span>
+            </div>
+            <h2>Errores Frecuentes y Cómo Evitarlos</h2>
+            <p class="lead">Haz clic en cada tarjeta para desplegar el análisis didáctico del error:</p>
+            <div class="accordion">
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  1. Sumar los productos de las diagonales en vez de restarlos <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> La fórmula es siempre \(\text{Principal} - \text{Secundaria}\). En \(2\times2\): \(a_{11}a_{22} - a_{12}a_{21}\).</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  2. Errores al multiplicar números negativos en Sarrus <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> Calcula primero cada producto individual con su signo y luego aplica el signo menos exterior que afecta a todo el bloque secundario.</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  3. Intentar calcular determinantes en matrices no cuadradas <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> Solo las matrices cuadradas (\(2\times2, 3\times3, \dots\)) tienen determinante. Si la matriz es \(2\times3\), el determinante no existe.</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  4. Confundir la notación de matriz con la de determinante <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> Los paréntesis \(\begin{pmatrix}\dots\end{pmatrix}\) son una matriz; las barras verticales \(\begin{vmatrix}\dots\end{vmatrix}\) representan el valor numérico.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 21: Síntesis Final de la Clase -->
+      <section class="slide" data-slide-title="Síntesis Final">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Síntesis Conceptual de la Clase</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tema / Concepto</th>
+                    <th>Fórmula o Método Clave</th>
+                    <th>Aspecto Crítico a Recordar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Orden \(2\times2\)</strong></td>
+                    <td>\(\det(A) = a_{11}a_{22} - a_{12}a_{21}\)</td>
+                    <td>Diagonal principal menos secundaria.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Orden \(3\times3\)</strong></td>
+                    <td>Regla de Sarrus (ampliación de 2 columnas)</td>
+                    <td>3 diagonales suman (+), 3 diagonales restan (−).</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Matriz Triangular</strong></td>
+                    <td>\(\det(T) = t_{11} \cdot t_{22} \cdot t_{33}\)</td>
+                    <td>Producto directo de la diagonal principal.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Regla de Cramer</strong></td>
+                    <td>\(x = \frac{\Delta_x}{\Delta_s}, \quad y = \frac{\Delta_y}{\Delta_s}\)</td>
+                    <td>Requiere obligatoriamente que \(\Delta_s \neq 0\).</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Área Triangular</strong></td>
+                    <td>\(\text{Área} = \frac{1}{2} |\det(M_{3\times3})|\)</td>
+                    <td>Se coloca la columna de unos y valor absoluto.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout remember">
+              <strong>Regla de oro:</strong> El orden y la prolijidad con los signos garantizan el éxito en álgebra lineal.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 22: Evaluación Formativa y Cierre -->
+      <section class="slide" data-slide-title="Evaluación y Cierre">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua compromiso">DUA · Compromiso</span>
+            </div>
+            <h2>Evaluación Formativa y Cierre</h2>
+            <p class="lead">Comprueba tus aprendizajes con este reto rápido de consolidación:</p>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Reto de Clase</span>
+                <p>Calcula el determinante de:</p>
+                <div class="math-box center-math">
+                  \[
+                  M = \begin{pmatrix} 5 & 2 \\ 3 & 4 \end{pmatrix}
+                  \]
+                </div>
+                <button class="btn btn-primary" onclick="toggleReveal('solucionCierre')">Revelar Solución</button>
+                <div class="reveal" id="solucionCierre">
+                  <div class="callout remember">
+                    \(\det(M) = (5)(4) - (2)(3) = 20 - 6 = \mathbf{14}\).
+                  </div>
+                </div>
+              </div>
+              <div class="card soft-lila">
+                <span class="mini-tag">Reflexión Final</span>
+                <h3>Orden, perseverancia y rigor</h3>
+                <p>Los determinantes son la puerta de entrada a métodos computacionales avanzados, modelado de sistemas físicos y análisis económico.</p>
+                <div class="callout teacher">
+                  <strong>Para la próxima clase:</strong> Practicar el cálculo de determinantes \(3\times3\) con matrices que contengan ceros para aprovechar las propiedades simplificadoras.
+                </div>
+              </div>
+            </div>
+            <div class="footer-author center">
+              ¡Excelente trabajo en clase! · Bachillerato General Unificado · Matemáticas
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Controles de Navegación Inferior -->
+    <nav class="nav-controls" aria-label="Controles de navegación">
+      <button class="btn btn-ghost" id="prevBtn" onclick="prevSlide()">← Anterior</button>
+      <div class="slide-counter" id="slideCounter">1 / 22</div>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextSlide()">Siguiente →</button>
+    </nav>
+  </div>
+
+  <script>
+    // Variables editables para configuración docente
+    const PRESENTATION_TITLE = "Determinantes de una matriz de 2x2 y de 3x3";
+    const SUBJECT = "Matemáticas";
+    const COURSE = "Tercero de BGU";
+    const CLASS_DURATION = "90 minutos";
+    const TEACHER_MODE = true;
+
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const progressFill = document.getElementById('globalProgress');
+    const progressText = document.getElementById('globalProgressText');
+    const slideCounter = document.getElementById('slideCounter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const brandTitle = document.getElementById('brandTitle');
+    const brandSubtitle = document.getElementById('brandSubtitle');
+    let currentSlide = 0;
+
+    // Inicializar títulos
+    brandTitle.textContent = `${SUBJECT} · ${PRESENTATION_TITLE}`;
+    brandSubtitle.textContent = `${COURSE} · ${CLASS_DURATION}`;
+
+    function updateSlide() {
+      slides.forEach((slide, index) => {
+        slide.classList.toggle('active', index === currentSlide);
+      });
+      const total = slides.length;
+      const humanIndex = currentSlide + 1;
+      slideCounter.textContent = `${humanIndex} / ${total}`;
+      progressText.textContent = `${humanIndex}/${total}`;
+      progressFill.style.width = `${(humanIndex / total) * 100}%`;
+      prevBtn.disabled = currentSlide === 0;
+      nextBtn.disabled = currentSlide === total - 1;
+
+      const activeTitle = slides[currentSlide].dataset.slideTitle || PRESENTATION_TITLE;
+      document.title = `${humanIndex}. ${activeTitle} · ${PRESENTATION_TITLE}`;
+
+      // Renderizado MathJax dinámico
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([slides[currentSlide]]).catch(() => {});
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToSlide(index) {
+      currentSlide = Math.max(0, Math.min(index, slides.length - 1));
+      updateSlide();
+    }
+
+    function nextSlide() { goToSlide(currentSlide + 1); }
+    function prevSlide() { goToSlide(currentSlide - 1); }
+
+    function toggleReveal(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('show');
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([el]).catch(() => {});
+      }
+    }
+
+    function checkOption(button) {
+      const grid = button.closest('.option-grid');
+      if (!grid) return;
+      const questionId = grid.dataset.question;
+      grid.querySelectorAll('.option').forEach(opt => {
+        opt.classList.remove('correct', 'wrong');
+      });
+      document.querySelectorAll(`#${questionId}-ok, #${questionId}-bad`).forEach(f => f.classList.remove('show'));
+      
+      const isCorrect = button.dataset.correct === 'true';
+      button.classList.add(isCorrect ? 'correct' : 'wrong');
+      
+      const feedback = document.getElementById(`${questionId}-${isCorrect ? 'ok' : 'bad'}`);
+      if (feedback) feedback.classList.add('show');
+      
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([grid, feedback]).catch(() => {});
+      }
+    }
+
+    function toggleAccordion(button) {
+      const item = button.closest('.acc-item');
+      if (!item) return;
+      item.classList.toggle('open');
+      const symbol = button.querySelector('span');
+      if (symbol) symbol.textContent = item.classList.contains('open') ? '−' : '＋';
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([item]).catch(() => {});
+      }
+    }
+
+    // Navegación por teclado
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+        if (event.target.tagName !== 'BUTTON') nextSlide();
+      }
+      if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        if (event.target.tagName !== 'BUTTON') prevSlide();
+      }
+      if (event.key === 'Home') goToSlide(0);
+      if (event.key === 'End') goToSlide(slides.length - 1);
+    });
+
+    // Soporte táctil optimizado para celulares Android e iPhone
+    let touchStartX = 0;
+    let touchStartY = 0;
+    document.addEventListener('touchstart', (event) => {
+      if (!event.changedTouches || event.changedTouches.length === 0) return;
+      touchStartX = event.changedTouches[0].screenX;
+      touchStartY = event.changedTouches[0].screenY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (event) => {
+      if (!event.changedTouches || event.changedTouches.length === 0) return;
+      const dx = event.changedTouches[0].screenX - touchStartX;
+      const dy = event.changedTouches[0].screenY - touchStartY;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        if (dx < 0) nextSlide(); else prevSlide();
+      }
+    }, { passive: true });
+
+    // Inicialización al cargar la página
+    updateSlide();
+  </script>
+</body>
+</html>

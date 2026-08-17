@@ -48,7 +48,7 @@ serve(async (req) => {
       });
     }
 
-    // Read request body as a stream to enforce byte size limit before accumulating in memory
+    // Read request body as a stream to enforce byte size limit
     const reader = req.body?.getReader();
     const chunks: Uint8Array[] = [];
     let totalBytes = 0;
@@ -196,7 +196,7 @@ serve(async (req) => {
       });
     }
 
-    // 6. DETECCIÓN DE RETRY IDEMPOTENTE: Si ya existe un intento para este submission_id, devolver respuesta registrada sin re-calificar
+    // 6. DETECCIÓN DE RETRY IDEMPOTENTE
     const { data: existingAttempt, error: attCheckErr } = await serviceClient
       .from("activity_attempts")
       .select("attempt_number, score, completed_at")
@@ -247,7 +247,7 @@ serve(async (req) => {
       });
     }
 
-    // 8. Consultar pauta de calificación privada mediante RPC Gateway segura (Solo service_role)
+    // 8. Consultar pauta de calificación privada
     const { data: gradingConfigData, error: cfgErr } = await serviceClient
       .rpc("get_activity_grading_config", { p_activity_id: activity.id });
 
@@ -259,25 +259,26 @@ serve(async (req) => {
       });
     }
 
-    // 9. CALCULAR NOTA OFICIAL EN SERVIDOR (rawScore -> officialScore)
+    // 9. CALCULAR NOTA OFICIAL EN SERVIDOR
     const maxScore = Number(activity.max_score || 10);
     const minScore = Number(activity.minimum_score || 1);
     let rawScore = 0;
 
-    if (gradingConfigData.grader_type === "auto_mcq") {
+    const graderType = gradingConfigData.grader_type;
+
+    if (graderType === "auto_mcq") {
       const answers = gradingConfigData.config?.answers;
       const userAnswers = submission?.answers;
 
       if (!answers || typeof answers !== "object" || Object.keys(answers).length === 0) {
-        console.error("Pauta auto_mcq inválida o vacía");
         return new Response(JSON.stringify({ success: false, error: GENERIC_SUBMIT_ERROR }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
-      if (!submission || typeof submission !== "object" || Array.isArray(submission) || !userAnswers || typeof userAnswers !== "object" || Array.isArray(userAnswers)) {
-        return new Response(JSON.stringify({ success: false, error: "Formato de respuestas entregado no válido" }), {
+      if (!submission || typeof submission !== "object" || !userAnswers || typeof userAnswers !== "object") {
+        return new Response(JSON.stringify({ success: false, error: "Formato de respuestas no válido" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
@@ -285,14 +286,78 @@ serve(async (req) => {
 
       const totalQuestions = Object.keys(answers).length;
       let correct = 0;
-
       for (const [qId, correctVal] of Object.entries(answers)) {
         if (userAnswers[qId] === correctVal) correct++;
       }
-
       rawScore = totalQuestions > 0 ? (correct / totalQuestions) * maxScore : 0;
+
+    } else if (graderType === "determinants_gamification_v1") {
+      const runId = submission?.run_id;
+      if (!runId) {
+        return new Response(JSON.stringify({ success: false, error: "Falta run_id en la entrega de gamificación" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      // Consultar intentos grabados server-side para este run_id
+      const { data: attemptsList } = await serviceClient
+        .schema("private")
+        .from("activity_question_attempts")
+        .select("question_id, is_correct, question_score")
+        .eq("activity_id", activity.id)
+        .eq("student_id", student.id)
+        .eq("run_id", runId);
+
+      const planetMap = new Map();
+      (attemptsList || []).forEach((a: any) => {
+        if (a.is_correct) planetMap.set(a.question_id, true);
+      });
+
+      const correctCount = planetMap.size;
+      rawScore = (correctCount / 6) * maxScore;
+
+    } else if (graderType === "determinants_classwork_v1") {
+      const phase = submission?.phase || "initial";
+
+      // Consultar intentos de preguntas grabados server-side para la fase inicial / recuperación
+      const { data: attemptsList } = await serviceClient
+        .schema("private")
+        .from("activity_question_attempts")
+        .select("phase, question_id, question_score")
+        .eq("activity_id", activity.id)
+        .eq("student_id", student.id);
+
+      const initialQScores = new Map();
+      const recoveryQScores = new Map();
+
+      (attemptsList || []).forEach((a: any) => {
+        if (a.phase === "initial") {
+          const current = initialQScores.get(a.question_id) || 0;
+          initialQScores.set(a.question_id, Math.max(current, Number(a.question_score)));
+        } else if (a.phase === "recovery") {
+          const current = recoveryQScores.get(a.question_id) || 0;
+          recoveryQScores.set(a.question_id, Math.max(current, Number(a.question_score)));
+        }
+      });
+
+      let initialSum = 0;
+      for (let i = 1; i <= 14; i++) {
+        initialSum += initialQScores.get(String(i)) || 0;
+      }
+      const initialAvg = initialSum / 14;
+
+      if (phase === "recovery") {
+        let recoverySum = 0;
+        for (let i = 1; i <= 8; i++) {
+          recoverySum += recoveryQScores.get(String(i)) || 0;
+        }
+        const recoveryAvg = recoverySum / 8;
+        rawScore = (initialAvg + recoveryAvg) / 2;
+      } else {
+        rawScore = initialAvg;
+      }
     } else {
-      console.error("Grader desconocido:", gradingConfigData.grader_type);
       return new Response(JSON.stringify({ success: false, error: GENERIC_SUBMIT_ERROR }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -319,7 +384,7 @@ serve(async (req) => {
       });
     }
 
-    // 11. Devolver ÚNICAMENTE información pública y segura al navegador
+    // 11. Devolver respuesta segura al navegador
     return new Response(JSON.stringify({
       success: true,
       data: {

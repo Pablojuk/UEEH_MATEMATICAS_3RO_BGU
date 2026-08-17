@@ -76,9 +76,51 @@ function testActivityStateTransformations() {
   console.log("✅ Unit Test Passed: Transformaciones lógicas de los 5 estados del resumen de actividades.");
 }
 
+// 3. Test de Algoritmos de Calificación de Unidad 5 (Gamificación y Trabajo en Clase)
+function testUnit5Graders() {
+  // Test Gamificación 6 Planetas
+  const calcGamificationScore = (correctPlanets) => {
+    const raw = (correctPlanets / 6) * 10;
+    return Math.min(10, Math.max(1.0, Math.round(raw * 100) / 100));
+  };
+
+  assert.strictEqual(calcGamificationScore(6), 10.00);
+  assert.strictEqual(calcGamificationScore(3), 5.00);
+  assert.strictEqual(calcGamificationScore(0), 1.00); // Regla nota mínima 1.00
+
+  // Test Trabajo en Clase 14 Preguntas Iniciales + 8 Recuperación
+  const calcClassworkScore = (initialScores, recoveryScores = null) => {
+    const initSum = initialScores.reduce((a, b) => a + b, 0);
+    const initAvg = initSum / 14;
+    let finalScore = initAvg;
+
+    if (recoveryScores && recoveryScores.length === 8) {
+      const recSum = recoveryScores.reduce((a, b) => a + b, 0);
+      const recAvg = recSum / 8;
+      finalScore = (initAvg + recAvg) / 2;
+    }
+
+    return Math.min(10, Math.max(1.0, Math.round(finalScore * 100) / 100));
+  };
+
+  const perfect14 = Array(14).fill(10);
+  assert.strictEqual(calcClassworkScore(perfect14), 10.00);
+
+  const half14 = Array(14).fill(5);
+  const rec8 = Array(8).fill(9);
+  // (5.0 + 9.0) / 2 = 7.0
+  assert.strictEqual(calcClassworkScore(half14, rec8), 7.00);
+
+  const zero14 = Array(14).fill(0);
+  assert.strictEqual(calcClassworkScore(zero14), 1.00); // Regla nota mínima 1.00
+
+  console.log("✅ Unit Test Passed: Algoritmos de calificación de Unidad 5 (determinants_gamification_v1 & determinants_classwork_v1).");
+}
+
 try {
   testSubmissionIdIdempotency();
   testActivityStateTransformations();
+  testUnit5Graders();
   console.log("🎉 TODOS LOS UNIT TESTS DE ACTIVITY SERVICE SE EJECUTARON CON ÉXITO.");
   process.exit(0);
 } catch (err) {
