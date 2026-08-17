@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Admin Activities Component — UEEH Matemáticas 3ro BGU (Unidad 5+)
+// Admin Activities & Student Grades Matrix Component — UEEH Matemáticas 3ro BGU
 // ═══════════════════════════════════════════════════════════════════════════
 
 import {
@@ -9,27 +9,418 @@ import {
   setActivityActive,
   reopenActivity,
   fetchAcademicYears,
-  fetchClassSections
+  fetchClassSections,
+  fetchStudentGradesMatrix
 } from "../../core/admin-service.js";
 
+let currentSubView = "grades"; // "grades" (DEFAULT) | "manage"
+let selectedUnitNumber = 5;
+let currentMatrixData = null;
 let currentActivities = [];
 let academicYears = [];
 let classSections = [];
 
+/**
+ * Renderiza el contenedor principal de la pestaña Actividades con sub-vistas navegables.
+ */
 export async function renderAdminActivitiesView(container) {
   container.innerHTML = `
     <div class="space-y-6 animate-fade-in">
-      <!-- Header -->
-      <div class="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <!-- Encabezado con Navegación Secundaria de Sub-Vistas -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-sm">
         <div>
-          <h2 class="heading-font text-2xl font-bold text-moodle-text-blue">Gestión de Actividades (Unidad 5+)</h2>
-          <p class="text-xs text-neutral-500 mt-0.5">Crea, administra y configura pautas privadas de actividades evaluables.</p>
+          <h2 class="heading-font text-2xl font-bold text-moodle-text-blue flex items-center gap-2">
+            Actividades Académicas
+          </h2>
+          <p class="text-xs text-neutral-500 mt-0.5">Calificaciones oficiales por estudiante y gestión de pautas privadas (Unidad 5+).</p>
         </div>
-        <button id="btn-new-activity" class="px-5 py-3 rounded-2xl bg-moodle-blue hover:bg-moodle-blue/90 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2">
-          <span>➕</span> Nueva Actividad
-        </button>
+
+        <div class="flex items-center gap-3">
+          <!-- Selector de Sub-Vistas -->
+          <div class="flex items-center bg-neutral-100 p-1 rounded-2xl border border-neutral-200">
+            <button id="act-subtab-grades" class="px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              currentSubView === "grades" ? "bg-white text-purple-900 shadow-sm" : "text-neutral-600 hover:text-purple-900"
+            }">
+              📊 Notas por estudiante
+            </button>
+            <button id="act-subtab-manage" class="px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              currentSubView === "manage" ? "bg-white text-purple-900 shadow-sm" : "text-neutral-600 hover:text-purple-900"
+            }">
+              📝 Gestionar actividades
+            </button>
+          </div>
+
+          <button id="btn-new-activity-top" class="${currentSubView === "manage" ? "flex" : "hidden"} px-4 py-2.5 rounded-2xl bg-moodle-blue hover:bg-moodle-blue/90 text-white font-bold text-xs shadow-md transition-all items-center gap-1.5">
+            <span>➕</span> <span class="hidden sm:inline">Nueva Actividad</span>
+          </button>
+        </div>
       </div>
 
+      <!-- Contenedor Principal Dinámico de Sub-Vista -->
+      <div id="act-subview-root"></div>
+    </div>
+
+    <!-- Container Global para Modales -->
+    <div id="modal-container"></div>
+  `;
+
+  bindSubViewEvents(container);
+
+  if (currentSubView === "grades") {
+    await renderStudentGradesSubView();
+  } else {
+    await renderManageActivitiesSubView();
+  }
+}
+
+function bindSubViewEvents(container) {
+  const btnGrades = container.querySelector("#act-subtab-grades");
+  const btnManage = container.querySelector("#act-subtab-manage");
+  const btnNew = container.querySelector("#btn-new-activity-top");
+
+  btnGrades?.addEventListener("click", async () => {
+    if (currentSubView === "grades") return;
+    currentSubView = "grades";
+    renderAdminActivitiesView(container);
+  });
+
+  btnManage?.addEventListener("click", async () => {
+    if (currentSubView === "manage") return;
+    currentSubView = "manage";
+    renderAdminActivitiesView(container);
+  });
+
+  btnNew?.addEventListener("click", () => openActivityModal(null));
+}
+
+/* ==========================================================================
+   SUB-VISTA 1 (PREDETERMINADA): NOTAS POR ESTUDIANTE
+   ========================================================================== */
+
+async function renderStudentGradesSubView() {
+  const root = document.getElementById("act-subview-root");
+  if (!root) return;
+
+  root.innerHTML = `
+    <div class="space-y-4">
+      <!-- Barra Superior: Selector Dinámico de Unidad y Filtro de Búsqueda -->
+      <div class="bg-white p-4 rounded-2xl border border-neutral-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <label class="text-xs font-bold text-neutral-700 uppercase tracking-wide whitespace-nowrap">Unidad:</label>
+          <select id="select-unit-number" class="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-xs font-bold text-purple-900 focus:outline-none focus:border-purple-600">
+            <option value="5" ${selectedUnitNumber === 5 ? "selected" : ""}>Unidad 5 — Determinantes</option>
+            <option value="6" ${selectedUnitNumber === 6 ? "selected" : ""}>Unidad 6</option>
+            <option value="7" ${selectedUnitNumber === 7 ? "selected" : ""}>Unidad 7</option>
+          </select>
+        </div>
+
+        <div class="relative w-full sm:w-80">
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">🔍</span>
+          <input type="text" id="input-grades-search" placeholder="Buscar por estudiante o código (ej. UEEH-STU-000011)…"
+                 class="w-full bg-neutral-50 border border-neutral-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-moodle-text-blue focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-colors" />
+        </div>
+      </div>
+
+      <!-- Tabla Matriz de Calificaciones -->
+      <div id="grades-matrix-container" class="bg-white rounded-3xl border border-neutral-200/80 shadow-sm overflow-hidden">
+        <div class="flex justify-center py-12">
+          <div class="w-8 h-8 border-4 border-purple-200 border-t-purple-700 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  await loadAndRenderGradesMatrix();
+
+  document.getElementById("select-unit-number")?.addEventListener("change", async (e) => {
+    selectedUnitNumber = Number(e.target.value);
+    await loadAndRenderGradesMatrix();
+  });
+
+  document.getElementById("input-grades-search")?.addEventListener("input", filterAndRenderLocalGrades);
+}
+
+async function loadAndRenderGradesMatrix() {
+  const container = document.getElementById("grades-matrix-container");
+
+  try {
+    currentMatrixData = await fetchStudentGradesMatrix(selectedUnitNumber);
+    filterAndRenderLocalGrades();
+  } catch (err) {
+    if (container) {
+      container.innerHTML = `<div class="p-6 text-center text-xs text-red-600 font-bold">Error al cargar la matriz de calificaciones: ${err.message}</div>`;
+    }
+  }
+}
+
+function filterAndRenderLocalGrades() {
+  const container = document.getElementById("grades-matrix-container");
+  const searchVal = (document.getElementById("input-grades-search")?.value || "").toLowerCase().trim();
+
+  if (!container || !currentMatrixData) return;
+
+  const { activities = [], students = [] } = currentMatrixData;
+
+  const filteredStudents = students.filter((st) => {
+    if (!searchVal) return true;
+    return st.official_full_name.toLowerCase().includes(searchVal) || st.student_code.toLowerCase().includes(searchVal);
+  });
+
+  if (filteredStudents.length === 0) {
+    container.innerHTML = `
+      <div class="p-12 text-center space-y-2">
+        <div class="text-3xl">🔍</div>
+        <p class="text-xs font-bold text-neutral-600">No se encontraron estudiantes para la Unidad ${selectedUnitNumber}.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Transformar encabezados dinámicamente según activity_type
+  const activityHeadersHtml = activities
+    .map((act) => {
+      let shortTitle = act.title;
+      if (act.activity_type === "gamification") shortTitle = "Gamificación";
+      else if (act.activity_type === "classwork") shortTitle = "Trabajo en Clase";
+
+      return `
+        <th class="px-6 py-3.5 text-center whitespace-nowrap" title="${escapeHTML(act.title)}">
+          ${shortTitle}
+        </th>
+      `;
+    })
+    .join("");
+
+  // Construir filas de estudiantes
+  const rowsHtml = filteredStudents
+    .map((st) => {
+      let completedCount = 0;
+      let notSubmittedCount = 0;
+      let pendingCount = 0;
+
+      const activityCellsHtml = activities
+        .map((act) => {
+          const gradeInfo = st.grades?.[act.activity_key];
+
+          if (!gradeInfo) {
+            pendingCount++;
+            return `<td class="px-6 py-4 text-center font-bold text-neutral-400">—</td>`;
+          }
+
+          if (gradeInfo.result_status === "completed") {
+            completedCount++;
+            const scoreNum = Number(gradeInfo.best_score || 0).toFixed(2);
+            return `<td class="px-6 py-4 text-center font-bold text-purple-950">${scoreNum} / 10</td>`;
+          }
+
+          if (gradeInfo.result_status === "not_submitted") {
+            notSubmittedCount++;
+            const minScoreNum = Number(act.minimum_score || 1.00).toFixed(2);
+            return `<td class="px-6 py-4 text-center font-bold text-red-600">${minScoreNum} / 10</td>`;
+          }
+
+          pendingCount++;
+          return `<td class="px-6 py-4 text-center font-bold text-neutral-400">—</td>`;
+        })
+        .join("");
+
+      // Estado General por Estudiante
+      let overallStatusBadge = `<span class="px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-600 text-[10px] font-bold">🟡 Pendiente</span>`;
+      if (notSubmittedCount > 0) {
+        overallStatusBadge = `<span class="px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold">🔴 Con actividad no entregada</span>`;
+      } else if (activities.length > 0 && completedCount === activities.length) {
+        overallStatusBadge = `<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">✅ Completo</span>`;
+      } else if (completedCount > 0) {
+        overallStatusBadge = `<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">🟡 Parcial</span>`;
+      }
+
+      return `
+        <tr class="hover:bg-neutral-50/80 transition-colors border-b border-neutral-100 last:border-none text-xs">
+          <td class="px-6 py-4 font-bold text-neutral-800">${escapeHTML(st.official_full_name)}</td>
+          <td class="px-6 py-4 font-mono font-bold text-moodle-text-blue">${escapeHTML(st.student_code)}</td>
+          ${activityCellsHtml}
+          <td class="px-6 py-4 text-center">${overallStatusBadge}</td>
+          <td class="px-6 py-4 text-right">
+            <button data-student-code="${escapeHTML(st.student_code)}" class="btn-detail-student-grades px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold transition-colors">
+              Ver detalle →
+            </button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  container.innerHTML = `
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-neutral-50 border-b border-neutral-200 text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
+            <th class="px-6 py-3.5">Estudiante</th>
+            <th class="px-6 py-3.5">Código</th>
+            ${activityHeadersHtml}
+            <th class="px-6 py-3.5 text-center">Estado</th>
+            <th class="px-6 py-3.5 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  container.querySelectorAll(".btn-detail-student-grades").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const code = btn.getAttribute("data-student-code");
+      const stData = students.find((s) => s.student_code === code);
+      if (stData) openStudentGradeDetailModal(stData, selectedUnitNumber, currentMatrixData);
+    });
+  });
+}
+
+/**
+ * Modal con el desglose académico detallado del estudiante.
+ */
+function openStudentGradeDetailModal(student, unitNumber, matrixData) {
+  const container = document.getElementById("modal-container");
+  if (!container) return;
+
+  const { activities = [] } = matrixData;
+
+  const formatDate = (isoStr) => {
+    if (!isoStr) return "—";
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleString("es-EC", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+    } catch (_) {
+      return "—";
+    }
+  };
+
+  const rowsHtml = activities
+    .map((act) => {
+      const gradeInfo = student.grades?.[act.activity_key];
+
+      let statusBadge = `<span class="px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-600 text-[10px] font-bold">🟡 Pendiente</span>`;
+      let noteDisplay = "—";
+      let attemptsDisplay = "0";
+      let bestScoreDisplay = "—";
+      let regDateDisplay = "—";
+
+      if (gradeInfo) {
+        attemptsDisplay = String(gradeInfo.attempt_count || 1);
+        if (gradeInfo.result_status === "completed") {
+          statusBadge = `<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">✅ Enviado y registrado</span>`;
+          noteDisplay = `${Number(gradeInfo.best_score || 0).toFixed(2)} / 10`;
+          bestScoreDisplay = noteDisplay;
+          regDateDisplay = formatDate(gradeInfo.last_completed_at);
+        } else if (gradeInfo.result_status === "not_submitted") {
+          statusBadge = `<span class="px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold">🔴 No entregado — plazo vencido</span>`;
+          noteDisplay = `${Number(act.minimum_score || 1.00).toFixed(2)} / 10`;
+          bestScoreDisplay = noteDisplay;
+          regDateDisplay = "—";
+        }
+      }
+
+      const dueDateDisplay = formatDate(act.due_at);
+
+      return `
+        <tr class="border-b border-neutral-100 text-xs">
+          <td class="px-5 py-4 font-bold text-neutral-800">${escapeHTML(act.title)}</td>
+          <td class="px-5 py-4">${statusBadge}</td>
+          <td class="px-5 py-4 font-bold text-purple-950">${noteDisplay}</td>
+          <td class="px-5 py-4 text-center font-bold text-neutral-700">${attemptsDisplay}</td>
+          <td class="px-5 py-4 font-bold text-emerald-800">${bestScoreDisplay}</td>
+          <td class="px-5 py-4 text-neutral-500 font-mono text-[11px]">${regDateDisplay}</td>
+          <td class="px-5 py-4 text-neutral-500 font-mono text-[11px]">${dueDateDisplay}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  container.innerHTML = `
+    <div class="fixed inset-0 z-50 bg-neutral-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+      <div class="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden my-8 border border-neutral-200">
+        <div class="p-6 bg-purple-800 text-white flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl">📋</div>
+            <div>
+              <h3 class="heading-font text-lg font-bold">Detalle Académico del Estudiante</h3>
+              <p class="text-xs text-purple-200">Unidad ${unitNumber} — 3.º BGU A</p>
+            </div>
+          </div>
+          <button id="btn-close-detail-modal" class="text-white/80 hover:text-white text-xl">✕</button>
+        </div>
+
+        <div class="p-6 space-y-6">
+          <!-- Identificación del Estudiante -->
+          <div class="bg-purple-50/70 border border-purple-200/70 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 block">Estudiante:</span>
+              <span class="font-bold text-neutral-900 text-sm">${escapeHTML(student.official_full_name)}</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 block">Código Institucional:</span>
+              <span class="font-mono font-bold text-purple-900 text-sm">${escapeHTML(student.student_code)}</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 block">Curso:</span>
+              <span class="font-bold text-neutral-900 text-sm">3.º BGU A</span>
+            </div>
+          </div>
+
+          <!-- Tabla Desglose -->
+          <div class="border border-neutral-200 rounded-2xl overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-neutral-50 border-b border-neutral-200 text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
+                  <th class="px-5 py-3.5">Actividad</th>
+                  <th class="px-5 py-3.5">Estado</th>
+                  <th class="px-5 py-3.5">Nota</th>
+                  <th class="px-5 py-3.5 text-center">Intentos</th>
+                  <th class="px-5 py-3.5">Mejor Nota</th>
+                  <th class="px-5 py-3.5">Fecha Registro</th>
+                  <th class="px-5 py-3.5">Fecha Límite</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="p-4 bg-neutral-50 border-t border-neutral-100 flex justify-end">
+          <button id="btn-close-detail-modal-bottom" class="px-6 py-2.5 rounded-xl bg-neutral-200 hover:bg-neutral-300 text-neutral-800 font-bold text-xs transition-colors">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const closeModalFn = () => { container.innerHTML = ""; };
+  container.querySelector("#btn-close-detail-modal")?.addEventListener("click", closeModalFn);
+  container.querySelector("#btn-close-detail-modal-bottom")?.addEventListener("click", closeModalFn);
+}
+
+/* ==========================================================================
+   SUB-VISTA 2: GESTIONAR ACTIVIDADES (VISTA ACTUAL INTACTA)
+   ========================================================================== */
+
+async function renderManageActivitiesSubView() {
+  const root = document.getElementById("act-subview-root");
+  if (!root) return;
+
+  root.innerHTML = `
+    <div class="space-y-6">
       <!-- Filtros -->
       <div class="bg-white p-4 rounded-3xl border border-neutral-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <div>
@@ -89,22 +480,16 @@ export async function renderAdminActivitiesView(container) {
         </div>
       </div>
     </div>
-
-    <!-- Container para Modales -->
-    <div id="modal-container"></div>
   `;
 
-  // Cargar datos de apoyo
   try {
     academicYears = await fetchAcademicYears();
     classSections = await fetchClassSections();
     await loadActivities();
   } catch (err) {
-    console.error("Error inicializando actividades:", err);
+    console.error("Error inicializando gestión de actividades:", err);
   }
 
-  // Event Listeners
-  document.getElementById("btn-new-activity")?.addEventListener("click", () => openActivityModal(null));
   document.getElementById("filter-type")?.addEventListener("change", applyFilters);
   document.getElementById("filter-unit")?.addEventListener("change", applyFilters);
   document.getElementById("filter-status")?.addEventListener("change", applyFilters);
@@ -212,7 +597,6 @@ function renderActivitiesTable(list) {
     `;
   }).join("");
 
-  // Event Listeners de acciones en filas
   document.querySelectorAll(".btn-edit-act").forEach(b => {
     b.addEventListener("click", () => openActivityModal(b.getAttribute("data-id")));
   });
@@ -247,7 +631,6 @@ async function openActivityModal(activityId) {
     }
   }
 
-  // Pre-seleccionar año activo, periodo 2 y primera sección
   const activeYear = academicYears.find(y => y.is_active) || academicYears[0];
   const defaultTerm = activeYear?.academic_terms?.find(t => t.term_number === 2) || activeYear?.academic_terms?.[0];
   const defaultSection = classSections.find(s => s.academic_year_id === activeYear?.id) || classSections[0];
@@ -395,7 +778,6 @@ async function openActivityModal(activityId) {
     </div>
   `;
 
-  // Event Listeners del Modal Form
   document.getElementById("btn-close-act-modal")?.addEventListener("click", closeModal);
   document.getElementById("btn-cancel-act-modal")?.addEventListener("click", closeModal);
 
@@ -433,7 +815,6 @@ async function openActivityModal(activityId) {
     const opensAtVal = document.getElementById("act-opens-at").value;
     const dueAtVal = document.getElementById("act-due-at").value;
 
-    // Recopilar pauta de respuestas
     const answersObj = {};
     document.querySelectorAll(".answer-row").forEach(row => {
       const qid = row.querySelector(".ans-qid")?.value.trim();
