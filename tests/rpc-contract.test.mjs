@@ -83,11 +83,28 @@ for (const filePath of edgeFiles) {
   }
 }
 
+// 3. Test de regresión específico: Verificar que la sobrecarga legacy con p_question_score NO exista
+const latestMigration = fs.readFileSync(path.join(migrationsDir, "20260817174500_remove_legacy_question_attempt_overload.sql"), "utf-8");
+if (!latestMigration.includes("DROP FUNCTION IF EXISTS private.record_question_attempt")) {
+  errors.push("Falta la migración para eliminar private.record_question_attempt legacy.");
+}
+
+const reqQuestionAttemptParams = sqlFunctions.get("record_question_attempt");
+if (reqQuestionAttemptParams) {
+  if (reqQuestionAttemptParams.has("p_question_score")) {
+    errors.push("❌ REGRESIÓN: La firma de record_question_attempt todavía contiene 'p_question_score'.");
+  }
+  if (!reqQuestionAttemptParams.has("p_question_submission_id")) {
+    errors.push("❌ ERROR: La firma de record_question_attempt debe contener 'p_question_submission_id'.");
+  }
+}
+
 if (errors.length > 0) {
   console.error("❌ ERRORES DE CONTRATO RPC DETECTADOS:");
   errors.forEach(e => console.error("  - " + e));
   process.exit(1);
 } else {
-  console.log(`✅ VERIFICACIÓN DE CONTRATO RPC EXITOSA: Se auditaron ${totalRpcCallsTested} llamadas .rpc() y todas coinciden 100% con los parámetros PostgreSQL.`);
+  console.log(`✅ VERIFICACIÓN DE CONTRATO RPC EXITOSA: Se auditaron ${totalRpcCallsTested} llamadas .rpc(), todas coinciden 100% y la sobrecarga legacy p_question_score está eliminada.`);
   process.exit(0);
 }
+
