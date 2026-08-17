@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const ALLOWED_ORIGINS = [
   "http://localhost:5500",
@@ -7,404 +7,343 @@ const ALLOWED_ORIGINS = [
   "https://pablojuk.github.io"
 ];
 
-const GENERIC_SUBMIT_ERROR = "No se pudo procesar la entrega de la actividad.";
-const MAX_PAYLOAD_BYTES = 65536; // 64 KB limit
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-serve(async (req) => {
-  const origin = req.headers.get("origin");
-
-  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
-    return new Response(JSON.stringify({ success: false, error: "Origen no permitido" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
-
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": origin || ALLOWED_ORIGINS[0],
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[2];
+  return {
+    "Access-Control-Allow-Origin": allowed,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
+}
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+serve(async (req: Request) => {
+  const cors = corsHeaders(req);
 
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
+  }
+
+  const origin = req.headers.get("origin");
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return new Response(JSON.stringify({ error: "Origen no autorizado" }), {
+      status: 403,
+      headers: { ...cors, "Content-Type": "application/json" }
+    });
   }
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ success: false, error: "Método no permitido" }), {
+    return new Response(JSON.stringify({ error: "Método no permitido" }), {
       status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...cors, "Content-Type": "application/json" }
     });
   }
 
   try {
-    // 0. Rechazo temprano por cabecera Content-Length
-    const contentLength = req.headers.get("content-length");
-    if (contentLength && parseInt(contentLength, 10) > MAX_PAYLOAD_BYTES) {
-      return new Response(JSON.stringify({ success: false, error: "Payload demasiado grande" }), {
+    const MAX_BYTES = 65536;
+    const bodyBuffer = await req.arrayBuffer();
+    if (bodyBuffer.byteLength > MAX_BYTES) {
+      return new Response(JSON.stringify({ error: "Payload demasiado grande" }), {
         status: 413,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...cors, "Content-Type": "application/json" }
       });
     }
 
-    // Read request body as a stream to enforce byte size limit
-    const reader = req.body?.getReader();
-    const chunks: Uint8Array[] = [];
-    let totalBytes = 0;
+    const bodyText = new TextDecoder().decode(bodyBuffer);
+    let payload: any;
+    try {
+      payload = JSON.parse(bodyText);
+    } catch {
+      return new Response(JSON.stringify({ error: "JSON inválido" }), {
+        status: 400,
+        headers: { ...cors, "Content-Type": "application/json" }
+      });
+    }
 
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          totalBytes += value.byteLength;
-          if (totalBytes > MAX_PAYLOAD_BYTES) {
-            await reader.cancel();
-            return new Response(JSON.stringify({ success: false, error: "Payload demasiado grande" }), {
-              status: 413,
-              headers: { ...corsHeaders, "Content-Type": "application/json" }
-            });
-          }
-          chunks.push(value);
-        }
+    // Rechazar parámetros de calificación enviados desde el navegador (autoridad exclusiva de servidor)
+    const FORBIDDEN_FIELDS = ["student_id", "score", "officialScore", "attempt_number", "is_correct"];
+    for (const field of FORBIDDEN_FIELDS) {
+      if (field in payload) {
+        return new Response(
+          JSON.stringify({ error: `El campo '${field}' no está permitido en la entrega` }),
+          { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+        );
       }
     }
 
-    const rawBuffer = new Uint8Array(totalBytes);
-    let offset = 0;
-    for (const chunk of chunks) {
-      rawBuffer.set(chunk, offset);
-      offset += chunk.byteLength;
+    const { activity_key, submission_id, run_id, phase } = payload;
+
+    if (!activity_key || typeof activity_key !== "string") {
+      return new Response(JSON.stringify({ error: "activity_key requerido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    if (!submission_id || typeof submission_id !== "string" || !UUID_REGEX.test(submission_id)) {
+      return new Response(JSON.stringify({ error: "submission_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    if (!run_id || typeof run_id !== "string" || !UUID_REGEX.test(run_id)) {
+      return new Response(JSON.stringify({ error: "run_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ success: false, error: "No autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Autenticación requerida (JWT ausente)" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     const token = authHeader.replace("Bearer ", "").trim();
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-    // 1. Validar JWT de usuario
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } }
-    });
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(JSON.stringify({ success: false, error: "Sesión no válida o expirada" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const { data: userData, error: userError } = await serviceClient.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Sesión inválida o expirada" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 2. Resolver estudiante desde linked_user_id
-    const serviceClient = createClient(supabaseUrl, serviceKey);
+    const userId = userData.user.id;
 
-    const { data: student, error: stErr } = await serviceClient
+    const { data: student, error: studentError } = await serviceClient
       .from("students")
       .select("id, status")
-      .eq("linked_user_id", user.id)
+      .eq("linked_user_id", userId)
+      .eq("status", "active")
       .maybeSingle();
 
-    if (stErr || !student || student.status !== "active") {
-      return new Response(JSON.stringify({ success: false, error: "Estudiante no encontrado o inactivo" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (studentError || !student) {
+      return new Response(JSON.stringify({ error: "Estudiante no registrado o inactivo" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 3. Confirmar matrícula activa
-    const { data: enrollments, error: enErr } = await serviceClient
+    const { data: enrollment, error: enrollError } = await serviceClient
       .from("enrollments")
-      .select("class_section_id")
+      .select("class_section_id, status")
       .eq("student_id", student.id)
-      .eq("status", "active");
+      .eq("status", "active")
+      .maybeSingle();
 
-    if (enErr || !enrollments || enrollments.length === 0) {
-      return new Response(JSON.stringify({ success: false, error: "El estudiante no cuenta con matrícula activa" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (enrollError || !enrollment) {
+      return new Response(JSON.stringify({ error: "El estudiante no posee una matrícula activa" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const enrolledSectionIds = enrollments.map((e: any) => e.class_section_id);
-
-    // 4. Parsear y sanitizar cuerpo de la solicitud
-    const bodyText = new TextDecoder().decode(rawBuffer);
-    const body = JSON.parse(bodyText);
-
-    if (
-      body.student_id !== undefined ||
-      body.score !== undefined ||
-      body.rawScore !== undefined ||
-      body.officialScore !== undefined ||
-      body.minimum_score !== undefined ||
-      body.attempt_number !== undefined ||
-      body.best_score !== undefined ||
-      body.admin_user_id !== undefined
-    ) {
-      return new Response(JSON.stringify({ success: false, error: "Parámetros de entrega no permitidos" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    const { activity_key, submission_id, submission } = body;
-
-    if (!activity_key || typeof activity_key !== "string" || activity_key.trim().length === 0) {
-      return new Response(JSON.stringify({ success: false, error: "Clave de actividad requerida" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    if (!submission_id || typeof submission_id !== "string" || !UUID_REGEX.test(submission_id.trim())) {
-      return new Response(JSON.stringify({ success: false, error: "Identificador de entrega (submission_id) no válido" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    const cleanSubmissionId = submission_id.trim();
-
-    // 5. Consultar actividad activa
-    const { data: activity, error: actErr } = await serviceClient
+    const { data: activity, error: actError } = await serviceClient
       .from("activities")
-      .select("id, max_score, minimum_score, opens_at, due_at, class_section_id, is_active")
-      .eq("activity_key", activity_key.trim())
-      .single();
+      .select("id, class_section_id, max_score, minimum_score, is_active, opens_at, due_at")
+      .eq("activity_key", activity_key)
+      .maybeSingle();
 
-    if (actErr || !activity || !activity.is_active) {
-      return new Response(JSON.stringify({ success: false, error: "Actividad no disponible o inactiva" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+    if (actError || !activity) {
+      return new Response(JSON.stringify({ error: "Actividad no encontrada" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    if (!enrolledSectionIds.includes(activity.class_section_id)) {
-      return new Response(JSON.stringify({ success: false, error: "La actividad no corresponde al curso matriculado del estudiante" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+    // Validar pertenencia de sección
+    if (activity.class_section_id !== enrollment.class_section_id) {
+      return new Response(JSON.stringify({ error: "No tienes permiso para entregar actividades de esta sección" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 6. DETECCIÓN DE RETRY IDEMPOTENTE
-    const { data: existingAttempt, error: attCheckErr } = await serviceClient
+    const now = new Date();
+    if (activity.opens_at && new Date(activity.opens_at) > now) {
+      return new Response(JSON.stringify({ error: "La actividad aún no se encuentra abierta" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    if (activity.due_at && new Date(activity.due_at) < now) {
+      return new Response(JSON.stringify({ error: "El plazo de entrega para esta actividad ha vencido" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    // Idempotencia por submission_id en activity_attempts
+    const { data: existingAttempt } = await serviceClient
       .from("activity_attempts")
-      .select("attempt_number, score, completed_at")
+      .select("id, attempt_number, score, submission_data")
       .eq("activity_id", activity.id)
       .eq("student_id", student.id)
-      .eq("submission_id", cleanSubmissionId)
+      .contains("submission_data", { submission_id })
       .maybeSingle();
 
-    if (!attCheckErr && existingAttempt) {
-      const { data: existingResults } = await serviceClient
+    if (existingAttempt) {
+      const { data: bestRes } = await serviceClient
         .from("activity_results")
         .select("best_score, attempt_count")
         .eq("activity_id", activity.id)
         .eq("student_id", student.id)
-        .maybeSingle();
+        .single();
 
-      return new Response(JSON.stringify({
-        success: true,
-        data: {
-          activity_key: activity_key.trim(),
-          score: existingAttempt.score,
-          max_score: Number(activity.max_score || 10),
+      return new Response(
+        JSON.stringify({
+          success: true,
+          idempotent: true,
+          activity_id: activity.id,
+          student_id: student.id,
           attempt_number: existingAttempt.attempt_number,
-          best_score: existingResults?.best_score ?? existingAttempt.score,
-          attempt_count: existingResults?.attempt_count ?? 1,
-          registered_at: existingAttempt.completed_at
-        }
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+          score: existingAttempt.score,
+          best_score: bestRes?.best_score ?? existingAttempt.score,
+          attempt_count: bestRes?.attempt_count ?? existingAttempt.attempt_number
+        }),
+        { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
+      );
     }
 
-    // 7. NUEVA ENTREGA: Validar ventana de disponibilidad oficial por servidor
-    const now = new Date();
-
-    if (activity.opens_at && now < new Date(activity.opens_at)) {
-      return new Response(JSON.stringify({ success: false, error: "La actividad todavía no está disponible." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    if (activity.due_at && now > new Date(activity.due_at)) {
-      return new Response(JSON.stringify({ success: false, error: "El plazo de entrega de esta actividad ha finalizado." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    // 8. Consultar pauta de calificación privada
-    const { data: gradingConfigData, error: cfgErr } = await serviceClient
+    // Obtener la configuración privada de calificación mediante RPC
+    const { data: gradingConfigData, error: cfgError } = await serviceClient
       .rpc("get_activity_grading_config", { p_activity_id: activity.id });
 
-    if (cfgErr || !gradingConfigData || !gradingConfigData.grader_type) {
-      console.error("Error al obtener grading config:", cfgErr);
-      return new Response(JSON.stringify({ success: false, error: GENERIC_SUBMIT_ERROR }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+    if (cfgError || !gradingConfigData || !gradingConfigData.config) {
+      return new Response(JSON.stringify({ error: "Configuración de calificación no encontrada" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
     }
-
-    // 9. CALCULAR NOTA OFICIAL EN SERVIDOR
-    const maxScore = Number(activity.max_score || 10);
-    const minScore = Number(activity.minimum_score || 1);
-    let rawScore = 0;
 
     const graderType = gradingConfigData.grader_type;
+    let computedScore = 0.0;
+    let submissionDetails: any = { submission_id, run_id, phase: phase || "initial" };
 
-    if (graderType === "auto_mcq") {
-      const answers = gradingConfigData.config?.answers;
-      const userAnswers = submission?.answers;
-
-      if (!answers || typeof answers !== "object" || Object.keys(answers).length === 0) {
-        return new Response(JSON.stringify({ success: false, error: GENERIC_SUBMIT_ERROR }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
+    if (graderType === "determinants_gamification_v1") {
+      // Obtener intentos de preguntas del servidor para esta corrida y fase
+      const { data: runSummaryData, error: summaryErr } = await serviceClient
+        .rpc("get_activity_run_summary", {
+          p_activity_id: activity.id,
+          p_student_id: student.id,
+          p_run_id: run_id,
+          p_phase: "gamification"
         });
+
+      if (summaryErr || !Array.isArray(runSummaryData)) {
+        return new Response(JSON.stringify({ error: "No se encontraron intentos registrados para este juego" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       }
 
-      if (!submission || typeof submission !== "object" || !userAnswers || typeof userAnswers !== "object") {
-        return new Response(JSON.stringify({ success: false, error: "Formato de respuestas no válido" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+      // Servidor exige exactamente los 6 planetas correctos dentro del mismo run_id
+      const correctPlanets = runSummaryData.filter((q: any) => q.is_correct === true);
+      if (correctPlanets.length < 6) {
+        return new Response(
+          JSON.stringify({ error: `Odisea Espacial incompleta. Debes conquistar los 6 planetas (Completados: ${correctPlanets.length}/6).` }),
+          { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+        );
       }
 
-      const totalQuestions = Object.keys(answers).length;
-      let correct = 0;
-      for (const [qId, correctVal] of Object.entries(answers)) {
-        if (userAnswers[qId] === correctVal) correct++;
-      }
-      rawScore = totalQuestions > 0 ? (correct / totalQuestions) * maxScore : 0;
-
-    } else if (graderType === "determinants_gamification_v1") {
-      const runId = submission?.run_id;
-      if (!runId) {
-        return new Response(JSON.stringify({ success: false, error: "Falta run_id en la entrega de gamificación" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      // Consultar intentos grabados server-side para este run_id
-      const { data: attemptsList } = await serviceClient
-        .schema("private")
-        .from("activity_question_attempts")
-        .select("question_id, is_correct, question_score")
-        .eq("activity_id", activity.id)
-        .eq("student_id", student.id)
-        .eq("run_id", runId);
-
-      const planetMap = new Map();
-      (attemptsList || []).forEach((a: any) => {
-        if (a.is_correct) planetMap.set(a.question_id, true);
-      });
-
-      const correctCount = planetMap.size;
-      rawScore = (correctCount / 6) * maxScore;
+      computedScore = 10.00;
+      submissionDetails.planets_completed = 6;
 
     } else if (graderType === "determinants_classwork_v1") {
-      const phase = submission?.phase || "initial";
+      const currentPhase = phase || "initial";
 
-      // Consultar intentos de preguntas grabados server-side para la fase inicial / recuperación
-      const { data: attemptsList } = await serviceClient
-        .schema("private")
-        .from("activity_question_attempts")
-        .select("phase, question_id, question_score")
-        .eq("activity_id", activity.id)
-        .eq("student_id", student.id);
+      if (currentPhase === "initial") {
+        const { data: runSummaryData, error: summaryErr } = await serviceClient
+          .rpc("get_activity_run_summary", {
+            p_activity_id: activity.id,
+            p_student_id: student.id,
+            p_run_id: run_id,
+            p_phase: "initial"
+          });
 
-      const initialQScores = new Map();
-      const recoveryQScores = new Map();
-
-      (attemptsList || []).forEach((a: any) => {
-        if (a.phase === "initial") {
-          const current = initialQScores.get(a.question_id) || 0;
-          initialQScores.set(a.question_id, Math.max(current, Number(a.question_score)));
-        } else if (a.phase === "recovery") {
-          const current = recoveryQScores.get(a.question_id) || 0;
-          recoveryQScores.set(a.question_id, Math.max(current, Number(a.question_score)));
+        if (summaryErr || !Array.isArray(runSummaryData)) {
+          return new Response(JSON.stringify({ error: "No se encontraron intentos para el Trabajo en Clase" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
         }
-      });
 
-      let initialSum = 0;
-      for (let i = 1; i <= 14; i++) {
-        initialSum += initialQScores.get(String(i)) || 0;
-      }
-      const initialAvg = initialSum / 14;
-
-      if (phase === "recovery") {
-        let recoverySum = 0;
-        for (let i = 1; i <= 8; i++) {
-          recoverySum += recoveryQScores.get(String(i)) || 0;
+        // Servidor exige exactamente 14 ejercicios terminales (is_correct=true O attempt_count>=3)
+        const terminalQuestions = runSummaryData.filter((q: any) => q.locked === true || q.is_correct === true || q.attempt_count >= 3);
+        if (terminalQuestions.length < 14) {
+          return new Response(
+            JSON.stringify({ error: `Trabajo en Clase incompleto. Debes resolver los 14 ejercicios iniciales (Finalizados: ${terminalQuestions.length}/14).` }),
+            { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+          );
         }
-        const recoveryAvg = recoverySum / 8;
-        rawScore = (initialAvg + recoveryAvg) / 2;
+
+        const totalTerminalScore = terminalQuestions.reduce((acc: number, q: any) => acc + Number(q.terminal_score || 0), 0);
+        const rawInitialScore = totalTerminalScore / 14.0;
+        computedScore = rawInitialScore;
+
+        submissionDetails.phase = "initial";
+        submissionDetails.raw_initial_score = rawInitialScore;
+        submissionDetails.questions_count = 14;
+
+      } else if (currentPhase === "recovery") {
+        // Verificar que el estudiante haya obtenido una nota inicial inferior a 7.00 en DB
+        const { data: pastAttempts } = await serviceClient
+          .from("activity_attempts")
+          .select("score")
+          .eq("activity_id", activity.id)
+          .eq("student_id", student.id)
+          .order("completed_at", { ascending: false });
+
+        const previousScore = pastAttempts && pastAttempts.length > 0 ? Number(pastAttempts[0].score) : 10.0;
+        if (previousScore >= 7.00) {
+          return new Response(
+            JSON.stringify({ error: "La fase de recuperación solo está disponible si la nota inicial es menor a 7.00" }),
+            { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { data: recSummaryData, error: recErr } = await serviceClient
+          .rpc("get_activity_run_summary", {
+            p_activity_id: activity.id,
+            p_student_id: student.id,
+            p_run_id: run_id,
+            p_phase: "recovery"
+          });
+
+        if (recErr || !Array.isArray(recSummaryData)) {
+          return new Response(JSON.stringify({ error: "No se encontraron intentos para la fase de recuperación" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+        }
+
+        const terminalRecovery = recSummaryData.filter((q: any) => q.locked === true || q.is_correct === true || q.attempt_count >= 3);
+        if (terminalRecovery.length < 8) {
+          return new Response(
+            JSON.stringify({ error: `Fase de recuperación incompleta. Debes completar los 8 ejercicios (Finalizados: ${terminalRecovery.length}/8).` }),
+            { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+          );
+        }
+
+        const totalRecScore = terminalRecovery.reduce((acc: number, q: any) => acc + Number(q.terminal_score || 0), 0);
+        const recoveryAvg = totalRecScore / 8.0;
+
+        const finalRaw = (previousScore + recoveryAvg) / 2.0;
+        computedScore = finalRaw;
+
+        submissionDetails.phase = "recovery";
+        submissionDetails.initial_score = previousScore;
+        submissionDetails.recovery_average = recoveryAvg;
+        submissionDetails.final_raw_score = finalRaw;
+
       } else {
-        rawScore = initialAvg;
+        return new Response(JSON.stringify({ error: `Fase '${currentPhase}' no válida` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       }
+
     } else {
-      return new Response(JSON.stringify({ success: false, error: GENERIC_SUBMIT_ERROR }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      return new Response(JSON.stringify({ error: `Tipo de calificador '${graderType}' no reconocido` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // Aplicar regla oficial: officialScore = max(minScore, rawScore)
-    const officialScore = Math.min(maxScore, Math.max(minScore, Math.round(Math.max(minScore, rawScore) * 100) / 100));
+    // Aplicar la nota mínima institucional (1.00/10.00) y tope máximo
+    const minScore = Number(activity.minimum_score) || 1.00;
+    const maxScore = Number(activity.max_score) || 10.00;
+    const finalOfficialScore = Math.max(minScore, Math.min(maxScore, Number(computedScore.toFixed(2))));
 
-    // 10. Invocación atómica RPC en servidor con submission_id
-    const { data: rpcResult, error: rpcErr } = await serviceClient.rpc("record_activity_attempt", {
+    // Guardar el intento de actividad mediante RPC atómica private.record_activity_attempt
+    const { data: recordResult, error: recordError } = await serviceClient.rpc("record_activity_attempt", {
       p_activity_id: activity.id,
       p_student_id: student.id,
-      p_submission_id: cleanSubmissionId,
-      p_score: officialScore,
-      p_submission_data: submission || null
+      p_score: finalOfficialScore,
+      p_submission_data: submissionDetails
     });
 
-    if (rpcErr || !rpcResult) {
-      console.error("Error RPC record_activity_attempt:", rpcErr);
-      return new Response(JSON.stringify({ success: false, error: GENERIC_SUBMIT_ERROR }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+    if (recordError || !recordResult) {
+      console.error("Error al ejecutar record_activity_attempt:", recordError);
+      return new Response(JSON.stringify({ error: "Error al guardar el resultado oficial en la base de datos" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 11. Devolver respuesta segura al navegador
-    return new Response(JSON.stringify({
-      success: true,
-      data: {
-        activity_key: activity_key.trim(),
-        score: rpcResult.score,
-        max_score: rpcResult.max_score,
-        attempt_number: rpcResult.attempt_number,
-        best_score: rpcResult.best_score,
-        attempt_count: rpcResult.attempt_count,
-        registered_at: rpcResult.registered_at
-      }
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        activity_id: activity.id,
+        student_id: student.id,
+        attempt_number: recordResult.attempt_number,
+        score: finalOfficialScore,
+        max_score: maxScore,
+        best_score: recordResult.best_score,
+        attempt_count: recordResult.attempt_count
+      }),
+      { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
+    );
+
   } catch (err: any) {
-    console.error("Excepción en Edge Function submit-activity-result:", err);
-    return new Response(JSON.stringify({ success: false, error: GENERIC_SUBMIT_ERROR }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    console.error("Excepción en submit-activity-result:", err);
+    return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
+      status: 500,
+      headers: { ...cors, "Content-Type": "application/json" }
     });
   }
 });

@@ -64,16 +64,16 @@ export function getPendingSubmission(activityKey) {
 /**
  * Envía una actividad a la Edge Function de Supabase con garantía de idempotencia (submission_id).
  */
-export async function submitActivityResult({ activityKey, submission, isRetry = false }) {
-  let submissionId;
+export async function submitActivityResult({ activityKey, submission, submissionId, runId, phase, isRetry = false }) {
+  let subId = submissionId;
   const pending = getPendingSubmission(activityKey);
 
   if (isRetry && pending && pending.submissionId) {
-    submissionId = pending.submissionId;
+    subId = pending.submissionId;
     submission = submission || pending.submission;
-  } else {
-    submissionId = getOrCreateSubmissionId(activityKey);
-    savePendingSubmission(activityKey, submissionId, submission);
+  } else if (!subId) {
+    subId = getOrCreateSubmissionId(activityKey);
+    savePendingSubmission(activityKey, subId, submission);
   }
 
   try {
@@ -86,6 +86,9 @@ export async function submitActivityResult({ activityKey, submission, isRetry = 
       };
     }
 
+    const payloadRunId = runId || submission?.run_id;
+    const payloadPhase = phase || submission?.phase || "initial";
+
     const res = await fetch(SUBMIT_FUNCTION_URL, {
       method: "POST",
       headers: {
@@ -94,7 +97,9 @@ export async function submitActivityResult({ activityKey, submission, isRetry = 
       },
       body: JSON.stringify({
         activity_key: activityKey,
-        submission_id: submissionId,
+        submission_id: subId,
+        run_id: payloadRunId,
+        phase: payloadPhase,
         submission: submission
       })
     });
@@ -106,7 +111,7 @@ export async function submitActivityResult({ activityKey, submission, isRetry = 
       return {
         success: true,
         state: "confirmed",
-        data: body.data
+        data: body
       };
     } else {
       return {

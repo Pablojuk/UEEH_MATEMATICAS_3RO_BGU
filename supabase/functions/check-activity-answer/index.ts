@@ -1,8 +1,3 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// Edge Function: check-activity-answer — UEEH Matemáticas 3ro BGU
-// SERVER-SIDE QUESTION EVALUATION & ATTEMPT TRACKING
-// ═══════════════════════════════════════════════════════════════════════════
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -12,233 +7,296 @@ const ALLOWED_ORIGINS = [
   "https://pablojuk.github.io"
 ];
 
-function buildCorsHeaders(req: Request): HeadersInit {
+function corsHeaders(req: Request) {
   const origin = req.headers.get("origin") || "";
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[2];
   return {
     "Access-Control-Allow-Origin": allowed,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Content-Type": "application/json"
+    "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 serve(async (req: Request) => {
-  const corsHeaders = buildCorsHeaders(req);
+  const cors = corsHeaders(req);
 
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
+  }
+
+  // 1. Validar CORS Origin estricto
+  const origin = req.headers.get("origin");
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return new Response(JSON.stringify({ error: "Origen no autorizado" }), {
+      status: 403,
+      headers: { ...cors, "Content-Type": "application/json" }
+    });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Método no permitido" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json" }
+    });
   }
 
   try {
-    if (req.method !== "POST") {
-      return new Response(JSON.stringify({ success: false, error: "Método no permitido" }), {
-        status: 405,
-        headers: corsHeaders
+    // 2. Control de Payload Máximo (64 KB real)
+    const MAX_BYTES = 65536;
+    const bodyBuffer = await req.arrayBuffer();
+    if (bodyBuffer.byteLength > MAX_BYTES) {
+      return new Response(JSON.stringify({ error: "Payload demasiado grande" }), {
+        status: 413,
+        headers: { ...cors, "Content-Type": "application/json" }
       });
     }
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ success: false, error: "Cabecera de autorización no encontrada" }), {
-        status: 401,
-        headers: corsHeaders
+    const bodyText = new TextDecoder().decode(bodyBuffer);
+    let payload: any;
+    try {
+      payload = JSON.parse(bodyText);
+    } catch {
+      return new Response(JSON.stringify({ error: "JSON inválido" }), {
+        status: 400,
+        headers: { ...cors, "Content-Type": "application/json" }
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ success: false, error: "Sesión no válida" }), {
-        status: 401,
-        headers: corsHeaders
-      });
-    }
-
-    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Obtener estudiante vinculado
-    const { data: student, error: stErr } = await serviceClient
-      .from("students")
-      .select("id, status")
-      .eq("linked_user_id", user.id)
-      .single();
-
-    if (stErr || !student || student.status !== "active") {
-      return new Response(JSON.stringify({ success: false, error: "Estudiante no encontrado o inactivo" }), {
-        status: 403,
-        headers: corsHeaders
-      });
-    }
-
-    // Parsear body
-    const body = await req.json();
-
-    // Bloquear intentos de inyección de parámetros no permitidos
-    const forbiddenKeys = ["student_id", "score", "expected_answer", "correct_answer", "attempt_number", "question_score"];
-    for (const k of forbiddenKeys) {
-      if (k in body) {
-        return new Response(JSON.stringify({ success: false, error: `Parámetro '${k}' no permitido` }), {
-          status: 400,
-          headers: corsHeaders
-        });
+    // 3. Rechazar campos de cliente no autorizados (defensa en profundidad)
+    const FORBIDDEN_FIELDS = [
+      "student_id",
+      "score",
+      "question_score",
+      "attempt_number",
+      "correct_answer",
+      "expected_answer",
+      "is_correct"
+    ];
+    for (const field of FORBIDDEN_FIELDS) {
+      if (field in payload) {
+        return new Response(
+          JSON.stringify({ error: `El campo '${field}' no está permitido en la petición` }),
+          { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+        );
       }
     }
 
-    const { activity_key, run_id, phase = "initial", question_id, answer } = body;
+    const {
+      activity_key,
+      run_id,
+      phase,
+      question_id,
+      question_submission_id,
+      user_answer
+    } = payload;
 
-    if (!activity_key || !run_id || !question_id || answer === undefined) {
-      return new Response(JSON.stringify({ success: false, error: "Faltan parámetros requeridos (activity_key, run_id, question_id, answer)" }), {
-        status: 400,
-        headers: corsHeaders
-      });
+    // 4. Validar formato de tipos obligatorios
+    if (!activity_key || typeof activity_key !== "string") {
+      return new Response(JSON.stringify({ error: "activity_key requerido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    if (!run_id || typeof run_id !== "string" || !UUID_REGEX.test(run_id)) {
+      return new Response(JSON.stringify({ error: "run_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    if (!phase || !["initial", "recovery", "gamification"].includes(phase)) {
+      return new Response(JSON.stringify({ error: "phase debe ser 'initial', 'recovery' o 'gamification'" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    if (!question_id || (typeof question_id !== "string" && typeof question_id !== "number")) {
+      return new Response(JSON.stringify({ error: "question_id requerido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    if (!question_submission_id || typeof question_submission_id !== "string" || !UUID_REGEX.test(question_submission_id)) {
+      return new Response(JSON.stringify({ error: "question_submission_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // Obtener actividad activa
-    const { data: activity, error: actErr } = await serviceClient
-      .from("activities")
-      .select("id, is_active, opens_at, due_at")
-      .eq("activity_key", activity_key)
-      .single();
+    // 5. Autenticación por JWT de Supabase Auth
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Autenticación requerida (JWT ausente)" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+    }
 
-    if (actErr || !activity || !activity.is_active) {
-      return new Response(JSON.stringify({ success: false, error: "Actividad no encontrada o inactiva" }), {
-        status: 404,
-        headers: corsHeaders
-      });
+    const token = authHeader.replace("Bearer ", "").trim();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: userData, error: userError } = await serviceClient.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Sesión inválida o expirada" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    const userId = userData.user.id;
+
+    // 6. Validar que el usuario sea un estudiante activo
+    const { data: student, error: studentError } = await serviceClient
+      .from("students")
+      .select("id, status")
+      .eq("linked_user_id", userId)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (studentError || !student) {
+      return new Response(JSON.stringify({ error: "Estudiante no registrado o inactivo" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    // 7. Validar la matrícula activa y la sección de clase del estudiante
+    const { data: enrollment, error: enrollError } = await serviceClient
+      .from("enrollments")
+      .select("class_section_id, status")
+      .eq("student_id", student.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (enrollError || !enrollment) {
+      return new Response(JSON.stringify({ error: "El estudiante no posee una matrícula activa" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    // 8. Consultar la actividad solicitada
+    const { data: activity, error: actError } = await serviceClient
+      .from("activities")
+      .select("id, class_section_id, is_active, opens_at, due_at")
+      .eq("activity_key", activity_key)
+      .maybeSingle();
+
+    if (actError || !activity) {
+      return new Response(JSON.stringify({ error: "Actividad no encontrada" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    // Hallazgo Crítico 4: Validar pertenencia de sección
+    if (activity.class_section_id !== enrollment.class_section_id) {
+      return new Response(JSON.stringify({ error: "No tienes permiso para responder en esta sección académica" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     const now = new Date();
     if (activity.opens_at && new Date(activity.opens_at) > now) {
-      return new Response(JSON.stringify({ success: false, error: "La actividad aún no está abierta" }), {
-        status: 403,
-        headers: corsHeaders
-      });
+      return new Response(JSON.stringify({ error: "La actividad aún no se encuentra abierta" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
-
     if (activity.due_at && new Date(activity.due_at) < now) {
-      return new Response(JSON.stringify({ success: false, error: "El plazo de entrega ha finalizado" }), {
-        status: 403,
-        headers: corsHeaders
-      });
+      return new Response(JSON.stringify({ error: "El plazo de entrega para esta actividad ha vencido" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // Cargar config privada
-    const { data: cfgRow, error: cfgErr } = await serviceClient
-      .schema("private")
-      .from("activity_grading_configs")
-      .select("grader_type, config")
-      .eq("activity_id", activity.id)
-      .single();
+    // 9. Obtener la pauta privada mediante RPC (FASE 3 / RPC service_role)
+    const { data: gradingConfigData, error: cfgError } = await serviceClient
+      .rpc("get_activity_grading_config", { p_activity_id: activity.id });
 
-    if (cfgErr || !cfgRow) {
-      return new Response(JSON.stringify({ success: false, error: "Configuración de calificación no encontrada" }), {
-        status: 500,
-        headers: corsHeaders
-      });
+    if (cfgError || !gradingConfigData || !gradingConfigData.config) {
+      return new Response(JSON.stringify({ error: "Configuración de calificación no encontrada" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const { grader_type, config } = cfgRow;
+    const graderType = gradingConfigData.grader_type;
+    const config = gradingConfigData.config;
+
+    // 10. Evaluador Servidor según grader_type
     let isCorrect = false;
     let partialFraction: number | null = null;
-    let rawQuestionScore = 0;
+    let solutionHtml: string | null = null;
 
-    // EVALUACIÓN SERVER-SIDE
-    if (grader_type === "determinants_gamification_v1") {
-      const planetConfig = config.planets?.[question_id];
-      if (planetConfig) {
-        const userAns = String(answer).trim().toLowerCase().replace(",", ".");
-        const accepted = (planetConfig.answers || []).map((a: string) => String(a).trim().toLowerCase().replace(",", "."));
-        isCorrect = accepted.includes(userAns);
+    const qStr = String(question_id);
 
-        if (planetConfig.isInvertibleCheck) {
-          const invChoice = body.invertibleChoice;
-          if (invChoice !== undefined && invChoice !== planetConfig.correctInvertible) {
-            isCorrect = false;
-          }
-        }
-        rawQuestionScore = isCorrect ? 10 : 0;
+    if (graderType === "determinants_gamification_v1") {
+      const planetCfg = config.planets?.[qStr];
+      if (!planetCfg) {
+        return new Response(JSON.stringify({ error: `Planeta ${qStr} no existe en la pauta` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       }
-    } else if (grader_type === "determinants_classwork_v1") {
-      const qConfig = config.questions?.[question_id];
-      if (qConfig) {
-        if (qConfig.mode === "mcq") {
-          isCorrect = Number(answer) === Number(qConfig.correctIndex);
-          rawQuestionScore = isCorrect ? 10 : 0;
-        } else if (qConfig.mode === "input") {
-          const userAns = String(answer).trim().toLowerCase().replace(/\s+/g, "").replace(",", ".");
-          const accepted = (qConfig.acceptedAnswers || []).map((a: string) => String(a).trim().toLowerCase().replace(/\s+/g, "").replace(",", "."));
-          isCorrect = accepted.some((ans: string) => {
-            if (userAns === ans) return true;
-            const uN = parseFloat(userAns);
-            const aN = parseFloat(ans);
-            return !isNaN(uN) && !isNaN(aN) && Math.abs(uN - aN) < 1e-6;
-          });
-          rawQuestionScore = isCorrect ? 10 : 0;
-        } else if (qConfig.mode === "fill") {
-          const blanks = qConfig.blanks || [];
-          const userBlanks = Array.isArray(answer) ? answer : [];
-          let okCount = 0;
-          blanks.forEach((b: { answer: number }, i: number) => {
-            const uVal = String(userBlanks[i] || "").trim().replace(",", ".");
-            if (Math.abs(Number(uVal) - Number(b.answer)) < 1e-6) okCount++;
-          });
-          partialFraction = blanks.length > 0 ? okCount / blanks.length : 0;
-          isCorrect = okCount === blanks.length;
-          rawQuestionScore = Math.round(partialFraction * 10 * 10) / 10;
-        }
+
+      if (planetCfg.isInvertibleCheck) {
+        const uAns = String(user_answer?.answer ?? "").trim();
+        const uInv = Boolean(user_answer?.isInvertible);
+        isCorrect = planetCfg.answers.includes(uAns) && (uInv === planetCfg.correctInvertible);
+      } else {
+        const uAns = String(user_answer ?? "").trim();
+        isCorrect = planetCfg.answers.includes(uAns);
       }
+
+      if (isCorrect && planetCfg.solution_html) {
+        solutionHtml = planetCfg.solution_html;
+      }
+
+    } else if (graderType === "determinants_classwork_v1") {
+      const targetGroup = phase === "recovery" ? config.recoveryQuestions : config.questions;
+      const qCfg = targetGroup?.[qStr];
+
+      if (!qCfg) {
+        return new Response(JSON.stringify({ error: `Pregunta ${qStr} no existe en la pauta de ${phase}` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+
+      if (qCfg.mode === "mcq") {
+        const uIdx = Number(user_answer);
+        isCorrect = uIdx === qCfg.correctIndex;
+      } else if (qCfg.mode === "input") {
+        const uAns = String(user_answer ?? "").trim();
+        isCorrect = qCfg.acceptedAnswers ? qCfg.acceptedAnswers.includes(uAns) : false;
+      } else if (qCfg.mode === "fill") {
+        const userBlanks: any[] = Array.isArray(user_answer) ? user_answer : [];
+        const expectedBlanks: any[] = qCfg.blanks || [];
+        let matchCount = 0;
+
+        expectedBlanks.forEach((b: any, idx: number) => {
+          const uVal = String(userBlanks[idx] ?? "").trim();
+          const eVal = String(b.answer ?? "").trim();
+          if (uVal === eVal) matchCount++;
+        });
+
+        const totalBlanks = expectedBlanks.length || 1;
+        isCorrect = matchCount === totalBlanks;
+        partialFraction = matchCount / totalBlanks;
+      }
+
+      if (qCfg.solution_html) {
+        solutionHtml = qCfg.solution_html;
+      }
+    } else {
+      return new Response(JSON.stringify({ error: `Tipo de calificador '${graderType}' no soportado` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // Registrar intento server-side via RPC
-    const { data: recResult, error: recErr } = await serviceClient.rpc("record_question_attempt", {
+    // 11. Registrar o recuperar el intento con bloqueo server-side (RPC Gateway)
+    const { data: recordRes, error: recError } = await serviceClient.rpc("record_question_attempt", {
       p_activity_id: activity.id,
       p_student_id: student.id,
       p_run_id: run_id,
       p_phase: phase,
-      p_question_id: question_id,
-      p_answer_data: { answer },
+      p_question_id: qStr,
+      p_question_submission_id: question_submission_id,
       p_is_correct: isCorrect,
       p_partial_fraction: partialFraction,
-      p_question_score: rawQuestionScore
+      p_answer_data: user_answer ? { value: user_answer } : null
     });
 
-    if (recErr) {
-      return new Response(JSON.stringify({ success: false, error: recErr.message }), {
-        status: 400,
-        headers: corsHeaders
-      });
+    if (recError || !recordRes) {
+      console.error("Error al registrar intento de pregunta:", recError);
+      return new Response(JSON.stringify({ error: "Error interno al guardar la respuesta" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // Ajustar puntaje según el número de intento alcanzado (Attempt 1 = 10, Attempt 2 = 9, Attempt 3 = 8)
-    let finalQScore = rawQuestionScore;
-    if (isCorrect && (recResult.attempt_number === 2)) finalQScore = Math.min(finalQScore, 9);
-    if (isCorrect && (recResult.attempt_number === 3)) finalQScore = Math.min(finalQScore, 8);
-
-    return new Response(JSON.stringify({
+    // Sanitizar respuesta devuelta al cliente: NUNCA devolver la respuesta correcta esperada ni pauta
+    const responsePayload: any = {
       success: true,
-      correct: isCorrect,
-      attempt_number: recResult.attempt_number,
-      attempts_remaining: recResult.attempts_remaining,
-      locked: recResult.locked,
-      question_score: finalQScore,
-      partial_fraction: partialFraction
-    }), {
+      activity_id: activity.id,
+      run_id: run_id,
+      phase: phase,
+      question_id: qStr,
+      is_correct: recordRes.is_correct ?? isCorrect,
+      attempt_number: recordRes.attempt_number,
+      attempts_remaining: recordRes.attempts_remaining ?? (3 - recordRes.attempt_number),
+      question_score: recordRes.question_score ?? 0.00,
+      locked: Boolean(recordRes.locked)
+    };
+
+    // Solución pedagógica solo si la pregunta fue respondida correctamente o quedó bloqueada
+    if ((responsePayload.is_correct || responsePayload.locked) && solutionHtml) {
+      responsePayload.solution_html = solutionHtml;
+    }
+
+    return new Response(JSON.stringify(responsePayload), {
       status: 200,
-      headers: corsHeaders
+      headers: { ...cors, "Content-Type": "application/json" }
     });
 
   } catch (err: any) {
-    return new Response(JSON.stringify({ success: false, error: err.message || "Error interno del servidor" }), {
+    console.error("Excepción en check-activity-answer:", err);
+    return new Response(JSON.stringify({ error: "Error procesando la solicitud" }), {
       status: 500,
-      headers: corsHeaders
+      headers: { ...cors, "Content-Type": "application/json" }
     });
   }
 });
