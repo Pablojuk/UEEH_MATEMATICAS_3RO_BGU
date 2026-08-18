@@ -277,7 +277,7 @@
       </div>
       <div class="topPills">
         <span class="tinyPill">🎯 14 Retos</span>
-        <span class="tinyPill">⏱️ 3 Intentos</span>
+        <span class="tinyPill">⏱️ 4 Intentos</span>
         <span class="tinyPill">📅 Límite: 27 de agosto de 2026</span>
       </div>
     </header>
@@ -640,9 +640,6 @@
         hint: "\\( \\Delta = -2 \\), \\( \\Delta_x = -6 \\implies x = 3 \\), \\( \\Delta_y = -4 \\implies y = 2 \\).",
         solution: null
       }
-    ];2 \\).",
-        solution: "\\[ \\Delta = -2, \\quad \\Delta_x = -6 \\implies x = 3, \\quad y = 2 \\]"
-      }
     ];
 
     /************************************************************
@@ -688,17 +685,28 @@
       typeset();
     }
 
-    function startHomework() {
-      state.initial = buildRuntime(exercises);
-      state.recovery = buildRuntime(recoveryExercises);
-      state.phase = "initial";
-      state.currentIndex = 0;
-      state.initialFinished = false;
-      state.recoveryEnabled = false;
-      state.recoveryFinished = false;
+    let isStarting = false;
 
-      showScreen("workScreen");
-      renderWork();
+    async function startHomework() {
+      if (isStarting) return;
+      isStarting = true;
+
+      try {
+        state.initial = buildRuntime(exercises);
+        state.recovery = buildRuntime(recoveryExercises);
+        state.phase = "initial";
+        state.currentIndex = 0;
+        state.initialFinished = false;
+        state.recoveryEnabled = false;
+        state.recoveryFinished = false;
+
+        showScreen("workScreen");
+        renderWork();
+      } catch (err) {
+        console.error("Error al iniciar el deber:", err);
+      } finally {
+        setTimeout(() => { isStarting = false; }, 300);
+      }
     }
 
     function renderWork() {
@@ -735,7 +743,7 @@
     function renderExercisePanel() {
       const ex = currentEx();
       const isLocked = ex.score !== null;
-      const attemptsText = `${ex.attempts}/3`;
+      const attemptsText = `${ex.attempts}/4`;
       const scoreBadge = ex.score === null ? "Pendiente" : `${ex.score}/10`;
 
       let inputHtml = "";
@@ -972,7 +980,7 @@
       let finalNote = notaInit;
 
       if (state.recoveryEnabled && state.recoveryFinished) {
-        finalNote = (notaInit + recAvg) / 2;
+        finalNote = Math.max(notaInit, recAvg);
       }
 
       finalNote = Math.round(finalNote * 100) / 100;
