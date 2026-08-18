@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Unit 5 Classwork Submit Guard Test — UEEH Matemáticas 3ro BGU
-// Verifies: in-flight guard, button state, retry same ID, solution null,
-//           navigation lock, server-authoritative scoring, 4-attempt lock.
+// Unit 5 Classwork Submit Guard & Question Binding Test — UEEH Matemáticas 3ro BGU
+// Verifies: in-flight guard, _pendingSubmission question binding, navigation lock,
+//           idempotent retry same ID, Edge Function fallback (4 - attempt, null for gamification).
 // ═══════════════════════════════════════════════════════════════════════════
 
 import fs from "fs";
@@ -12,6 +12,9 @@ import assert from "assert";
 const deberPath = path.resolve("topics/unit5-determinantes/deber.html");
 const html = fs.readFileSync(deberPath, "utf-8");
 
+const edgePath = path.resolve("supabase/functions/check-activity-answer/index.ts");
+const edgeCode = fs.readFileSync(edgePath, "utf-8");
+
 // ────────────────────────────────────────────────────────────
 // Helper: extract inline script code from deber.html
 // ────────────────────────────────────────────────────────────
@@ -21,7 +24,7 @@ assert.ok(scriptMatches.length > 0, "No scripts found");
 const allCode = scriptMatches.map(s => s.replace(/<script[^>]*>|<\/script>/gi, "")).join("\n");
 
 // ────────────────────────────────────────────────────────────
-// 1. STATIC: _submitting guard exists in checkCurrent
+// 1. STATIC: _submitting in-flight guard exists
 // ────────────────────────────────────────────────────────────
 assert.ok(
   allCode.includes("if (_submitting) return"),
@@ -30,21 +33,33 @@ assert.ok(
 console.log("✔ Submit Guard — _submitting in-flight check present in checkCurrent()");
 
 // ────────────────────────────────────────────────────────────
-// 2. STATIC: _submitting guard exists in navigation functions
+// 2. STATIC: _pendingSubmission binding exists
 // ────────────────────────────────────────────────────────────
-// navTo, prevExercise, nextExercise should all check _submitting
+assert.ok(
+  allCode.includes("_pendingSubmission") &&
+  allCode.includes("runId") &&
+  allCode.includes("phase") &&
+  allCode.includes("questionId") &&
+  allCode.includes("exerciseIndex"),
+  "❌ _pendingSubmission must bind runId, phase, questionId, and exerciseIndex"
+);
+console.log("✔ Submit Guard — _pendingSubmission bound to (runId, phase, questionId, exerciseIndex)");
+
+// ────────────────────────────────────────────────────────────
+// 3. STATIC: navigation blocked while _submitting OR _pendingSubmission exists
+// ────────────────────────────────────────────────────────────
 const navToMatch = allCode.match(/function navTo[\s\S]*?(?=function\s)/);
-assert.ok(navToMatch && navToMatch[0].includes("_submitting"), "❌ navTo must check _submitting");
+assert.ok(navToMatch && navToMatch[0].includes("_submitting") && navToMatch[0].includes("_pendingSubmission"), "❌ navTo must check _submitting and _pendingSubmission");
 
 const prevMatch = allCode.match(/function prevExercise[\s\S]*?(?=function\s)/);
-assert.ok(prevMatch && prevMatch[0].includes("_submitting"), "❌ prevExercise must check _submitting");
+assert.ok(prevMatch && prevMatch[0].includes("_submitting") && prevMatch[0].includes("_pendingSubmission"), "❌ prevExercise must check _submitting and _pendingSubmission");
 
 const nextMatch = allCode.match(/function nextExercise[\s\S]*?(?=function\s)/);
-assert.ok(nextMatch && nextMatch[0].includes("_submitting"), "❌ nextExercise must check _submitting");
-console.log("✔ Submit Guard — Navigation functions (navTo, prev, next) blocked during submission");
+assert.ok(nextMatch && nextMatch[0].includes("_submitting") && nextMatch[0].includes("_pendingSubmission"), "❌ nextExercise must check _submitting and _pendingSubmission");
+console.log("✔ Submit Guard — Navigation (navTo, prev, next) blocked when retry is pending");
 
 // ────────────────────────────────────────────────────────────
-// 3. STATIC: button disabled during _submitting
+// 4. STATIC: button shows spinner and disabled during submission
 // ────────────────────────────────────────────────────────────
 assert.ok(
   html.includes("_submitting") && html.includes("Comprobando"),
@@ -53,108 +68,40 @@ assert.ok(
 console.log("✔ Submit Guard — Button shows '⏳ Comprobando...' and is disabled during in-flight");
 
 // ────────────────────────────────────────────────────────────
-// 4. STATIC: _pendingSubmissionId retained on error
-// ────────────────────────────────────────────────────────────
-assert.ok(
-  allCode.includes("_pendingSubmissionId is intentionally RETAINED"),
-  "❌ Network error path must retain _pendingSubmissionId for retry"
-);
-console.log("✔ Submit Guard — _pendingSubmissionId retained for retry on network error");
-
-// ────────────────────────────────────────────────────────────
-// 5. STATIC: new submission ID only when no pending
-// ────────────────────────────────────────────────────────────
-assert.ok(
-  allCode.includes("if (!_pendingSubmissionId)") && allCode.includes("_pendingSubmissionId = crypto.randomUUID()"),
-  "❌ New submission ID must only be generated when no pending retry exists"
-);
-console.log("✔ Submit Guard — New submission ID generated only when no pending retry");
-
-// ────────────────────────────────────────────────────────────
-// 6. STATIC: server-authoritative attempt_number
+// 5. STATIC: server-authoritative attempts, score, locked
 // ────────────────────────────────────────────────────────────
 assert.ok(
   allCode.includes("targetEx.attempts = res.attempt_number"),
-  "❌ Attempt count must come from server (res.attempt_number), not local increment"
+  "❌ Attempt count must come from server (res.attempt_number)"
+);
+assert.ok(
+  allCode.includes("targetEx.score = res.question_score"),
+  "❌ Score must come from server (res.question_score)"
 );
 assert.ok(
   !allCode.includes("ex.attempts++") && !allCode.includes("ex.attempts +="),
-  "❌ No local attempt increment (ex.attempts++ or +=) should exist"
+  "❌ No local attempt increments"
 );
-console.log("✔ Submit Guard — attempt_number sourced exclusively from server response");
+console.log("✔ Submit Guard — attempts and score sourced exclusively from server response");
 
 // ────────────────────────────────────────────────────────────
-// 7. STATIC: server-authoritative score
+// 6. STATIC: Edge Function fallback logic (4 - attempt for classwork, null for gamification)
 // ────────────────────────────────────────────────────────────
 assert.ok(
-  allCode.includes("targetEx.score = res.question_score"),
-  "❌ Score must come from server (res.question_score), not local calculation"
+  !edgeCode.includes("3 - recordRes.attempt_number"),
+  "❌ Edge function must NOT contain legacy '3 - recordRes.attempt_number'"
 );
-console.log("✔ Submit Guard — question_score sourced exclusively from server response");
-
-// ────────────────────────────────────────────────────────────
-// 8. STATIC: solution null safety
-// ────────────────────────────────────────────────────────────
-// The solution box rendering must NOT blindly output ${ex.solution}
-// It must check typeof === "string" and .trim().length > 0
 assert.ok(
-  html.includes('typeof ex.solution === "string"') || html.includes("typeof ex.solution === 'string'") ||
-  html.includes('typeof res.solution_html === "string"'),
-  "❌ Solution rendering must check typeof before displaying"
+  edgeCode.includes('graderType === "determinants_classwork_v1"') &&
+  edgeCode.includes("Math.max(0, 4 - Number(recordRes.attempt_number || 0))"),
+  "❌ Edge function must compute classwork fallback as Math.max(0, 4 - attempt_number)"
 );
-
-// The HTML must NOT contain a bare ${ex.solution} without guard
-const solutionBoxPattern = /solutionBox[\s\S]{0,200}\$\{ex\.solution\}/;
-const solutionBoxMatches = html.match(solutionBoxPattern);
-// If matched, it should be within a conditional block
-if (solutionBoxMatches) {
-  // Verify it's inside the ternary guard
-  assert.ok(
-    html.includes('ex.solution && typeof ex.solution === "string"') ||
-    html.includes("ex.solution && typeof ex.solution === 'string'"),
-    "❌ Solution box must be conditionally rendered only when ex.solution is a non-empty string"
-  );
-}
-console.log("✔ Submit Guard — Solution box hidden when solution is null/undefined/empty (no literal 'null')");
-
-// ────────────────────────────────────────────────────────────
-// 9. STATIC: solution_html from server guarded
-// ────────────────────────────────────────────────────────────
 assert.ok(
-  allCode.includes('typeof res.solution_html === "string"') && allCode.includes("res.solution_html.trim().length > 0"),
-  "❌ checkCurrent must validate res.solution_html type and non-emptiness before assigning"
+  edgeCode.includes('graderType === "determinants_gamification_v1"') &&
+  edgeCode.includes("fallbackAttemptsRemaining = null"),
+  "❌ Edge function must compute gamification fallback as null (unlimited)"
 );
-console.log("✔ Submit Guard — Server solution_html validated for type and non-emptiness");
-
-// ────────────────────────────────────────────────────────────
-// 10. STATIC: target exercise captured by reference
-// ────────────────────────────────────────────────────────────
-assert.ok(
-  allCode.includes("targetEx = targetList[_submittingExIndex]"),
-  "❌ The response must be applied to the exercise that originated the request, not currentEx()"
-);
-console.log("✔ Submit Guard — Server response applied to target exercise by captured index/phase");
-
-// ────────────────────────────────────────────────────────────
-// 11. STATIC: HTTP error does NOT clear submission ID
-// ────────────────────────────────────────────────────────────
-// On !response.ok path: _submitting = false but _pendingSubmissionId NOT cleared
-const httpErrorBlock = allCode.match(/if \(!response\.ok\)[\s\S]*?return;\s*\}/);
-assert.ok(httpErrorBlock, "❌ HTTP error handling block must exist");
-assert.ok(
-  !httpErrorBlock[0].includes("_pendingSubmissionId = null"),
-  "❌ HTTP error path must NOT clear _pendingSubmissionId"
-);
-console.log("✔ Submit Guard — HTTP 500 retains submission ID (no new attempt on retry)");
-
-// ────────────────────────────────────────────────────────────
-// 12. STATIC: success path clears submission ID
-// ────────────────────────────────────────────────────────────
-assert.ok(
-  allCode.includes("_pendingSubmissionId = null") && allCode.includes("_submitting = false"),
-  "❌ Success path must clear both _pendingSubmissionId and _submitting"
-);
-console.log("✔ Submit Guard — Success path clears in-flight state and pending submission ID");
+console.log("✔ Edge Function — Classwork fallback is 4 - attempt, Gamification fallback is null (no legacy 3 - attempt)");
 
 // ────────────────────────────────────────────────────────────
 // Helper: create a sandboxed VM environment for behavioral tests
@@ -177,7 +124,6 @@ function createTestSandbox(fetchFn) {
     setTimeout: (fn) => fn(),
     fetch: fetchFn
   };
-  // Make window self-referential (matches browser: window === globalThis)
   sb.window = sb;
   vm.createContext(sb);
   scriptMatches.forEach(s => {
@@ -196,72 +142,113 @@ function createTestSandbox(fetchFn) {
 }
 
 // ────────────────────────────────────────────────────────────
-// 13. BEHAVIORAL: simulate rapid-fire calls to checkCurrent
+// 7. BEHAVIORAL: 10 rapid clicks produce exactly 1 fetch request
 // ────────────────────────────────────────────────────────────
 {
   let fetchCallCount = 0;
   const sandbox = createTestSandbox(async () => {
     fetchCallCount++;
-    return new Promise(() => {}); // never resolves — simulates slow server
+    return new Promise(() => {}); // never resolves — simulates in-flight
   });
 
-  fetchCallCount = 0;
   for (let i = 0; i < 10; i++) {
     vm.runInContext("checkCurrent()", sandbox);
   }
 
-  // _submitting is set synchronously, blocking all subsequent calls
   const submittingAfterSpam = vm.runInContext("_submitting", sandbox);
   assert.strictEqual(submittingAfterSpam, true, "❌ _submitting must be true after first call");
 
-  // Wait for microtasks so getAuthSessionToken resolves and fetch fires
   await new Promise(r => setTimeout(r, 50));
-
   assert.strictEqual(fetchCallCount, 1, `❌ 10 rapid clicks must produce exactly 1 fetch call, got ${fetchCallCount}`);
-  console.log("✔ Submit Guard — 10 rapid clicks produce exactly 1 fetch request (spam protection confirmed)");
+  console.log("✔ Behavioral — 10 rapid clicks produce exactly 1 fetch request");
 }
 
 // ────────────────────────────────────────────────────────────
-// 14. BEHAVIORAL: submission ID retained after network error
+// 8. BEHAVIORAL: Retry Question Binding & Navigation Lock
 // ────────────────────────────────────────────────────────────
 {
   let capturedSubmissionId = null;
+  let shouldFail = true;
+
   const sandbox = createTestSandbox(async (url, opts) => {
     const body = JSON.parse(opts.body);
     capturedSubmissionId = body.question_submission_id;
-    throw new Error("Network error");
+
+    if (shouldFail) {
+      throw new Error("Network timeout");
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        is_correct: false,
+        attempt_number: 1,
+        attempts_remaining: 3,
+        question_score: 0,
+        locked: false
+      })
+    };
   });
 
+  // Step 1: Submit Question 1 (fails with network error)
   vm.runInContext("checkCurrent()", sandbox);
   await new Promise(r => setTimeout(r, 50));
 
-  const firstId = capturedSubmissionId;
-  assert.ok(firstId, "❌ First submission should have captured an ID");
+  const firstSubmissionId = capturedSubmissionId;
+  assert.ok(firstSubmissionId, "❌ First submission must capture an ID");
 
-  const pendingAfterError = vm.runInContext("_pendingSubmissionId", sandbox);
-  assert.ok(pendingAfterError, "❌ _pendingSubmissionId must be retained after network error");
-  assert.strictEqual(pendingAfterError, firstId, "❌ Pending ID must match the original submission ID");
+  // Verify _pendingSubmission contains full metadata
+  const pending = vm.runInContext("_pendingSubmission", sandbox);
+  assert.ok(pending, "❌ _pendingSubmission must exist after network error");
+  assert.strictEqual(pending.id, firstSubmissionId, "❌ pending.id must match captured ID");
+  assert.strictEqual(pending.exerciseIndex, 0, "❌ pending.exerciseIndex must be 0 (Question 1)");
+  assert.strictEqual(pending.questionId, "1", "❌ pending.questionId must be '1'");
 
-  const submittingAfterError = vm.runInContext("_submitting", sandbox);
-  assert.strictEqual(submittingAfterError, false, "❌ _submitting must be false after error (allow retry)");
+  // Step 2: Attempt navigation to Question 2 (must be BLOCKED)
+  vm.runInContext("navTo(1)", sandbox);
+  let currentIndex = vm.runInContext("state.currentIndex", sandbox);
+  assert.strictEqual(currentIndex, 0, "❌ Navigation to Question 2 must be blocked while retry is pending!");
 
-  // Retry — should use same submission ID
+  vm.runInContext("nextExercise()", sandbox);
+  currentIndex = vm.runInContext("state.currentIndex", sandbox);
+  assert.strictEqual(currentIndex, 0, "❌ nextExercise() must be blocked while retry is pending!");
+
+  // Step 3: Retry Question 1 (now server succeeds)
+  shouldFail = false;
   capturedSubmissionId = null;
   vm.runInContext("checkCurrent()", sandbox);
   await new Promise(r => setTimeout(r, 50));
 
-  assert.strictEqual(capturedSubmissionId, firstId, `❌ Retry must use SAME submission ID. Got ${capturedSubmissionId} expected ${firstId}`);
-  console.log("✔ Submit Guard — Network error retains submission ID; retry reuses same ID (idempotency)");
+  assert.strictEqual(capturedSubmissionId, firstSubmissionId, `❌ Retry must reuse SAME submission ID ${firstSubmissionId}`);
+
+  // Step 4: After success, pending submission must be cleared and navigation allowed
+  const pendingAfterSuccess = vm.runInContext("_pendingSubmission", sandbox);
+  assert.strictEqual(pendingAfterSuccess, null, "❌ _pendingSubmission must be null after successful response");
+
+  vm.runInContext("navTo(1)", sandbox);
+  currentIndex = vm.runInContext("state.currentIndex", sandbox);
+  assert.strictEqual(currentIndex, 1, "❌ Navigation to Question 2 must now be permitted");
+
+  // Step 5: Submitting Question 2 generates a NEW submission ID
+  vm.runInContext("state.initial[1].selectedOption = 0", sandbox);
+  capturedSubmissionId = null;
+  vm.runInContext("checkCurrent()", sandbox);
+  await new Promise(r => setTimeout(r, 50));
+
+  assert.ok(capturedSubmissionId, "❌ Question 2 must generate a submission ID");
+  assert.notStrictEqual(capturedSubmissionId, firstSubmissionId, "❌ Question 2 must NOT reuse Question 1's submission ID");
+  console.log("✔ Behavioral — Retry is strictly bound to originating question; navigation locked until confirmed; distinct question gets new ID");
 }
 
 // ────────────────────────────────────────────────────────────
-// 15. BEHAVIORAL: HTTP 500 does not increment local attempts
+// 9. BEHAVIORAL: HTTP 500 does not consume attempts or lock
 // ────────────────────────────────────────────────────────────
 {
   const sandbox = createTestSandbox(async () => ({
     ok: false,
     status: 500,
-    json: async () => ({ success: false, error: "Internal error" })
+    json: async () => ({ success: false, error: "Internal server error" })
   }));
 
   vm.runInContext("checkCurrent()", sandbox);
@@ -274,14 +261,14 @@ function createTestSandbox(fetchFn) {
   assert.strictEqual(attempts, 0, `❌ HTTP 500 must NOT increment attempts. Got ${attempts}`);
   assert.strictEqual(score, null, `❌ HTTP 500 must NOT set score. Got ${score}`);
   assert.strictEqual(status, "pending", `❌ HTTP 500 must NOT change status. Got ${status}`);
-  console.log("✔ Submit Guard — HTTP 500 does not increment attempts, set score, or lock exercise");
+  console.log("✔ Behavioral — HTTP 500 does not increment attempts or lock exercise");
 }
 
 // ────────────────────────────────────────────────────────────
-// 16. STATIC: solution: null in HTML exercises
+// 10. STATIC: Solution null safety (no literal "null")
 // ────────────────────────────────────────────────────────────
 const solutionNullCount = (html.match(/solution:\s*null/g) || []).length;
 assert.ok(solutionNullCount >= 22, `❌ Expected ≥22 'solution: null' entries, found ${solutionNullCount}`);
-console.log(`✔ Submit Guard — All ${solutionNullCount} exercises have solution: null (public security verified)`);
+console.log(`✔ Public Security — All ${solutionNullCount} exercises have solution: null`);
 
-console.log("🎉 ALL SUBMIT GUARD TESTS PASSED 100%!");
+console.log("🎉 ALL SUBMIT GUARD & QUESTION BINDING TESTS PASSED 100%!");

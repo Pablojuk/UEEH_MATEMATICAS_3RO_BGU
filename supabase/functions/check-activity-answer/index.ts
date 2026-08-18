@@ -299,6 +299,18 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Error interno al guardar la respuesta" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
+    // Fallback de attempts_remaining según grader_type
+    let fallbackAttemptsRemaining: number | null = null;
+    if (graderType === "determinants_classwork_v1") {
+      fallbackAttemptsRemaining = Math.max(0, 4 - Number(recordRes.attempt_number || 0));
+    } else if (graderType === "determinants_gamification_v1") {
+      fallbackAttemptsRemaining = null;
+    }
+
+    const attemptsRemaining = (recordRes.attempts_remaining !== undefined && recordRes.attempts_remaining !== null)
+      ? recordRes.attempts_remaining
+      : fallbackAttemptsRemaining;
+
     // Sanitizar respuesta devuelta al cliente: NUNCA devolver la respuesta correcta esperada ni pauta
     const responsePayload: any = {
       success: true,
@@ -308,7 +320,7 @@ serve(async (req: Request) => {
       question_id: qStr,
       is_correct: recordRes.is_correct ?? isCorrect,
       attempt_number: recordRes.attempt_number,
-      attempts_remaining: recordRes.attempts_remaining ?? (3 - recordRes.attempt_number),
+      attempts_remaining: attemptsRemaining,
       question_score: recordRes.question_score ?? 0.00,
       locked: Boolean(recordRes.locked)
     };

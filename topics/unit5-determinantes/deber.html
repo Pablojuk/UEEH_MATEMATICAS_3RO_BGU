@@ -808,28 +808,40 @@
     }
 
     /* ================================================================
-     * SUBMISSION GUARD — prevents duplicate requests from rapid clicks
+     * SUBMISSION GUARD — prevents duplicate requests & binds retries to question
      * ================================================================ */
     let _submitting = false;            // global in-flight flag
-    let _submittingExIndex = null;      // which exercise index is pending
-    let _submittingPhase = null;        // which phase the request belongs to
-    let _pendingSubmissionId = null;    // retained for retry on network error
+    let _submittingExIndex = null;      // which exercise index is in-flight
+    let _submittingPhase = null;        // which phase the in-flight request belongs to
+    let _pendingSubmission = null;      // { id, runId, phase, questionId, exerciseIndex }
 
     function isSubmitting() { return _submitting; }
 
     function navTo(i) {
-      if (_submitting) return;          // block nav during pending request
+      if (_submitting) return;          // block nav during in-flight request
+      if (_pendingSubmission !== null && _pendingSubmission.exerciseIndex !== i) {
+        setFeedback("⚠️ Hay una respuesta pendiente de confirmar. Reintenta antes de continuar.", "warn");
+        return;
+      }
       state.currentIndex = i;
       renderWork();
     }
     function prevExercise() {
       if (_submitting) return;
+      if (_pendingSubmission !== null) {
+        setFeedback("⚠️ Hay una respuesta pendiente de confirmar. Reintenta antes de continuar.", "warn");
+        return;
+      }
       const list = activeList();
       state.currentIndex = (state.currentIndex - 1 + list.length) % list.length;
       renderWork();
     }
     function nextExercise() {
       if (_submitting) return;
+      if (_pendingSubmission !== null) {
+        setFeedback("⚠️ Hay una respuesta pendiente de confirmar. Reintenta antes de continuar.", "warn");
+        return;
+      }
       const list = activeList();
       state.currentIndex = (state.currentIndex + 1) % list.length;
       renderWork();
@@ -862,7 +874,7 @@
     }
 
     async function checkCurrent() {
-      /* ---- GUARD: reject if already submitting ---- */
+      /* ---- GUARD: reject if already submitting in-flight ---- */
       if (_submitting) return;
 
       const ex = currentEx();
@@ -882,15 +894,30 @@
         return;
       }
 
-      /* ---- Lock BEFORE any async work ---- */
+      /* ---- Bind or reuse pending submission metadata ---- */
+      const qIdStr = String(ex.id);
+      const isMatchingPending = _pendingSubmission &&
+        _pendingSubmission.runId === currentRunId &&
+        _pendingSubmission.phase === state.phase &&
+        _pendingSubmission.questionId === qIdStr &&
+        _pendingSubmission.exerciseIndex === state.currentIndex;
+
+      if (!isMatchingPending) {
+        _pendingSubmission = {
+          id: crypto.randomUUID(),
+          runId: currentRunId,
+          phase: state.phase,
+          questionId: qIdStr,
+          exerciseIndex: state.currentIndex
+        };
+      }
+
+      const submissionIdToSend = _pendingSubmission.id;
+
+      /* ---- Lock in-flight BEFORE any async work ---- */
       _submitting = true;
       _submittingExIndex = state.currentIndex;
       _submittingPhase = state.phase;
-
-      /* Generate a NEW submission ID only if there is no pending retry */
-      if (!_pendingSubmissionId) {
-        _pendingSubmissionId = crypto.randomUUID();
-      }
 
       /* Immediately re-render so button shows "⏳ Comprobando..." and is disabled */
       renderWork();
@@ -903,7 +930,7 @@
       const token = await getAuthSessionToken();
       if (!token) {
         _submitting = false;
-        _pendingSubmissionId = null;
+        _pendingSubmission = null; // No request sent, clean pending
         setFeedback("⚠️ Tu sesión ha expirado. Por favor regresa al Campus Virtual.", "bad");
         return;
       }
@@ -925,15 +952,15 @@
             run_id: currentRunId,
             phase: _submittingPhase,
             question_id: String(targetEx.id),
-            question_submission_id: _pendingSubmissionId,
+            question_submission_id: submissionIdToSend,
             user_answer: userAns
           })
         });
 
         if (!response.ok) {
-          /* HTTP 500 / 502 / etc — do NOT consume attempt, keep same submission ID for retry */
+          /* HTTP 500 / 502 / etc — do NOT consume attempt, keep _pendingSubmission for retry */
           _submitting = false;
-          /* _pendingSubmissionId is intentionally RETAINED */
+          /* _pendingSubmission is intentionally RETAINED */
           targetEx.feedbackMsg = "⚠️ No se pudo confirmar la respuesta con el servidor. Pulsa Comprobar para reintentar.";
           targetEx.feedbackType = "bad";
           renderWork();
@@ -944,15 +971,15 @@
       } catch (err) {
         console.error("Error conectando con servidor:", err);
         _submitting = false;
-        /* _pendingSubmissionId is intentionally RETAINED for retry */
+        /* _pendingSubmission is intentionally RETAINED for retry */
         targetEx.feedbackMsg = "⚠️ Error de conexión con el servidor. Pulsa Comprobar para reintentar.";
         targetEx.feedbackType = "bad";
         renderWork();
         return;
       }
 
-      /* ---- Server responded: clear the pending submission ID ---- */
-      _pendingSubmissionId = null;
+      /* ---- Server responded: clear pending submission and in-flight guard ---- */
+      _pendingSubmission = null;
       _submitting = false;
 
       if (!res || !res.success) {
