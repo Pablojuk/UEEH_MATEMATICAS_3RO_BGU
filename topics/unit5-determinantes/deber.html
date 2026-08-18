@@ -797,26 +797,39 @@
         <div class="mathBox">${ex.eq}</div>
         ${inputHtml}
         <div class="btnRow" style="margin-top: 14px;">
-          <button class="btnGood" onclick="checkCurrent()" ${isLocked ? "disabled" : ""}>Comprobar</button>
+          <button class="btnGood" onclick="checkCurrent()" ${isLocked || _submitting ? "disabled" : ""}>${_submitting ? "⏳ Comprobando..." : "Comprobar"}</button>
           <button class="btnGhost" onclick="toggleHint()">💡 Ver Pista</button>
-          <button class="btnGhost" onclick="toggleSolution()" ${ex.score === null ? "disabled" : ""}>📝 Ver Solución</button>
+          <button class="btnGhost" onclick="toggleSolution()" ${(!ex.solution || ex.score === null) ? "disabled" : ""}>📝 Ver Solución</button>
         </div>
         <div class="feedback ${ex.feedbackMsg ? "show " + ex.feedbackType : ""}">${ex.feedbackMsg}</div>
         <div class="hintBox ${ex.showHint ? "show" : ""}"><strong>💡 Pista Pedagógica:</strong><br>${ex.hint}</div>
-        <div class="solutionBox ${ex.showSolution ? "show" : ""}"><strong>📝 Solución Paso a Paso:</strong><br>${ex.solution}</div>
+        ${(ex.solution && typeof ex.solution === "string" && ex.solution.trim().length > 0) ? `<div class="solutionBox ${ex.showSolution ? "show" : ""}"><strong>📝 Solución Paso a Paso:</strong><br>${ex.solution}</div>` : ""}
       `;
     }
 
+    /* ================================================================
+     * SUBMISSION GUARD — prevents duplicate requests from rapid clicks
+     * ================================================================ */
+    let _submitting = false;            // global in-flight flag
+    let _submittingExIndex = null;      // which exercise index is pending
+    let _submittingPhase = null;        // which phase the request belongs to
+    let _pendingSubmissionId = null;    // retained for retry on network error
+
+    function isSubmitting() { return _submitting; }
+
     function navTo(i) {
+      if (_submitting) return;          // block nav during pending request
       state.currentIndex = i;
       renderWork();
     }
     function prevExercise() {
+      if (_submitting) return;
       const list = activeList();
       state.currentIndex = (state.currentIndex - 1 + list.length) % list.length;
       renderWork();
     }
     function nextExercise() {
+      if (_submitting) return;
       const list = activeList();
       state.currentIndex = (state.currentIndex + 1) % list.length;
       renderWork();
@@ -849,9 +862,13 @@
     }
 
     async function checkCurrent() {
+      /* ---- GUARD: reject if already submitting ---- */
+      if (_submitting) return;
+
       const ex = currentEx();
       if (ex.score !== null) return;
 
+      /* ---- Validation ---- */
       if (ex.mode === "mcq" && ex.selectedOption === null) {
         setFeedback("Por favor selecciona una de las opciones.", "warn");
         return;
@@ -865,6 +882,19 @@
         return;
       }
 
+      /* ---- Lock BEFORE any async work ---- */
+      _submitting = true;
+      _submittingExIndex = state.currentIndex;
+      _submittingPhase = state.phase;
+
+      /* Generate a NEW submission ID only if there is no pending retry */
+      if (!_pendingSubmissionId) {
+        _pendingSubmissionId = crypto.randomUUID();
+      }
+
+      /* Immediately re-render so button shows "⏳ Comprobando..." and is disabled */
+      renderWork();
+
       let userAns;
       if (ex.mode === "mcq") userAns = ex.selectedOption;
       else if (ex.mode === "input") userAns = ex.textInput.trim();
@@ -872,11 +902,15 @@
 
       const token = await getAuthSessionToken();
       if (!token) {
+        _submitting = false;
+        _pendingSubmissionId = null;
         setFeedback("⚠️ Tu sesión ha expirado. Por favor regresa al Campus Virtual.", "bad");
         return;
       }
 
-      const questionSubmissionId = crypto.randomUUID();
+      /* ---- Capture the target exercise by reference (not currentEx()) ---- */
+      const targetList = _submittingPhase === "recovery" ? state.recovery : state.initial;
+      const targetEx = targetList[_submittingExIndex];
 
       let res = null;
       try {
@@ -889,45 +923,67 @@
           body: JSON.stringify({
             activity_key: "u5-determinantes-class-01",
             run_id: currentRunId,
-            phase: state.phase,
-            question_id: String(ex.id),
-            question_submission_id: questionSubmissionId,
+            phase: _submittingPhase,
+            question_id: String(targetEx.id),
+            question_submission_id: _pendingSubmissionId,
             user_answer: userAns
           })
         });
 
+        if (!response.ok) {
+          /* HTTP 500 / 502 / etc — do NOT consume attempt, keep same submission ID for retry */
+          _submitting = false;
+          /* _pendingSubmissionId is intentionally RETAINED */
+          targetEx.feedbackMsg = "⚠️ No se pudo confirmar la respuesta con el servidor. Pulsa Comprobar para reintentar.";
+          targetEx.feedbackType = "bad";
+          renderWork();
+          return;
+        }
+
         res = await response.json();
       } catch (err) {
         console.error("Error conectando con servidor:", err);
-        setFeedback("⚠️ Error de conexión con el servidor. Intenta nuevamente.", "bad");
+        _submitting = false;
+        /* _pendingSubmissionId is intentionally RETAINED for retry */
+        targetEx.feedbackMsg = "⚠️ Error de conexión con el servidor. Pulsa Comprobar para reintentar.";
+        targetEx.feedbackType = "bad";
+        renderWork();
         return;
       }
+
+      /* ---- Server responded: clear the pending submission ID ---- */
+      _pendingSubmissionId = null;
+      _submitting = false;
 
       if (!res || !res.success) {
-        setFeedback(res?.error || "Error al verificar la respuesta.", "bad");
+        targetEx.feedbackMsg = res?.error || "Error al verificar la respuesta.";
+        targetEx.feedbackType = "bad";
+        renderWork();
         return;
       }
 
-      ex.attempts = res.attempt_number;
-      ex.score = res.question_score;
+      /* ---- Apply server-authoritative values to the TARGET exercise ---- */
+      targetEx.attempts = res.attempt_number;
+      targetEx.score = res.question_score;
 
       if (res.is_correct) {
-        ex.status = "correct";
-        ex.feedbackMsg = `¡Correcto! Puntaje otorgado por servidor: ${ex.score}/10.`;
-        ex.feedbackType = "ok";
+        targetEx.status = "correct";
+        targetEx.feedbackMsg = `¡Correcto! Puntaje otorgado por servidor: ${targetEx.score}/10.`;
+        targetEx.feedbackType = "ok";
       } else if (res.locked) {
-        ex.status = ex.score > 0 ? "partial" : "fail";
-        ex.feedbackMsg = `Intentos agotados. Puntaje otorgado por servidor: ${ex.score}/10.`;
-        ex.feedbackType = ex.score > 0 ? "warn" : "bad";
+        targetEx.status = targetEx.score > 0 ? "partial" : "fail";
+        targetEx.feedbackMsg = `Intentos agotados. Puntaje otorgado por servidor: ${targetEx.score}/10.`;
+        targetEx.feedbackType = targetEx.score > 0 ? "warn" : "bad";
       } else {
-        ex.feedbackMsg = `Respuesta incorrecta. Te quedan ${res.attempts_remaining} intento(s).`;
-        ex.feedbackType = "bad";
-        ex.score = null; // No finalizado todavía, permite reintento
+        targetEx.feedbackMsg = `Respuesta incorrecta. Te quedan ${res.attempts_remaining} intento(s).`;
+        targetEx.feedbackType = "bad";
+        targetEx.score = null; // Not finalized — allow retry
       }
 
-      if (res.solution_html) {
-        ex.solution = res.solution_html;
-        ex.showSolution = true;
+      /* ---- Solution: only show if server returned a non-empty string ---- */
+      if (typeof res.solution_html === "string" && res.solution_html.trim().length > 0) {
+        targetEx.solution = res.solution_html;
+        targetEx.showSolution = true;
       }
 
       renderWork();
