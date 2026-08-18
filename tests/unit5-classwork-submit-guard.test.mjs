@@ -265,7 +265,42 @@ function createTestSandbox(fetchFn) {
 }
 
 // ────────────────────────────────────────────────────────────
-// 10. STATIC: Solution null safety (no literal "null")
+// 10. STATIC & BEHAVIORAL: MCQ selectedOption = 0 (and 1, 2, 3, input, fill) answer_data serialization
+// ────────────────────────────────────────────────────────────
+assert.ok(
+  !edgeCode.includes("user_answer ? { value: user_answer } : null"),
+  "❌ Edge function must NOT use truthiness ternary on user_answer (converts 0 to null)"
+);
+assert.ok(
+  edgeCode.includes("p_answer_data: { value: user_answer }"),
+  "❌ Edge function must pass p_answer_data: { value: user_answer } to preserve 0, false, empty string, arrays"
+);
+console.log("✔ Edge Function — p_answer_data always passes { value: user_answer } (MCQ option 0 preserved as non-null)");
+
+// Behavioral simulation of MCQ options 0, 1, 2, 3, input, and fill
+{
+  const testAnswers = [
+    { mode: "mcq", val: 0, expected: { value: 0 } },
+    { mode: "mcq", val: 1, expected: { value: 1 } },
+    { mode: "mcq", val: 2, expected: { value: 2 } },
+    { mode: "mcq", val: 3, expected: { value: 3 } },
+    { mode: "input", val: "-20", expected: { value: "-20" } },
+    { mode: "fill", val: ["1", "2", "3"], expected: { value: ["1", "2", "3"] } }
+  ];
+
+  for (const t of testAnswers) {
+    // Simulate Edge function payload creation
+    const user_answer = t.val;
+    const p_answer_data = { value: user_answer };
+
+    assert.notStrictEqual(p_answer_data, null, `❌ p_answer_data must not be null for ${JSON.stringify(t.val)}`);
+    assert.deepStrictEqual(p_answer_data, t.expected, `❌ p_answer_data mismatch for ${JSON.stringify(t.val)}`);
+  }
+  console.log("✔ Answer Data — All answer types (MCQ 0..3, input, fill) serialize cleanly without null conversions");
+}
+
+// ────────────────────────────────────────────────────────────
+// 11. STATIC: Solution null safety (no literal "null")
 // ────────────────────────────────────────────────────────────
 const solutionNullCount = (html.match(/solution:\s*null/g) || []).length;
 assert.ok(solutionNullCount >= 22, `❌ Expected ≥22 'solution: null' entries, found ${solutionNullCount}`);

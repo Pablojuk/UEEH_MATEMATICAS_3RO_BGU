@@ -291,7 +291,7 @@ serve(async (req: Request) => {
       p_question_submission_id: question_submission_id,
       p_is_correct: isCorrect,
       p_partial_fraction: partialFraction,
-      p_answer_data: user_answer ? { value: user_answer } : null
+      p_answer_data: { value: user_answer }
     });
 
     if (recError || !recordRes) {
