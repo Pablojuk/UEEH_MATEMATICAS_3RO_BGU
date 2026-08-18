@@ -404,7 +404,7 @@
         mode: "input",
         statement: "1. Calcula el valor del siguiente determinante de orden \\(2 \\times 2\\):",
         eq: "\\[ \\begin{vmatrix} 3 & 2 \\\\ 4 & 5 \\end{vmatrix} \\]",
-        hint: "Multiplica en cruz: (diagonal principal) − (diagonal secundaria) = \\( (3)(5) - (2)(4) \\).",
+        hint: "Para un determinante 2×2 recuerda la regla ad − bc. Identifica primero los elementos de cada diagonal y luego realiza la resta.",
         solution: null
       },
       {
@@ -414,7 +414,7 @@
         statement: "2. Calcula el valor del siguiente determinante de orden \\(2 \\times 2\\):",
         eq: "\\[ \\begin{vmatrix} -2 & 6 \\\\ 3 & 1 \\end{vmatrix} \\]",
         options: ["\\(-20\\)", "\\(20\\)", "\\(-16\\)", "\\(16\\)"],
-        hint: "Cuidado con los signos: \\( (-2)(1) - (6)(3) = -2 - 18 \\).",
+        hint: "Aplica la regla ad − bc y presta especial atención al signo negativo del primer elemento antes de efectuar las operaciones.",
         solution: null
       },
       {
@@ -423,7 +423,7 @@
         mode: "input",
         statement: "3. Calcula el valor del determinante:",
         eq: "\\[ \\begin{vmatrix} 7 & -1 \\\\ 2 & 4 \\end{vmatrix} \\]",
-        hint: "Resta el producto secundario: \\( 7(4) - (-1)(2) = 28 - (-2) \\).",
+        hint: "Usa ad − bc. Recuerda que al restar un producto negativo debes aplicar correctamente la regla de los signos.",
         solution: null
       },
       {
@@ -438,7 +438,7 @@
           { label: "(5)(-3)" },
           { label: "Resultado final" }
         ],
-        hint: "\\( 0(2) - 5(-3) = 0 - (-15) = 15 \\).",
+        hint: "Calcula por separado el producto de la diagonal principal y el de la diagonal secundaria. Después resta el segundo resultado del primero.",
         solution: null
       },
       {
@@ -447,7 +447,7 @@
         mode: "input",
         statement: "5. Calcula el determinante de la matriz:",
         eq: "\\[ \\begin{vmatrix} -4 & -3 \\\\ 6 & -2 \\end{vmatrix} \\]",
-        hint: "\\( (-4)(-2) - (-3)(6) = 8 - (-18) = 8 + 18 \\).",
+        hint: "Aplica ad − bc y revisa con cuidado los productos entre números negativos antes de realizar la resta final.",
         solution: null
       },
       {
@@ -457,7 +457,7 @@
         statement: "6. Determina el valor numérico:",
         eq: "\\[ \\begin{vmatrix} 9 & 2 \\\\ -1 & 3 \\end{vmatrix} \\]",
         options: ["\\(29\\)", "\\(25\\)", "\\(-25\\)", "\\(-29\\)"],
-        hint: "\\( (9)(3) - (2)(-1) = 27 - (-2) = 29 \\).",
+        hint: "Utiliza la regla ad − bc. Observa que uno de los productos contiene un número negativo, por lo que debes revisar el doble signo.",
         solution: null
       },
       {
@@ -467,7 +467,7 @@
         statement: "7. Calcula el determinante de orden \\(3 \\times 3\\) (Regla de Sarrus o cofactores):",
         eq: "\\[ \\begin{vmatrix} 1 & 2 & 0 \\\\ 3 & -1 & 4 \\\\ 2 & 1 & 1 \\end{vmatrix} \\]",
         options: ["\\(5\\)", "\\(-5\\)", "\\(15\\)", "\\(10\\)"],
-        hint: "Por primera fila: \\( 1((-1)(1)-4(1)) - 2(3(1)-4(2)) + 0 \\).",
+        hint: "Puedes desarrollar por la primera fila o aplicar la Regla de Sarrus. Si utilizas cofactores, recuerda respetar los signos +, −, +.",
         solution: null
       },
       {
@@ -476,7 +476,7 @@
         mode: "input",
         statement: "8. Calcula el determinante de orden \\(3 \\times 3\\):",
         eq: "\\[ \\begin{vmatrix} 2 & 0 & 1 \\\\ -1 & 3 & 2 \\\\ 0 & 4 & -2 \\end{vmatrix} \\]",
-        hint: "Desarrollando por la primera columna: \\( 2(3(-2)-2(4)) - (-1)(0(-2)-1(4)) \\).",
+        hint: "Busca una fila o columna que facilite el desarrollo por cofactores. Los elementos iguales a cero pueden ayudarte a reducir operaciones.",
         solution: null
       },
       {
@@ -491,7 +491,7 @@
           { label: "Suma Diag. Secundarias" },
           { label: "Determinante Final" }
         ],
-        hint: "Calcula la suma de diagonales principales y réstale la suma de secundarias.",
+        hint: "En la Regla de Sarrus suma primero los tres productos diagonales descendentes y luego resta la suma de los tres productos diagonales ascendentes.",
         solution: null
       },
       {
@@ -500,7 +500,7 @@
         mode: "input",
         statement: "10. Calcula el valor del determinante de orden \\(3 \\times 3\\):",
         eq: "\\[ \\begin{vmatrix} 3 & 1 & -1 \\\\ 2 & 0 & 4 \\\\ 1 & -2 & 2 \\end{vmatrix} \\]",
-        hint: "Desarrollando por cofactores de la fila 2.",
+        hint: "Desarrolla el determinante por una fila o columna conveniente. Recuerda aplicar correctamente los signos de los cofactores.",
         solution: null
       },
       {
@@ -510,7 +510,7 @@
         statement: "11. Determina los valores de la incógnita \\(x\\) en la ecuación:",
         eq: "\\[ \\begin{vmatrix} x & 3 \\\\ 2 & x \\end{vmatrix} = 10 \\]",
         options: ["\\(x = 4, \\; x = -4\\)", "\\(x = 2, \\; x = -2\\)", "\\(x = 16\\)", "\\(x = 5, \\; x = -5\\)"],
-        hint: "\\( x(x) - (3)(2) = 10 \\implies x^2 - 6 = 10 \\implies x^2 = 16 \\).",
+        hint: "Desarrolla primero el determinante 2×2 y transforma la igualdad en una ecuación cuadrática. Finalmente considera las dos posibles raíces de x.",
         solution: null
       },
       {
@@ -519,7 +519,7 @@
         mode: "input",
         statement: "12. Halla los valores de \\(x\\) que satisfacen la ecuación (escríbelos como 2, -2 o ±2):",
         eq: "\\[ \\begin{vmatrix} x & 1 \\\\ 4 & x \\end{vmatrix} = 0 \\]",
-        hint: "\\( x^2 - 4 = 0 \\implies x^2 = 4 \\implies x = \\pm 2 \\).",
+        hint: "Desarrolla el determinante con ad − bc, iguala la expresión a cero y resuelve la ecuación resultante. Recuerda considerar las dos raíces.",
         solution: null
       },
       {
@@ -536,7 +536,7 @@
           { label: "Valor de \\(x = \\frac{\\Delta_x}{\\Delta}\\)" },
           { label: "Valor de \\(y = \\frac{\\Delta_y}{\\Delta}\\)" }
         ],
-        hint: "\\( \\Delta = -2 - 3 = -5 \\), \\( \\Delta_x = -7 - 3 = -10 \\implies x = 2 \\), \\( \\Delta_y = -5 \\implies y = 1 \\).",
+        hint: "Para aplicar Cramer calcula primero Δ. Después forma Δx y Δy sustituyendo la columna correspondiente por los términos independientes. Finalmente utiliza x = Δx/Δ e y = Δy/Δ.",
         solution: null
       },
       {
@@ -551,7 +551,7 @@
           "Al multiplicar la fila 3 por las filas 1 y 2, los términos se anulan entre sí.",
           "Porque el producto de su diagonal principal es nulo."
         ],
-        hint: "Observa la Fila 1 y la Fila 2: son exactamente iguales \\((a, b, c)\\).",
+        hint: "Antes de desarrollar el determinante, observa la estructura de sus filas y recuerda las propiedades que permiten determinar el valor de un determinante sin realizar operaciones.",
         solution: null
       }
     ];
@@ -566,7 +566,7 @@
         mode: "input",
         statement: "R1. Calcula el determinante:",
         eq: "\\[ \\begin{vmatrix} 4 & 1 \\\\ 3 & 2 \\end{vmatrix} \\]",
-        hint: "\\( (4)(2) - (1)(3) = 8 - 3 \\).",
+        hint: "Recuerda que para una matriz 2×2 se calcula ad − bc. Identifica las dos diagonales antes de operar.",
         solution: null
       },
       {
@@ -576,7 +576,7 @@
         statement: "R2. Calcula el determinante con números negativos:",
         eq: "\\[ \\begin{vmatrix} -3 & 5 \\\\ 2 & 4 \\end{vmatrix} \\]",
         options: ["\\(-22\\)", "\\(22\\)", "\\(-2\\)", "\\(2\\)"],
-        hint: "\\( (-3)(4) - (5)(2) = -12 - 10 = -22 \\).",
+        hint: "Aplica ad − bc y presta especial atención a los signos al multiplicar el elemento negativo de la matriz.",
         solution: null
       },
       {
@@ -585,7 +585,7 @@
         mode: "input",
         statement: "R3. Calcula el determinante:",
         eq: "\\[ \\begin{vmatrix} 6 & -2 \\\\ 1 & 5 \\end{vmatrix} \\]",
-        hint: "\\( 6(5) - (-2)(1) = 30 - (-2) = 32 \\).",
+        hint: "Utiliza ad − bc. Revisa cuidadosamente el signo del producto que contiene el número negativo.",
         solution: null
       },
       {
@@ -595,7 +595,7 @@
         statement: "R4. Calcula el determinante 3x3:",
         eq: "\\[ \\begin{vmatrix} 1 & 0 & 2 \\\\ 0 & 3 & 1 \\\\ 2 & 1 & 0 \\end{vmatrix} \\]",
         options: ["\\(-13\\)", "\\(13\\)", "\\(-7\\)", "\\(7\\)"],
-        hint: "Desarrolla por fila 1: \\( 1(0-1) - 0 + 2(0-6) = -1 - 12 = -13 \\).",
+        hint: "Puedes desarrollar por la primera fila. Aprovecha el elemento cero para simplificar el cálculo y recuerda los signos de los cofactores.",
         solution: null
       },
       {
@@ -604,7 +604,7 @@
         mode: "input",
         statement: "R5. Calcula el determinante 3x3:",
         eq: "\\[ \\begin{vmatrix} 2 & 1 & 0 \\\\ 3 & -1 & 2 \\\\ 1 & 0 & 1 \\end{vmatrix} \\]",
-        hint: "Por fila 3: \\( 1(2-0) - 0 + 1(-2-3) = 2 - 5 = -3 \\).",
+        hint: "Busca una fila o columna que contenga un cero para reducir el número de operaciones al desarrollar por cofactores.",
         solution: null
       },
       {
@@ -614,7 +614,7 @@
         statement: "R6. Halla \\(x\\) en la ecuación:",
         eq: "\\[ \\begin{vmatrix} x & 5 \\\\ 5 & x \\end{vmatrix} = 0 \\]",
         options: ["\\(x = 5, \\; x = -5\\)", "\\(x = 25\\)", "\\(x = 10, \\; x = -10\\)", "\\(x = 0\\)"],
-        hint: "\\( x^2 - 25 = 0 \\implies x^2 = 25 \\implies x = \\pm 5 \\).",
+        hint: "Desarrolla el determinante 2×2, iguala la expresión a cero y observa si la ecuación resultante puede resolverse como una diferencia de cuadrados.",
         solution: null
       },
       {
@@ -623,7 +623,7 @@
         mode: "input",
         statement: "R7. Halla los valores de \\(x\\) para \\(\\begin{vmatrix} x & 2 \\\\ 8 & x \\end{vmatrix} = 0\\):",
         eq: "\\[ x^2 - 16 = 0 \\]",
-        hint: "\\( x^2 - 16 = 0 \\implies x = \\pm 4 \\).",
+        hint: "Resuelve la ecuación cuadrática obtenida al igualar el determinante a cero y recuerda considerar las dos posibles raíces.",
         solution: null
       },
       {
@@ -639,7 +639,7 @@
           { label: "Valor de \\(x\\)" },
           { label: "Valor de \\(y\\)" }
         ],
-        hint: "\\( \\Delta = -2 \\), \\( \\Delta_x = -6 \\implies x = 3 \\), \\( \\Delta_y = -4 \\implies y = 2 \\).",
+        hint: "Aplica la Regla de Cramer: construye primero Δ y luego los determinantes asociados a cada incógnita sustituyendo la columna correspondiente.",
         solution: null
       }
     ];
