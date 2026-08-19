@@ -1,6 +1,9 @@
-# Arquitectura base (Fase 1)
+# Arquitectura base (Fase 1 — Archivo Histórico)
 
-Esta fase crea la **columna vertebral** de la plataforma "Matemáticas de Tercero de BGU".
+> [!NOTE]
+> **Documento Histórico**: Este archivo describe la concepción inicial de la Fase 1. Para consultar la arquitectura oficial vigente basada en Supabase, Edge Functions y RLS, revisa **[`docs/ARCHITECTURE.md`](./ARCHITECTURE.md)** y la guía de **[`docs/UNIT5_ARCHITECTURE.md`](./UNIT5_ARCHITECTURE.md)**.
+
+Esta fase creó la **columna vertebral** inicial de la plataforma "Matemáticas de Tercero de BGU".
 
 ## ¿Qué hace cada carpeta?
 
