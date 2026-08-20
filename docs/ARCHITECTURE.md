@@ -75,6 +75,7 @@ La capa `core/` proporciona los módulos reutilizables para toda la aplicación:
 - **`activity-service.js`**: Gestión de ciclo de vida de actividades académicas, manejo de `sessionStorage` para borradores, generación de identificadores idempotentes (`submission_id`), envío a `submit-activity-result` y cálculo de estados de resumen.
 - **`admin-service.js`**: Cliente para la Edge Function `admin-api`, que ejecuta consultas y mutaciones administrativas (dashboard, estudiantes, matrículas, actividades, matriz de notas y auditoría).
 - **`navigation.js`**: Enrutador ligero para la SPA (Single Page Application), control de renderizado de vistas y reprocesamiento seguro de expresiones matemáticas con MathJax (`typesetPromise`).
+- **`curriculum-config.js`**: Catálogo maestro data-driven de unidades curriculares, rutas de aprendizaje, recursos (presentación, gamificación, deber, resultados) y configuración de navegación para el Campus Virtual.
 - **`storage.js`**: Utilidades de persistencia local en `localStorage` para caché no sensible.
 - **`scoring.js`**: Funciones auxiliares de cálculo y conversión a escala vigesimal o decimal sobre 10.00.
 

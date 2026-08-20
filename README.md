@@ -85,7 +85,9 @@ Ubicado en `components/admin/` y respaldado por la Edge Function `admin-api`:
 ├── core/
 │   ├── activity-service.js              # Gestión de actividades, entregas e idempotencia
 │   ├── admin-service.js                 # Cliente para la Edge Function admin-api
+│   ├── app.js                           # Orquestador del Campus y renderizado data-driven
 │   ├── auth-service.js                  # Control de autenticación y sesiones Supabase
+│   ├── curriculum-config.js             # Catálogo maestro data-driven de unidades curriculares
 │   ├── navigation.js                    # Enrutador de vistas SPA y renderizado MathJax
 │   ├── scoring.js                       # Utilidades de conversión y escalas
 │   ├── storage.js                       # Almacenamiento local para caché no sensible
@@ -133,12 +135,16 @@ Ubicado en `components/admin/` y respaldado por la Edge Function `admin-api`:
     ├── activity-service.test.mjs
     ├── admin-activities.test.mjs
     ├── admin-contract.test.mjs
+    ├── app-data-driven.test.mjs
     ├── auth-gate.test.mjs
+    ├── curriculum-config.test.mjs
     ├── game-shell.test.mjs
     ├── immutable-grading.test.mjs
     ├── rpc-contract.test.mjs
     ├── unit5-classwork-submit-guard.test.mjs
+    ├── unit5-deber-feedback.test.mjs
     ├── unit5-deber.test.mjs
+    ├── unit5-gamification-submit-guard.test.mjs
     ├── unit5-hints-no-answers.test.mjs
     └── xlsx-export.test.mjs
 ```

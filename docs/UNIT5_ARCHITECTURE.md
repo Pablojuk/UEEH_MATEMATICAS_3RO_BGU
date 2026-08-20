@@ -121,4 +121,41 @@ Al construir la Unidad 6 y unidades posteriores, se deben seguir estrictamente e
 4. **Pistas Pedagógicas Orientativas**:
    - Las pistas (`hint`) deben recordar fórmulas, propiedades o procedimientos sin revelar el resultado numérico ni la opción correcta.
 5. **Idempotencia y Resiliencia de Red**:
-   - Implementar control de envío en vuelo (`_submitting`) y retención de identificadores de envío (`_pendingSubmission`) para evitar intentos duplicados ante desconexiones o errores de red.
+   - Implementar control de envío en vuelo (`_submitting` en deber, `_submittingAnswer` en gamificación) y retención de identificadores de envío (`_pendingSubmission`) para evitar intentos duplicados ante desconexiones o errores de red.
+6. **Integración Data-Driven en Campus**:
+   - Registrar la unidad en `core/curriculum-config.js` dentro del arreglo `CURRICULUM_UNITS`. No se requiere modificar `core/app.js`.
+7. **Aprovisionamiento sin Migraciones**:
+   - Las actividades se crean y gestionan mediante el **Panel de Administración** (`admin-api` + RPC). **No** crear migraciones SQL para aprovisionar datos ordinarios de actividades. Las migraciones quedan reservadas para cambios de esquema/arquitectura.
+
+---
+
+## 6. Guía Práctica: Cómo Agregar la Unidad 6
+
+Para incorporar la Unidad 6 (o cualquier unidad futura), seguir este flujo estándar:
+
+```text
+1. Crear Contenido
+   topics/unit6-[slug]/
+   ├── presentation.html  (Formativa, 0 Supabase calls)
+   ├── gamificacion.html  (Sumativa, check-activity-answer + submitActivityResult + guard)
+   └── deber.html         (Sumativa, 4 intentos + submit guard + solution: null)
+
+2. Registrar en Configuración
+   core/curriculum-config.js → Añadir objeto a CURRICULUM_UNITS
+
+3. Aprovisionar Actividades
+   Panel de Administración → Gestión de Actividades → Crear Actividad
+   (Asigna activity_key, fechas, tipo, ponderación, etc.)
+
+4. Registrar Pauta de Evaluación (Backend)
+   Insertar pauta privada en private.activity_grading_configs mediante canal administrativo seguro.
+
+5. Verificar Localmente
+   node tests/curriculum-config.test.mjs
+   node tests/app-data-driven.test.mjs
+   python -m http.server 5500 → Probar flujo en http://localhost:5500/
+
+6. Publicar
+   git push origin main → GitHub Pages se actualiza automáticamente.
+```
+

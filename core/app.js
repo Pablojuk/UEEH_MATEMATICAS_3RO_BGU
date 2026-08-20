@@ -8,6 +8,7 @@ import { crearResultPanel } from "../components/result-panel.js";
 import { crearFeedbackBox } from "../components/feedback-box.js";
 import { initAuthGate } from "../components/auth-gate.js";
 import { logout } from "./auth-service.js";
+import { CURRICULUM_UNITS, getUnitByNumber } from "./curriculum-config.js";
 
 const LOGO_URL = "./assets/img/logo-ueeh.png";
 const HERO_IMAGE_URL = "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80";
@@ -201,6 +202,39 @@ function renderProgressSection() {
 }
 
 function renderCurriculumRoute() {
+  const cardsHtml = CURRICULUM_UNITS.map((unit) => {
+    const badgeClass = unit.badge.length > 2 ? "text-xs" : "";
+    const btnId = unit.cardButtonId || `btn-open-unit-${unit.unitNumber}`;
+
+    return `
+      <div class="unit-card bg-white border border-neutral-200 hover:border-moodle-orange/40 rounded-2xl p-6 flex flex-col justify-between transition-all hover:shadow-lg">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="w-10 h-10 rounded-lg bg-orange-50 text-moodle-orange flex items-center justify-center font-bold ${badgeClass}">
+              ${unit.badge}
+            </div>
+            <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 animate-pulse">
+              ${unit.status}
+            </span>
+          </div>
+
+          <div>
+            <h4 class="heading-font text-xl font-bold text-moodle-text-blue">
+              ${unit.title}
+            </h4>
+            <p class="text-moodle-text-gray text-sm mt-2 leading-relaxed">
+              ${unit.description}
+            </p>
+          </div>
+        </div>
+
+        <button id="${btnId}" class="btn-open-unit mt-8 w-full py-3 rounded-xl bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors" data-unit="${unit.unitNumber}">
+          Entrar a la Unidad
+        </button>
+      </div>
+    `;
+  }).join("");
+
   return `
     <section class="space-y-8 relative z-10">
       <h3 class="heading-font text-3xl font-bold text-moodle-text-blue border-b border-neutral-200 pb-4">
@@ -208,341 +242,94 @@ function renderCurriculumRoute() {
       </h3>
 
       <div id="units-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="unit-card bg-white border border-neutral-200 hover:border-moodle-orange/40 rounded-2xl p-6 flex flex-col justify-between transition-all hover:shadow-lg">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="w-10 h-10 rounded-lg bg-orange-50 text-moodle-orange flex items-center justify-center font-bold">
-                [=]
-              </div>
-              <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 animate-pulse">
-                ACTIVA
-              </span>
-            </div>
-
-            <div>
-              <h4 class="heading-font text-xl font-bold text-moodle-text-blue">
-                Ecuaciones de Primer Grado
-              </h4>
-              <p class="text-moodle-text-gray text-sm mt-2 leading-relaxed">
-                Fundamentos y resolución de problemas cotidianos.
-              </p>
-            </div>
-          </div>
-
-          <button id="btn-open-unit-card" class="mt-8 w-full py-3 rounded-xl bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors">
-            Entrar a la Unidad
-          </button>
-        </div>
-
-        <div class="unit-card bg-white border border-neutral-200 hover:border-moodle-orange/40 rounded-2xl p-6 flex flex-col justify-between transition-all hover:shadow-lg">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="w-10 h-10 rounded-lg bg-orange-50 text-moodle-orange flex items-center justify-center font-bold">
-                f′
-              </div>
-              <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 animate-pulse">
-                ACTIVA
-              </span>
-            </div>
-
-            <div>
-              <h4 class="heading-font text-xl font-bold text-moodle-text-blue">
-                Introducción a las Derivadas
-              </h4>
-              <p class="text-moodle-text-gray text-sm mt-2 leading-relaxed">
-                Cambio, pendiente y primeras reglas de derivación.
-              </p>
-            </div>
-          </div>
-
-          <button id="btn-open-unit-derivatives" class="mt-8 w-full py-3 rounded-xl bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors">
-            Entrar a la Unidad
-          </button>
-        </div>
-
-        <div class="unit-card bg-white border border-neutral-200 hover:border-moodle-orange/40 rounded-2xl p-6 flex flex-col justify-between transition-all hover:shadow-lg">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="w-10 h-10 rounded-lg bg-orange-50 text-moodle-orange flex items-center justify-center font-bold">
-                [M]
-              </div>
-              <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 animate-pulse">
-                ACTIVA
-              </span>
-            </div>
-
-            <div>
-              <h4 class="heading-font text-xl font-bold text-moodle-text-blue">
-                Operaciones con matrices
-              </h4>
-              <p class="text-moodle-text-gray text-sm mt-2 leading-relaxed">
-                Conceptos básicos, suma, resta y multiplicación por un escalar.
-              </p>
-            </div>
-          </div>
-
-          <button id="btn-open-unit-matrices" class="mt-8 w-full py-3 rounded-xl bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors">
-            Entrar a la Unidad
-          </button>
-        </div>
-
-        <div class="unit-card bg-white border border-neutral-200 hover:border-moodle-orange/40 rounded-2xl p-6 flex flex-col justify-between transition-all hover:shadow-lg">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="w-10 h-10 rounded-lg bg-orange-50 text-moodle-orange flex items-center justify-center font-bold text-xs">
-                A×B
-              </div>
-              <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 animate-pulse">
-                ACTIVA
-              </span>
-            </div>
-
-            <div>
-              <h4 class="heading-font text-xl font-bold text-moodle-text-blue">
-                Producto de matrices
-              </h4>
-              <p class="text-moodle-text-gray text-sm mt-2 leading-relaxed">
-                Multiplicación de matrices, regla fila por columna y ejercicios guiados.
-              </p>
-            </div>
-          </div>
-
-          <button id="btn-open-unit-producto-matrices" class="mt-8 w-full py-3 rounded-xl bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors">
-            Entrar a la Unidad
-          </button>
-        </div>
-
-        <div class="unit-card bg-white border border-neutral-200 hover:border-moodle-orange/40 rounded-2xl p-6 flex flex-col justify-between transition-all hover:shadow-lg">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="w-10 h-10 rounded-lg bg-orange-50 text-moodle-orange flex items-center justify-center font-bold text-xs">
-                |A|
-              </div>
-              <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 animate-pulse">
-                ACTIVA
-              </span>
-            </div>
-
-            <div>
-              <h4 class="heading-font text-xl font-bold text-moodle-text-blue">
-                Determinantes de matrices 2x2 y 3x3
-              </h4>
-              <p class="text-moodle-text-gray text-sm mt-2 leading-relaxed">
-                Propiedades, regla de Sarrus, determinantes de orden 2 y 3, e invertibilidad.
-              </p>
-            </div>
-          </div>
-
-          <button id="btn-open-unit-determinantes" class="mt-8 w-full py-3 rounded-xl bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors">
-            Entrar a la Unidad
-          </button>
-        </div>
+        ${cardsHtml}
       </div>
     </section>
   `;
 }
 
-function renderUnitModal() {
-  return `
-    <div id="unit-1" class="fixed inset-0 z-50 bg-moodle-dark-blue/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
-      <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl relative transition-transform duration-300 scale-95 flex flex-col">
+function renderUnitModal(unit) {
+  const r = unit.routes;
+  const u = unit.unitNumber;
+  const closeTopId = `btn-close-unit-${u === 1 ? "" : u + "-"}top`;
+  const closeBottomId = `btn-close-unit-${u === 1 ? "" : u + "-"}bottom`;
 
-        <div class="p-8 border-b border-neutral-100 flex items-start justify-between bg-white sticky top-0 z-10">
-          <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-moodle-orange">Unidad 1</span>
-            <h3 class="heading-font text-3xl font-bold text-moodle-text-blue mt-1">
-              Ecuaciones de Primer Grado
-            </h3>
-            <p class="text-moodle-text-gray text-sm mt-1">
-              Cada actividad completada suma un 25% a tu progreso total.
+  const renderCard = (typeKey, routeData, isResults = false) => {
+    if (!routeData) return "";
+    const iconHtml = routeData.image
+      ? `<img src="${routeData.image}" alt="${routeData.title}" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />`
+      : `<div class="w-12 h-12 rounded-xl ${typeKey === 'presentation' ? 'bg-orange-50 text-moodle-orange' : typeKey === 'gamification' ? 'bg-violet-50 text-violet-600' : typeKey === 'classwork' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'} flex items-center justify-center text-2xl shrink-0">${routeData.icon || '📄'}</div>`;
+
+    if (isResults) {
+      return `
+        <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+          <div class="flex items-start gap-4">
+            ${iconHtml}
+            <div class="space-y-1">
+              <h4 class="text-base font-bold text-moodle-text-blue">${routeData.title}</h4>
+              <p class="text-moodle-text-gray text-xs leading-relaxed">
+                ${routeData.description}
+              </p>
+            </div>
+          </div>
+          <div class="mt-6 pt-4 border-t border-neutral-100">
+            <button id="${routeData.buttonId || `btn-unit-${u}-results`}" class="btn-unit-action w-full flex justify-between items-center text-[10px] font-bold text-emerald-700 cursor-pointer hover:text-emerald-800" data-unit="${u}" data-action="results">
+              <span>REVISAR DESEMPEÑO</span>
+              <span>VER DETALLES</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
+        <div class="flex items-start gap-4">
+          ${iconHtml}
+          <div class="space-y-1">
+            <h4 class="text-base font-bold text-moodle-text-blue">${routeData.title}</h4>
+            <p class="text-moodle-text-gray text-xs leading-relaxed">
+              ${routeData.description}
             </p>
           </div>
-
-          <button id="btn-close-unit-top" class="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-moodle-text-gray transition-colors" aria-label="Cerrar unidad">
-            ✕
-          </button>
         </div>
-
-        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 bg-neutral-50/50">
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-orange-50 text-moodle-orange flex items-center justify-center text-2xl shrink-0">📽️</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Presentación de la Clase</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Repasa las diapositivas y conceptos explicados por el docente.
-                </p>
-              </div>
-            </div>
-
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-modal-slides" class="text-sm font-semibold text-moodle-orange cursor-pointer hover:underline">
-                Iniciar lectura →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center text-2xl shrink-0">🎮</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Demuestra lo que sabes con retos y juegos interactivos.
-                </p>
-              </div>
-            </div>
-
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-modal-game-data" class="text-sm font-semibold text-violet-600 cursor-pointer hover:underline">
-                Empezar a jugar →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0">🏠</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Trabajo para la Casa</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Dos actividades independientes para fortalecer tu aprendizaje autónomo.
-                </p>
-              </div>
-            </div>
-
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-modal-homework-data" class="text-sm font-semibold text-blue-600 cursor-pointer hover:underline">
-                Ver actividades →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">📊</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Resultados de las Actividades</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Consulta aquí tu desempeño en la Gamificación y el Trabajo para la Casa.
-                </p>
-              </div>
-            </div>
-
-            <div class="mt-6 pt-4 border-t border-neutral-100">
-              <button id="btn-modal-results" class="w-full flex justify-between items-center text-[10px] font-bold text-emerald-700 cursor-pointer hover:text-emerald-800">
-                <span>REVISAR DESEMPEÑO</span>
-                <span>VER DETALLES</span>
-              </button>
-            </div>
-          </div>
-
-        </div>
-
-        <div class="p-6 bg-white border-t border-neutral-100 text-right">
-          <button id="btn-close-unit-bottom" class="px-8 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors">
-            Cerrar unidad
+        <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
+          <button id="${routeData.buttonId || `btn-unit-${u}-${typeKey}`}" class="btn-unit-action text-sm font-semibold ${routeData.actionColor || 'text-moodle-orange'} cursor-pointer hover:underline" data-unit="${u}" data-action="${typeKey}">
+            ${routeData.actionText || 'Comenzar →'}
           </button>
         </div>
       </div>
-    </div>
-  `;
-}
+    `;
+  };
 
-function renderDerivativesUnitModal() {
   return `
-    <div id="unit-2" class="fixed inset-0 z-50 bg-moodle-dark-blue/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
+    <div id="unit-${u}" class="fixed inset-0 z-50 bg-moodle-dark-blue/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
       <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl relative transition-transform duration-300 scale-95 flex flex-col">
         <div class="p-8 border-b border-neutral-100 flex items-start justify-between bg-white sticky top-0 z-10">
           <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-moodle-orange">Unidad 2</span>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-moodle-orange">Unidad ${u}</span>
             <h3 class="heading-font text-3xl font-bold text-moodle-text-blue mt-1">
-              Introducción a las Derivadas
+              ${unit.title}
             </h3>
             <p class="text-moodle-text-gray text-sm mt-1">
-              Cada actividad completada suma un 25% a tu progreso total.
+              ${unit.modalSubtitle}
             </p>
           </div>
 
-          <button id="btn-close-unit-2-top" class="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-moodle-text-gray transition-colors" aria-label="Cerrar unidad">
+          <button id="${closeTopId}" class="btn-close-unit-modal p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-moodle-text-gray transition-colors" data-unit="${u}" aria-label="Cerrar unidad">
             ✕
           </button>
         </div>
 
         <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 bg-neutral-50/50">
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <img src="./assets/img/derivadas-slides.png" alt="Presentación" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Presentación de la Clase</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Aquí se colocarán las diapositivas del tema Introducción a las Derivadas.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-2-slides" class="text-sm font-semibold text-moodle-orange cursor-pointer hover:underline">
-                Iniciar lectura →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <img src="./assets/img/derivadas-game.jpg" alt="Gamificación" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Aquí se colocará el juego interactivo del tema Introducción a las Derivadas.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-2-game" class="text-sm font-semibold text-violet-600 cursor-pointer hover:underline">
-                Empezar a jugar →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <img src="./assets/img/derivadas-homework.png" alt="Trabajo para la Casa" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Trabajo para la Casa</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Aquí se colocarán las actividades independientes para reforzar el tema.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-2-homework" class="text-sm font-semibold text-blue-600 cursor-pointer hover:underline">
-                Ver actividades →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <img src="./assets/img/derivadas-results.png" alt="Resultados" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Resultados de las Actividades</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Aquí se consultará el desempeño del estudiante en este tema.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100">
-              <button id="btn-unit-2-results" class="w-full flex justify-between items-center text-[10px] font-bold text-emerald-700 cursor-pointer hover:text-emerald-800">
-                <span>REVISAR DESEMPEÑO</span>
-                <span>VER DETALLES</span>
-              </button>
-            </div>
-          </div>
+          ${renderCard('presentation', r.presentation)}
+          ${renderCard('gamification', r.gamification)}
+          ${renderCard('classwork', r.classwork)}
+          ${renderCard('results', r.results, true)}
         </div>
 
         <div class="p-6 bg-white border-t border-neutral-100 text-right">
-          <button id="btn-close-unit-2-bottom" class="px-8 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors">
+          <button id="${closeBottomId}" class="btn-close-unit-modal px-8 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors" data-unit="${u}">
             Cerrar unidad
           </button>
         </div>
@@ -620,10 +407,11 @@ function renderStudentDataModal() {
           <button id="btn-cancel-data" class="px-5 py-2.5 rounded-full bg-white border border-neutral-200 hover:bg-neutral-100 text-sm font-semibold text-moodle-text-gray transition-colors">
             Cancelar
           </button>
-          <button id="btn-start-activity" class="px-6 py-2.5 rounded-full bg-moodle-orange hover:bg-moodle-orange/90 text-sm font-semibold text-white transition-colors shadow-lg shadow-orange-500/20">
-            Ingresar a la Actividad
+          <button id="btn-start-activity" class="px-6 py-2.5 rounded-full bg-moodle-text-blue hover:bg-moodle-dark-blue text-sm font-semibold text-white transition-colors">
+            Entrar a la actividad
           </button>
         </div>
+
       </div>
     </div>
   `;
@@ -653,11 +441,7 @@ function goToDashboard() {
       </main>
     </div>
 
-    ${renderUnitModal()}
-    ${renderDerivativesUnitModal()}
-    ${renderMatricesUnitModal()}
-    ${renderProductoMatricesUnitModal()}
-    ${renderDeterminantesUnitModal()}
+    ${CURRICULUM_UNITS.map(renderUnitModal).join("\n")}
     ${renderStudentDataModal()}
     ${renderToast()}
   `);
@@ -678,7 +462,7 @@ function openModal(id) {
   modal.firstElementChild?.classList.remove("scale-95");
   modal.firstElementChild?.classList.add("scale-100");
 
-  if (id === "unit-1" || id === "unit-2" || id === "unit-3" || id === "unit-4" || id === "unit-5") {
+  if (id.startsWith("unit-")) {
     document.body.classList.add("overflow-hidden");
     const match = id.match(/unit-(\d+)/);
     if (match) {
@@ -695,7 +479,7 @@ function closeModal(id) {
   modal.firstElementChild?.classList.remove("scale-100");
   modal.firstElementChild?.classList.add("scale-95");
 
-  if (id === "unit-1" || id === "unit-2" || id === "unit-3" || id === "unit-4" || id === "unit-5") {
+  if (id.startsWith("unit-")) {
     document.body.classList.remove("overflow-hidden");
   }
 }
@@ -738,43 +522,17 @@ function startActivity() {
   if (!saveStudentDataFromModal()) return;
 
   closeModal("student-data-modal");
-  closeModal("unit-1");
-  closeModal("unit-2");
-  closeModal("unit-3");
-  closeModal("unit-4");
-  closeModal("unit-5");
+  CURRICULUM_UNITS.forEach((u) => closeModal(`unit-${u.unitNumber}`));
 
   showToast(`Datos asegurados. Iniciando ${currentActivity}...`);
-
   shouldOpenActiveUnitModal = true;
 
-  if (currentActivity === "Gamificación") {
-    if (currentGamificationUnit === 5) {
-      goToDeterminantesGame();
-    } else if (currentGamificationUnit === 4) {
-      goToProductoMatricesGame();
-    } else if (currentGamificationUnit === 3) {
-      goToMatricesGame();
-    } else if (currentGamificationUnit === 2) {
-      goToDerivadasGame();
-    } else {
-      goToGame();
-    }
-    return;
-  }
+  const actionType = currentActivity === "Gamificación" ? "gamification" : "classwork";
+  const unitNumber = actionType === "gamification" ? currentGamificationUnit : currentHomeworkUnit;
+  const unit = getUnitByNumber(unitNumber);
 
-  if (currentActivity === "Trabajo para la Casa" || currentActivity === "Trabajo en Clase") {
-    if (currentHomeworkUnit === 5) {
-      goToDeterminantesHomework();
-    } else if (currentHomeworkUnit === 4) {
-      goToProductoMatricesHomework();
-    } else if (currentHomeworkUnit === 3) {
-      goToMatricesHomework();
-    } else if (currentHomeworkUnit === 2) {
-      goToDerivadasHomework();
-    } else {
-      goToHomework();
-    }
+  if (unit) {
+    executeUnitNavigation(unit, actionType);
   }
 }
 
@@ -792,6 +550,128 @@ function showToast(message) {
   }, 3000);
 }
 
+function handleUnitAction(unitNumber, actionType) {
+  const unit = getUnitByNumber(unitNumber);
+  if (!unit) return;
+
+  const route = unit.routes[actionType];
+  if (!route) {
+    showToast("Actividad no disponible.");
+    return;
+  }
+
+  closeModal(`unit-${unitNumber}`);
+  shouldOpenActiveUnitModal = true;
+
+  // Si la unidad requiere modal de datos de estudiante (unidades legacy 1-4)
+  if (unit.requiresStudentData && (actionType === "gamification" || actionType === "classwork")) {
+    currentGamificationUnit = unitNumber;
+    currentHomeworkUnit = unitNumber;
+    openDataModal(route.title);
+    return;
+  }
+
+  executeUnitNavigation(unit, actionType);
+}
+
+function executeUnitNavigation(unit, actionType) {
+  const route = unit.routes[actionType];
+  if (!route) return;
+
+  if (actionType === "presentation") {
+    if (route.type === "legacy-slides") {
+      showToast("Abriendo diapositivas...");
+      goToSlides();
+    } else if (route.src) {
+      if (route.viewedKey) localStorage.setItem(route.viewedKey, "true");
+      showToast(`Abriendo presentación de ${unit.title}...`);
+      renderView(
+        layout(
+          route.viewTitle || unit.title,
+          crearHtmlLessonViewer({
+            src: route.src,
+            title: route.viewerTitle || `${unit.title} - Presentación de la Clase`
+          })
+        )
+      );
+      bindClick("#btn-back-dashboard", () => goToDashboard());
+      setupFullscreenButton();
+    }
+    return;
+  }
+
+  if (actionType === "gamification") {
+    if (route.type === "legacy-game") {
+      goToGame();
+    } else if (route.src) {
+      showToast(`Cargando ${route.title}...`);
+      renderView(
+        layout(
+          route.viewTitle || `Gamificación · ${unit.title}`,
+          crearHtmlLessonViewer({
+            src: route.src,
+            title: route.viewerTitle || `${route.title} · Unidad ${unit.unitNumber}`
+          })
+        )
+      );
+      bindClick("#btn-back-dashboard", () => goToDashboard());
+      setupFullscreenButton();
+    }
+    return;
+  }
+
+  if (actionType === "classwork") {
+    if (route.type === "legacy-homework") {
+      goToHomework();
+    } else if (route.src) {
+      showToast(`Cargando ${route.title}...`);
+      renderView(
+        layout(
+          route.viewTitle || `${route.title} · ${unit.title}`,
+          crearHtmlLessonViewer({
+            src: route.src,
+            title: route.viewerTitle || `${route.title} · Unidad ${unit.unitNumber}`
+          })
+        )
+      );
+      bindClick("#btn-back-dashboard", () => goToDashboard());
+      setupFullscreenButton();
+    }
+    return;
+  }
+
+  if (actionType === "results") {
+    if (route.type === "supabase-summary") {
+      showToast(`Cargando resultados de Unidad ${unit.unitNumber}...`);
+      import("../components/activity-summary.js").then(({ renderStudentActivitySummary }) => {
+        renderView(
+          layout(
+            route.viewTitle || `Resultados · Unidad ${unit.unitNumber} ${unit.title}`,
+            `<section id="summary-container" class="app-card p-6 sm:p-8"></section>`
+          )
+        );
+        const container = document.getElementById("summary-container");
+        if (container) {
+          renderStudentActivitySummary(container);
+        }
+        bindClick("#btn-back-dashboard", () => goToDashboard());
+      });
+    } else if (unit.unitNumber === 1) {
+      showToast("Cargando panel de resultados...");
+      goToResults();
+    } else if (unit.unitNumber === 2) {
+      showToast("Cargando panel de resultados de Unidad 2...");
+      goToDerivadasResults();
+    } else if (unit.unitNumber === 3) {
+      showToast("Cargando panel de resultados de Unidad 3...");
+      goToMatricesResults();
+    } else if (unit.unitNumber === 4) {
+      showToast("Cargando panel de resultados de Unidad 4...");
+      goToProductoMatricesResults();
+    }
+  }
+}
+
 function bindDashboardEvents() {
   bindClick("#btn-header-logout", () => logout());
   bindClick("#btn-header-admin", () => {
@@ -807,147 +687,46 @@ function bindDashboardEvents() {
     }
   });
   bindClick("#btn-open-unit-hero", () => openModal("unit-1"));
-  bindClick("#btn-open-unit-card", () => openModal("unit-1"));
-  bindClick("#btn-open-unit-derivatives", () => openModal("unit-2"));
-  bindClick("#btn-open-unit-matrices", () => openModal("unit-3"));
-  bindClick("#btn-open-unit-producto-matrices", () => openModal("unit-4"));
-  bindClick("#btn-open-unit-determinantes", () => openModal("unit-5"));
 
-  bindClick("#btn-close-unit-top", () => closeModal("unit-1"));
-  bindClick("#btn-close-unit-bottom", () => closeModal("unit-1"));
-  bindClick("#btn-close-unit-2-top", () => closeModal("unit-2"));
-  bindClick("#btn-close-unit-2-bottom", () => closeModal("unit-2"));
-  bindClick("#btn-close-unit-3-top", () => closeModal("unit-3"));
-  bindClick("#btn-close-unit-3-bottom", () => closeModal("unit-3"));
-  bindClick("#btn-close-unit-4-top", () => closeModal("unit-4"));
-  bindClick("#btn-close-unit-4-bottom", () => closeModal("unit-4"));
-  bindClick("#btn-close-unit-5-top", () => closeModal("unit-5"));
-  bindClick("#btn-close-unit-5-bottom", () => closeModal("unit-5"));
+  // Bind dinámico para todas las unidades curriculares
+  CURRICULUM_UNITS.forEach((unit) => {
+    const u = unit.unitNumber;
 
-  bindClick("#btn-unit-5-slides", () => {
-    closeModal("unit-5");
-    shouldOpenActiveUnitModal = true;
-    showToast("Abriendo presentación de Determinantes...");
-    goToDeterminantesSlides();
+    // Botones de apertura de card
+    if (unit.cardButtonId) {
+      bindClick(`#${unit.cardButtonId}`, () => openModal(`unit-${u}`));
+    }
+    bindClick(`#btn-open-unit-${u}`, () => openModal(`unit-${u}`));
+
+    // Botones de cierre de modal
+    const closeTopId = `#btn-close-unit-${u === 1 ? "" : u + "-"}top`;
+    const closeBottomId = `#btn-close-unit-${u === 1 ? "" : u + "-"}bottom`;
+    bindClick(closeTopId, () => closeModal(`unit-${u}`));
+    bindClick(closeBottomId, () => closeModal(`unit-${u}`));
+    bindClick(`#btn-close-unit-${u}-top`, () => closeModal(`unit-${u}`));
+    bindClick(`#btn-close-unit-${u}-bottom`, () => closeModal(`unit-${u}`));
+
+    // Botones de acción dentro del modal
+    const r = unit.routes;
+    if (r.presentation) {
+      const btnId = r.presentation.buttonId || `btn-unit-${u}-slides`;
+      bindClick(`#${btnId}`, () => handleUnitAction(u, "presentation"));
+    }
+    if (r.gamification) {
+      const btnId = r.gamification.buttonId || `btn-unit-${u}-game`;
+      bindClick(`#${btnId}`, () => handleUnitAction(u, "gamification"));
+    }
+    if (r.classwork) {
+      const btnId = r.classwork.buttonId || `btn-unit-${u}-homework`;
+      bindClick(`#${btnId}`, () => handleUnitAction(u, "classwork"));
+    }
+    if (r.results) {
+      const btnId = r.results.buttonId || `btn-unit-${u}-results`;
+      bindClick(`#${btnId}`, () => handleUnitAction(u, "results"));
+    }
   });
 
-  bindClick("#btn-unit-5-game", () => {
-    closeModal("unit-5");
-    shouldOpenActiveUnitModal = true;
-    showToast("Cargando Odisea Espacial...");
-    goToDeterminantesGame();
-  });
-
-  bindClick("#btn-unit-5-homework", () => {
-    closeModal("unit-5");
-    shouldOpenActiveUnitModal = true;
-    showToast("Cargando Trabajo en Clase...");
-    goToDeterminantesHomework();
-  });
-
-  bindClick("#btn-unit-5-results", () => {
-    closeModal("unit-5");
-    shouldOpenActiveUnitModal = true;
-    showToast("Cargando resultados de Unidad 5...");
-    goToDeterminantesResults();
-  });
-
-  bindClick("#btn-unit-2-slides", () => {
-    closeModal("unit-2");
-    shouldOpenActiveUnitModal = true;
-    showToast("Abriendo presentación de Derivadas...");
-    goToDerivadasSlides();
-  });
-
-  bindClick("#btn-unit-2-game", () => {
-    currentGamificationUnit = 2;
-    openDataModal("Gamificación");
-  });
-
-  bindClick("#btn-unit-2-homework", () => {
-    currentHomeworkUnit = 2;
-    openDataModal("Trabajo para la Casa");
-  });
-
-  bindClick("#btn-unit-2-results", () => {
-    closeModal("unit-2");
-    shouldOpenActiveUnitModal = true;
-    showToast("Cargando panel de resultados de Unidad 2...");
-    goToDerivadasResults();
-  });
-
-  bindClick("#btn-unit-3-slides", () => {
-    closeModal("unit-3");
-    shouldOpenActiveUnitModal = true;
-    showToast("Abriendo presentación de Matrices...");
-    goToMatricesSlides();
-  });
-
-  bindClick("#btn-unit-3-game", () => {
-    currentGamificationUnit = 3;
-    openDataModal("Gamificación");
-  });
-
-  bindClick("#btn-unit-3-homework", () => {
-    currentHomeworkUnit = 3;
-    openDataModal("Trabajo para la Casa");
-  });
-
-  bindClick("#btn-unit-3-results", () => {
-    closeModal("unit-3");
-    shouldOpenActiveUnitModal = true;
-    showToast("Cargando panel de resultados de Unidad 3...");
-    goToMatricesResults();
-  });
-
-  bindClick("#btn-unit-4-slides", () => {
-    closeModal("unit-4");
-    shouldOpenActiveUnitModal = true;
-    showToast("Abriendo presentación de Producto de Matrices...");
-    goToProductoMatricesSlides();
-  });
-
-  bindClick("#btn-unit-4-game", () => {
-    currentGamificationUnit = 4;
-    openDataModal("Gamificación");
-  });
-
-  bindClick("#btn-unit-4-homework", () => {
-    currentHomeworkUnit = 4;
-    openDataModal("Trabajo para la Casa");
-  });
-
-  bindClick("#btn-unit-4-results", () => {
-    closeModal("unit-4");
-    shouldOpenActiveUnitModal = true;
-    showToast("Cargando panel de resultados de Unidad 4...");
-    goToProductoMatricesResults();
-  });
-
-  bindClick("#btn-modal-slides", () => {
-    closeModal("unit-1");
-    shouldOpenActiveUnitModal = true;
-    showToast("Abriendo diapositivas...");
-    goToSlides();
-  });
-
-  bindClick("#btn-modal-game-data", () => {
-    currentGamificationUnit = 1;
-    openDataModal("Gamificación");
-  });
-
-  bindClick("#btn-modal-homework-data", () => {
-    currentHomeworkUnit = 1;
-    openDataModal("Trabajo para la Casa");
-  });
-
-  bindClick("#btn-modal-results", () => {
-    closeModal("unit-1");
-    shouldOpenActiveUnitModal = true;
-    showToast("Cargando panel de resultados...");
-    goToResults();
-  });
-
+  // Modal de datos de estudiante
   bindClick("#btn-cancel-data", () => closeModal("student-data-modal"));
   bindClick("#btn-clear-student-data", () => {
     limpiarDatosLocales();
@@ -963,7 +742,6 @@ function bindDashboardEvents() {
 
   ["#student-name", "#student-grade", "#student-parallel"].forEach((selector) => {
     const input = document.querySelector(selector);
-
     input?.addEventListener("input", saveStudentAutosave);
     input?.addEventListener("change", saveStudentAutosave);
   });
@@ -1042,151 +820,31 @@ function setupFullscreenButton() {
   }
 }
 
-function renderMatricesUnitModal() {
-  return `
-    <div id="unit-3" class="fixed inset-0 z-50 bg-moodle-dark-blue/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
-      <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl relative transition-transform duration-300 scale-95 flex flex-col">
-        <div class="p-8 border-b border-neutral-100 flex items-start justify-between bg-white sticky top-0 z-10">
-          <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-moodle-orange">Unidad 3</span>
-            <h3 class="heading-font text-3xl font-bold text-moodle-text-blue mt-1">
-              Operaciones con matrices
-            </h3>
-            <p class="text-moodle-text-gray text-sm mt-1">
-              Cada actividad completada suma un 25% a tu progreso total.
-            </p>
-          </div>
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESULTADOS LEGACY (UNIDADES 1-4)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-          <button id="btn-close-unit-3-top" class="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-moodle-text-gray transition-colors" aria-label="Cerrar unidad">
-            ✕
-          </button>
-        </div>
-
-        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 bg-neutral-50/50">
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <img src="./assets/img/matrices-slides.png" alt="Presentación" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Presentación de la Clase</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Aquí se colocarán las diapositivas del tema Operaciones con matrices.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-3-slides" class="text-sm font-semibold text-moodle-orange cursor-pointer hover:underline">
-                Iniciar lectura →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <img src="./assets/img/matrices-game.png" alt="Gamificación" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Aquí se colocará el juego interactivo del tema Operaciones con matrices.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-3-game" class="text-sm font-semibold text-violet-600 cursor-pointer hover:underline">
-                Empezar a jugar →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <img src="./assets/img/matrices-homework.png" alt="Trabajo para la Casa" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Trabajo para la Casa</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Aquí se colocarán las actividades independientes para reforzar el tema.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-3-homework" class="text-sm font-semibold text-blue-600 cursor-pointer hover:underline">
-                Ver actividades →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <img src="./assets/img/matrices-results.png" alt="Resultados" class="w-12 h-12 rounded-xl object-contain shrink-0 shadow-sm" />
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Resultados de las Actividades</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Aquí se consultará el desempeño del estudiante en este tema.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100">
-              <button id="btn-unit-3-results" class="w-full flex justify-between items-center text-[10px] font-bold text-emerald-700 cursor-pointer hover:text-emerald-800">
-                <span>REVISAR DESEMPEÑO</span>
-                <span>VER DETALLES</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-6 bg-white border-t border-neutral-100 text-right">
-          <button id="btn-close-unit-3-bottom" class="px-8 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors">
-            Cerrar unidad
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
+function getUnidad2Results() {
+  const safeParse = (key) => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } };
+  return { presentationViewed: localStorage.getItem("ueeh_unidad2_presentation_viewed") === "true", gamificacion: safeParse("ueeh_unidad2_result_gamificacion"), deber: safeParse("ueeh_unidad2_result_deber"), resultsViewed: localStorage.getItem("ueeh_unidad2_results_viewed") === "true" };
 }
 
-function goToMatricesSlides() {
-  localStorage.setItem("ueeh_unidad3_presentation_viewed", "true");
-  renderView(
-    layout(
-      "Operaciones con matrices",
-      crearHtmlLessonViewer({
-        src: "./topics/operaciones-matrices/presentation.html",
-        title: "Operaciones con matrices - Presentación de la Clase"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
+function getUnidad2Progress() {
+  const d = getUnidad2Results();
+  return (d.presentationViewed ? 25 : 0) + (d.gamificacion?.estado ? 25 : 0) + (d.deber?.estado ? 25 : 0) + (d.resultsViewed ? 25 : 0);
 }
 
-function goToMatricesGame() {
-  renderView(
-    layout(
-      "Gamificación · Operaciones con matrices",
-      crearHtmlLessonViewer({
-        src: "./topics/operaciones-matrices/gamificacion.html",
-        title: "Escape Room: Protocolo Matrices · Unidad 3"
-      })
-    )
-  );
-
+function goToDerivadasResults() {
+  localStorage.setItem("ueeh_unidad2_results_viewed", "true");
+  const data = getUnidad2Results();
+  const progress = getUnidad2Progress();
+  const notas = [data.gamificacion?.notaFinal, data.deber?.notaFinal].filter((n) => Number.isFinite(Number(n))).map(Number);
+  const promedio = notas.length ? (notas.reduce((a, b) => a + b, 0) / notas.length) : null;
+  const promedioTxt = promedio == null ? "Pendiente" : `${promedio.toFixed(2)} / 10`;
+  const mensaje = promedio == null ? "Aún no hay actividades completadas." : promedio >= 9 ? "Excelente desempeño." : promedio >= 7 ? "Buen avance." : "Requiere refuerzo.";
+  const card = (titulo, r) => `<div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 space-y-2"><h3 class="heading-font text-lg font-bold text-moodle-text-blue">${titulo}</h3><p><strong>Nota:</strong> ${r?.notaFinal ?? "Pendiente"}</p><p><strong>Porcentaje:</strong> ${r?.porcentajeFinal ?? "Pendiente"}${r?.porcentajeFinal ? "%" : ""}</p><p><strong>Nivel:</strong> ${r?.nivel ?? "Pendiente"}</p><p><strong>Estado:</strong> ${r?.estado ?? "Pendiente"}</p><p><strong>Observación:</strong> ${r?.observacion ?? "Sin registro"}</p><p><strong>Fecha:</strong> ${r?.fecha ? new Date(r.fecha).toLocaleString() : "Pendiente"}</p></div>`;
+  renderView(layout("Resultados · Introducción a las Derivadas", `<section class="app-card p-6 sm:p-8 space-y-6"><div class="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-bold">📊 Unidad 2</div><h2 class="heading-font text-2xl font-bold text-moodle-text-blue">Introducción a las Derivadas</h2><div class="rounded-2xl border border-neutral-200 p-4 bg-white"><div class="flex justify-between text-sm font-semibold"><span>Progreso de la unidad</span><span>${progress}%</span></div><div class="w-full bg-neutral-200 h-3 rounded-full mt-2"><div class="bg-moodle-orange h-full rounded-full" style="width:${progress}%"></div></div><p class="text-xs text-moodle-text-gray mt-2">Presentación: ${data.presentationViewed ? "Vista" : "Pendiente"}</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${card("Gamificación", data.gamificacion)}${card("Trabajo para la Casa", data.deber)}</div><div class="rounded-2xl border border-neutral-200 bg-blue-50 p-5"><p class="text-xs font-bold text-moodle-text-gray uppercase">Promedio general (actividades evaluadas)</p><p class="heading-font text-3xl text-moodle-text-blue font-bold mt-1">${promedioTxt}</p><p class="mt-2 text-moodle-text-gray">${mensaje}</p></div></section>`));
   bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
-function goToMatricesHomework() {
-  renderView(
-    layout(
-      "Trabajo para la Casa · Operaciones con matrices",
-      crearHtmlLessonViewer({
-        src: "./topics/operaciones-matrices/deber.html",
-        title: "Deber interactivo | Matrices Unidad 3"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
 }
 
 function getUnidad3Results() {
@@ -1242,315 +900,6 @@ function goToMatricesResults() {
   bindClick("#btn-back-dashboard", () => goToDashboard());
 }
 
-function renderProductoMatricesUnitModal() {
-  return `
-    <div id="unit-4" class="fixed inset-0 z-50 bg-moodle-dark-blue/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
-      <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl relative transition-transform duration-300 scale-95 flex flex-col">
-        <div class="p-8 border-b border-neutral-100 flex items-start justify-between bg-white sticky top-0 z-10">
-          <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-moodle-orange">Unidad 4</span>
-            <h3 class="heading-font text-3xl font-bold text-moodle-text-blue mt-1">
-              Producto de matrices
-            </h3>
-            <p class="text-moodle-text-gray text-sm mt-1">
-              Cada actividad completada suma un 25% a tu progreso total.
-            </p>
-          </div>
-
-          <button id="btn-close-unit-4-top" class="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-moodle-text-gray transition-colors" aria-label="Cerrar unidad">
-            ✕
-          </button>
-        </div>
-
-        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 bg-neutral-50/50">
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-orange-50 text-moodle-orange flex items-center justify-center text-2xl shrink-0">📽️</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Presentación de la Clase</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Diapositivas del tema Producto de matrices M3×3.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-4-slides" class="text-sm font-semibold text-moodle-orange cursor-pointer hover:underline">
-                Iniciar lectura →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center text-2xl shrink-0">🎮</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Juego interactivo Matrix-Space sobre Producto de matrices.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-4-game" class="text-sm font-semibold text-violet-600 cursor-pointer hover:underline">
-                Empezar a jugar →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0">🏠</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Trabajo para la Casa</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Actividades independientes para reforzar el producto de matrices.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-4-homework" class="text-sm font-semibold text-blue-600 cursor-pointer hover:underline">
-                Ver actividades →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">📊</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Resultados de las Actividades</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Consulta tu desempeño en Gamificación y Trabajo para la Casa.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100">
-              <button id="btn-unit-4-results" class="w-full flex justify-between items-center text-[10px] font-bold text-emerald-700 cursor-pointer hover:text-emerald-800">
-                <span>REVISAR DESEMPEÑO</span>
-                <span>VER DETALLES</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-6 bg-white border-t border-neutral-100 text-right">
-          <button id="btn-close-unit-4-bottom" class="px-8 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors">
-            Cerrar unidad
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderDeterminantesUnitModal() {
-  return `
-    <div id="unit-5" class="fixed inset-0 z-50 bg-moodle-dark-blue/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4" role="dialog">
-      <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl relative transition-transform duration-300 scale-95 flex flex-col">
-        <div class="p-8 border-b border-neutral-100 flex items-start justify-between bg-white sticky top-0 z-10">
-          <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-moodle-orange">Unidad 5</span>
-            <h3 class="heading-font text-3xl font-bold text-moodle-text-blue mt-1">
-              Determinantes de matrices 2x2 y 3x3
-            </h3>
-            <p class="text-moodle-text-gray text-sm mt-1">
-              Cada actividad completada se registra en Supabase como tu calificación oficial.
-            </p>
-          </div>
-
-          <button id="btn-close-unit-5-top" class="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-moodle-text-gray transition-colors" aria-label="Cerrar unidad">
-            ✕
-          </button>
-        </div>
-
-        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 bg-neutral-50/50">
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-orange-50 text-moodle-orange flex items-center justify-center text-2xl shrink-0">📽️</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Presentación de la Clase</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  22 diapositivas interactivas explicadas paso a paso.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-5-slides" class="text-sm font-semibold text-moodle-orange cursor-pointer hover:underline">
-                Iniciar lectura →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center text-2xl shrink-0">🚀</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Gamificación</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Odisea Espacial: La Ruta de los 6 Planetas.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-5-game" class="text-sm font-semibold text-violet-600 cursor-pointer hover:underline">
-                Empezar a jugar →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-white border border-neutral-200 hover:border-moodle-orange/30 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0">📐</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Trabajo en Clase</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Deber interactivo con 14 ejercicios + 8 de recuperación.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100 text-right">
-              <button id="btn-unit-5-homework" class="text-sm font-semibold text-blue-600 cursor-pointer hover:underline">
-                Ver actividades →
-              </button>
-            </div>
-          </div>
-
-          <div class="group bg-neutral-100 border border-neutral-200 hover:shadow-md p-6 rounded-2xl flex flex-col justify-between transition-all">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">📊</div>
-              <div class="space-y-1">
-                <h4 class="text-base font-bold text-moodle-text-blue">Resultados de las Actividades</h4>
-                <p class="text-moodle-text-gray text-xs leading-relaxed">
-                  Consulta tu desempeño en la plataforma oficial Supabase.
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 pt-4 border-t border-neutral-100">
-              <button id="btn-unit-5-results" class="w-full flex justify-between items-center text-[10px] font-bold text-emerald-700 cursor-pointer hover:text-emerald-800">
-                <span>REVISAR DESEMPEÑO</span>
-                <span>VER DETALLES</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-6 bg-white border-t border-neutral-100 text-right">
-          <button id="btn-close-unit-5-bottom" class="px-8 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm font-semibold text-moodle-text-blue transition-colors">
-            Cerrar unidad
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function goToDeterminantesSlides() {
-  renderView(
-    layout(
-      "Determinantes de matrices 2x2 y 3x3",
-      crearHtmlLessonViewer({
-        src: "./topics/unit5-determinantes/presentation.html",
-        title: "Determinantes de matrices - Presentación de la Clase"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
-function goToDeterminantesGame() {
-  renderView(
-    layout(
-      "Gamificación · Odisea Espacial",
-      crearHtmlLessonViewer({
-        src: "./topics/unit5-determinantes/gamificacion.html",
-        title: "Odisea Espacial: Ruta de los 6 Planetas · Unidad 5"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
-function goToDeterminantesHomework() {
-  renderView(
-    layout(
-      "Trabajo en Clase · Determinantes",
-      crearHtmlLessonViewer({
-        src: "./topics/unit5-determinantes/deber.html",
-        title: "Deber Interactivo | Determinantes 2x2 y 3x3 · Unidad 5"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
-function goToDeterminantesResults() {
-  import("../components/activity-summary.js").then(({ renderStudentActivitySummary }) => {
-    renderView(
-      layout(
-        "Resultados · Unidad 5 Determinantes",
-        `<section id="summary-container" class="app-card p-6 sm:p-8"></section>`
-      )
-    );
-    const container = document.getElementById("summary-container");
-    if (container) {
-      renderStudentActivitySummary(container);
-    }
-    bindClick("#btn-back-dashboard", () => goToDashboard());
-  });
-}
-
-function goToProductoMatricesSlides() {
-  localStorage.setItem("ueeh_unidad4_presentation_viewed", "true");
-  renderView(
-    layout(
-      "Producto de matrices",
-      crearHtmlLessonViewer({
-        src: "./topics/producto-matrices/presentation.html",
-        title: "Producto de matrices - Presentación de la Clase"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
-function goToProductoMatricesGame() {
-  renderView(
-    layout(
-      "Gamificación · Producto de matrices",
-      crearHtmlLessonViewer({
-        src: "./topics/producto-matrices/gamificacion.html",
-        title: "Matrix-Space: Simulador Fluido · Unidad 4"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
-function goToProductoMatricesHomework() {
-  renderView(
-    layout(
-      "Trabajo para la Casa · Producto de matrices",
-      crearHtmlLessonViewer({
-        src: "./topics/producto-matrices/deber.html",
-        title: "Deber interactivo | Producto de matrices Unidad 4"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
 function getUnidad4Results() {
   const safeParse = (key) => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } };
   return {
@@ -1604,79 +953,10 @@ function goToProductoMatricesResults() {
   bindClick("#btn-back-dashboard", () => goToDashboard());
 }
 
-function goToDerivadasSlides() {
-  localStorage.setItem("ueeh_unidad2_presentation_viewed", "true");
-  renderView(
-    layout(
-      "Introducción a las Derivadas",
-      crearHtmlLessonViewer({
-        src: "./topics/introduccion-derivadas/presentation.html",
-        title: "Introducción a las Derivadas - Presentación de la Clase"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
-function goToDerivadasGame() {
-  renderView(
-    layout(
-      "Gamificación · Introducción a las Derivadas",
-      crearHtmlLessonViewer({
-        src: "./topics/introduccion-derivadas/gamificacion.html",
-        title: "Escape Room: Protocolo Derivadas · Unidad 2"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
-function goToDerivadasHomework() {
-  renderView(
-    layout(
-      "Trabajo para la Casa · Introducción a las Derivadas",
-
-      crearHtmlLessonViewer({
-        src: "./topics/introduccion-derivadas/deber.html",
-        title: "Deber interactivo | Derivadas Unidad 2"
-      })
-    )
-  );
-
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-  setupFullscreenButton();
-}
-
-
-function getUnidad2Results() {
-  const safeParse = (key) => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } };
-  return { presentationViewed: localStorage.getItem("ueeh_unidad2_presentation_viewed") === "true", gamificacion: safeParse("ueeh_unidad2_result_gamificacion"), deber: safeParse("ueeh_unidad2_result_deber"), resultsViewed: localStorage.getItem("ueeh_unidad2_results_viewed") === "true" };
-}
-function getUnidad2Progress() { const d = getUnidad2Results(); return (d.presentationViewed?25:0) + (d.gamificacion?.estado?25:0) + (d.deber?.estado?25:0) + (d.resultsViewed?25:0); }
-function goToDerivadasResults() {
-  localStorage.setItem("ueeh_unidad2_results_viewed", "true");
-  const data = getUnidad2Results();
-  const progress = getUnidad2Progress();
-  const notas = [data.gamificacion?.notaFinal, data.deber?.notaFinal].filter((n) => Number.isFinite(Number(n))).map(Number);
-  const promedio = notas.length ? (notas.reduce((a,b)=>a+b,0)/notas.length) : null;
-  const promedioTxt = promedio == null ? "Pendiente" : `${promedio.toFixed(2)} / 10`;
-  const mensaje = promedio == null ? "Aún no hay actividades completadas." : promedio >= 9 ? "Excelente desempeño." : promedio >= 7 ? "Buen avance." : "Requiere refuerzo.";
-  const card = (titulo, r) => `<div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 space-y-2"><h3 class="heading-font text-lg font-bold text-moodle-text-blue">${titulo}</h3><p><strong>Nota:</strong> ${r?.notaFinal ?? "Pendiente"}</p><p><strong>Porcentaje:</strong> ${r?.porcentajeFinal ?? "Pendiente"}${r?.porcentajeFinal ? "%" : ""}</p><p><strong>Nivel:</strong> ${r?.nivel ?? "Pendiente"}</p><p><strong>Estado:</strong> ${r?.estado ?? "Pendiente"}</p><p><strong>Observación:</strong> ${r?.observacion ?? "Sin registro"}</p><p><strong>Fecha:</strong> ${r?.fecha ? new Date(r.fecha).toLocaleString() : "Pendiente"}</p></div>`;
-  renderView(layout("Resultados · Introducción a las Derivadas", `<section class="app-card p-6 sm:p-8 space-y-6"><div class="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-bold">📊 Unidad 2</div><h2 class="heading-font text-2xl font-bold text-moodle-text-blue">Introducción a las Derivadas</h2><div class="rounded-2xl border border-neutral-200 p-4 bg-white"><div class="flex justify-between text-sm font-semibold"><span>Progreso de la unidad</span><span>${progress}%</span></div><div class="w-full bg-neutral-200 h-3 rounded-full mt-2"><div class="bg-moodle-orange h-full rounded-full" style="width:${progress}%"></div></div><p class="text-xs text-moodle-text-gray mt-2">Presentación: ${data.presentationViewed ? "Vista" : "Pendiente"}</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${card("Gamificación", data.gamificacion)}${card("Trabajo para la Casa", data.deber)}</div><div class="rounded-2xl border border-neutral-200 bg-blue-50 p-5"><p class="text-xs font-bold text-moodle-text-gray uppercase">Promedio general (actividades evaluadas)</p><p class="heading-font text-3xl text-moodle-text-blue font-bold mt-1">${promedioTxt}</p><p class="mt-2 text-moodle-text-gray">${mensaje}</p></div></section>`));
-  bindClick("#btn-back-dashboard", () => goToDashboard());
-}
-
 function goToGame() {
   renderView(layout("Gamificación", crearGameShell()));
-
   bindClick("#btn-back-dashboard", () => goToDashboard());
-
   activarGameShell();
-
   document.addEventListener(
     "ueeh:game-finished",
     () => goToResults(),

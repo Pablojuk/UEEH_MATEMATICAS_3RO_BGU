@@ -756,8 +756,9 @@
             ${ex.options.map((opt, i) => {
               let cls = "choice";
               if (ex.selectedOption === i) cls += " selected";
-              if (isLocked && i === ex.correctIndex) cls += " correct";
-              if (isLocked && ex.selectedOption === i && i !== ex.correctIndex) cls += " wrong";
+              if (isLocked && ex.selectedOption === i) {
+                cls += ex.status === "correct" ? " correct" : " wrong";
+              }
               return `<button class="${cls}" onclick="selectMCQ(${i})" ${isLocked ? "disabled" : ""}>${opt}</button>`;
             }).join("")}
           </div>
