@@ -137,3 +137,15 @@ El panel administrativo (`components/admin/`) ofrece herramientas completas de g
 - **Exportaciones**:
   - Descarga en formato CSV.
   - Generación de libros de cálculo **Microsoft Excel (.xlsx)** binarios reales (OpenXML PK-ZIP) con formato institucional mediante la librería local SheetJS (`assets/vendor/xlsx.full.min.js`).
+
+---
+
+## 8. Anti-Caché Selectivo de Actividades Evaluables
+
+Para garantizar que los estudiantes reciban siempre la versión más reciente de los recursos evaluables (incluso en navegadores móviles con caché agresiva), la plataforma implementa una estrategia de **anti-caché selectivo**:
+
+- **Recursos con Anti-Caché**: Exclusivamente las páginas de **Gamificación** (`gamificacion.html`) y **Trabajo en Clase / Deber** (`deber.html`). Al abrirse desde el dashboard, se les añade un token temporal dinámico (`?v=TIMESTAMP`) generado en cada apertura.
+- **Recursos con Caché Estándar**: Las **Presentaciones formativas** (`presentation.html`), el dashboard, la administración, fuentes tipográficas, hojas de estilo y librerías externas conservan su política de caché estándar para optimizar el rendimiento y consumo de datos.
+- **Seguridad e Inmutabilidad de Sesión**: Esta estrategia opera exclusivamente a nivel de URL del visor embebido; **no borra** `localStorage`, `sessionStorage`, tokens JWT de autenticación ni cachés de base de datos.
+- **Escalabilidad Data-Driven**: Todas las unidades actuales y futuras heredan automáticamente este comportamiento según el tipo de recurso configurado en `core/curriculum-config.js`.
+

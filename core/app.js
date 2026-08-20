@@ -574,6 +574,31 @@ function handleUnitAction(unitNumber, actionType) {
   executeUnitNavigation(unit, actionType);
 }
 
+export function buildFreshActivityUrl(pathStr, token = Date.now().toString()) {
+  if (!pathStr || typeof pathStr !== "string") return pathStr;
+
+  try {
+    const dummyBase = "https://ueeh-app.internal/";
+    const url = new URL(pathStr, dummyBase);
+    url.searchParams.set("v", token);
+
+    if (pathStr.startsWith("./")) {
+      const pathname = url.pathname.replace(/^\//, "");
+      return `./${pathname}${url.search}${url.hash}`;
+    } else if (pathStr.startsWith("/")) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    } else if (!pathStr.startsWith("http://") && !pathStr.startsWith("https://")) {
+      const pathname = url.pathname.replace(/^\//, "");
+      return `${pathname}${url.search}${url.hash}`;
+    } else {
+      return url.href;
+    }
+  } catch {
+    const separator = pathStr.includes("?") ? "&" : "?";
+    return `${pathStr}${separator}v=${token}`;
+  }
+}
+
 function executeUnitNavigation(unit, actionType) {
   const route = unit.routes[actionType];
   if (!route) return;
@@ -609,7 +634,7 @@ function executeUnitNavigation(unit, actionType) {
         layout(
           route.viewTitle || `Gamificación · ${unit.title}`,
           crearHtmlLessonViewer({
-            src: route.src,
+            src: buildFreshActivityUrl(route.src),
             title: route.viewerTitle || `${route.title} · Unidad ${unit.unitNumber}`
           })
         )
@@ -629,7 +654,7 @@ function executeUnitNavigation(unit, actionType) {
         layout(
           route.viewTitle || `${route.title} · ${unit.title}`,
           crearHtmlLessonViewer({
-            src: route.src,
+            src: buildFreshActivityUrl(route.src),
             title: route.viewerTitle || `${route.title} · Unidad ${unit.unitNumber}`
           })
         )

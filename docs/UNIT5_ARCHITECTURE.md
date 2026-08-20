@@ -124,7 +124,9 @@ Al construir la Unidad 6 y unidades posteriores, se deben seguir estrictamente e
    - Implementar control de envío en vuelo (`_submitting` en deber, `_submittingAnswer` en gamificación) y retención de identificadores de envío (`_pendingSubmission`) para evitar intentos duplicados ante desconexiones o errores de red.
 6. **Integración Data-Driven en Campus**:
    - Registrar la unidad en `core/curriculum-config.js` dentro del arreglo `CURRICULUM_UNITS`. No se requiere modificar `core/app.js`.
-7. **Aprovisionamiento sin Migraciones**:
+7. **Anti-Caché Selectivo**:
+   - Las actividades evaluables (`gamificacion.html` y `deber.html`) se cargan automáticamente con token dinámico `?v=TIMESTAMP` para evitar versiones obsoletas en navegadores móviles. Las presentaciones (`presentation.html`) conservan caché normal.
+8. **Aprovisionamiento sin Migraciones**:
    - Las actividades se crean y gestionan mediante el **Panel de Administración** (`admin-api` + RPC). **No** crear migraciones SQL para aprovisionar datos ordinarios de actividades. Las migraciones quedan reservadas para cambios de esquema/arquitectura.
 
 ---

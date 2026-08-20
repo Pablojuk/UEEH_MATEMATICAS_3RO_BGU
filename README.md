@@ -132,6 +132,7 @@ Ubicado en `components/admin/` y respaldado por la Edge Function `admin-api`:
 │   ├── UNIT5_ARCHITECTURE.md            # Guía y plantilla maestra de la Unidad 5
 │   └── arquitectura.md                  # Archivo histórico (Fase 1)
 └── tests/                               # Suite de pruebas automatizadas
+    ├── activity-cache-busting.test.mjs
     ├── activity-service.test.mjs
     ├── admin-activities.test.mjs
     ├── admin-contract.test.mjs
