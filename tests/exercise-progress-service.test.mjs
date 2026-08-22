@@ -6,7 +6,7 @@ import assert from "assert";
 import crypto from "crypto";
 import fs from "fs";
 
-console.log("🚀 Iniciando Suite de Pruebas de Progreso por Ejercicio, Runs e Idempotencia...");
+console.log("🚀 Iniciando Suite de Pruebas de Progreso por Ejercicio, Runs e Idempotencia (Classwork & Gamification)...");
 
 /**
  * Función restoreExerciseProgress replicada para evaluación pura en Node.js
@@ -55,6 +55,7 @@ class MockSupabaseServer {
     this.progress = []; // { id, student_id, activity_id, activity_run_id, exercise_key, answer_data, attempt_count, exercise_score, status, locked, last_checked_at }
     this.attempts = []; // { id, activity_id, student_id, submission_id, attempt_number, score, submission_data }
     this.results = []; // { activity_id, student_id, best_score, attempt_count, result_status, result_source }
+    this.activities = new Map(); // activity_id -> { activity_type, attempt_policy, ... }
     this.gradingConfigs = new Map(); // activity_id -> { grader_type, config }
   }
 
@@ -92,7 +93,11 @@ class MockSupabaseServer {
       return { ...existingCheck.response_payload, idempotent: true };
     }
 
-    // 2. Consultar progreso actual
+    // 2. Obtener política de la actividad
+    const act = this.activities.get(activityId) || { activity_type: 'classwork', attempt_policy: 'classwork_limited' };
+    const effectivePolicy = act.attempt_policy || (act.activity_type === 'gamification' ? 'gamification_unlimited' : 'classwork_limited');
+
+    // 3. Consultar progreso actual
     let prog = this.progress.find(p =>
       p.activity_id === activityId &&
       p.student_id === studentId &&
@@ -102,49 +107,85 @@ class MockSupabaseServer {
 
     let attemptCount = prog ? prog.attempt_count : 0;
 
-    // Si ya está bloqueado o ya alcanzó 4 intentos:
-    if (prog && (prog.locked || attemptCount >= 4 || prog.status === 'correct' || prog.status === 'failed')) {
-      return {
-        success: true,
-        activity_id: activityId,
-        activity_run_id: runId,
-        exercise_key: exerciseKey,
-        attempt_count: attemptCount,
-        correct: prog.status === 'correct',
-        status: prog.status,
-        score: prog.exercise_score,
-        locked: true,
-        remaining_attempts: 0,
-        attempts_remaining: 0,
-        max_attempts_reached: true
-      };
+    // Validación de bloqueo según política
+    if (effectivePolicy === 'gamification_unlimited') {
+      if (prog && (prog.locked || prog.status === 'correct')) {
+        return {
+          success: true,
+          activity_id: activityId,
+          activity_run_id: runId,
+          exercise_key: exerciseKey,
+          attempt_count: attemptCount,
+          correct: true,
+          status: 'correct',
+          score: prog.exercise_score,
+          locked: true,
+          remaining_attempts: null,
+          attempts_remaining: null,
+          max_attempts_reached: false
+        };
+      }
+    } else {
+      if (prog && (prog.locked || attemptCount >= 4 || prog.status === 'correct' || prog.status === 'failed')) {
+        return {
+          success: true,
+          activity_id: activityId,
+          activity_run_id: runId,
+          exercise_key: exerciseKey,
+          attempt_count: attemptCount,
+          correct: prog.status === 'correct',
+          status: prog.status,
+          score: prog.exercise_score,
+          locked: true,
+          remaining_attempts: 0,
+          attempts_remaining: 0,
+          max_attempts_reached: true
+        };
+      }
     }
 
     const nextAttempt = attemptCount + 1;
     let status;
     let score = null;
     let locked = false;
-    let remaining = 0;
+    let remaining = null;
 
-    if (isCorrect) {
-      status = 'correct';
-      locked = true;
-      remaining = 0;
-      if (nextAttempt === 1) score = 10.00;
-      else if (nextAttempt === 2) score = 9.00;
-      else if (nextAttempt === 3) score = 8.00;
-      else score = 7.00;
-    } else {
-      if (nextAttempt >= 4) {
-        status = 'failed';
+    if (effectivePolicy === 'gamification_unlimited') {
+      if (isCorrect) {
+        status = 'correct';
         locked = true;
-        score = 1.00; // Nunca 0.00
-        remaining = 0;
+        remaining = null;
+        if (nextAttempt === 1) score = 10.00;
+        else if (nextAttempt === 2) score = 9.00;
+        else if (nextAttempt === 3) score = 8.00;
+        else score = 7.00; // 4, 5, 10, 20...
       } else {
         status = 'incorrect';
         locked = false;
         score = null;
-        remaining = 4 - nextAttempt;
+        remaining = null;
+      }
+    } else {
+      if (isCorrect) {
+        status = 'correct';
+        locked = true;
+        remaining = 0;
+        if (nextAttempt === 1) score = 10.00;
+        else if (nextAttempt === 2) score = 9.00;
+        else if (nextAttempt === 3) score = 8.00;
+        else score = 7.00;
+      } else {
+        if (nextAttempt >= 4) {
+          status = 'failed';
+          locked = true;
+          score = 1.00; // Nunca 0.00
+          remaining = 0;
+        } else {
+          status = 'incorrect';
+          locked = false;
+          score = null;
+          remaining = 4 - nextAttempt;
+        }
       }
     }
 
@@ -316,12 +357,17 @@ class MockSupabaseServer {
 }
 
 // ────────────────────────────────────────────────────────────
-// EJECUCIÓN DE LOS 20 CASOS DE PRUEBA
+// EJECUCIÓN DE PRUEBAS — PARTE A: CLASSWORK (20 CASOS)
 // ────────────────────────────────────────────────────────────
 
 const server = new MockSupabaseServer();
 const student1 = "11111111-1111-1111-1111-111111111111";
 const activity1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+server.activities.set(activity1, {
+  activity_type: "classwork",
+  attempt_policy: "classwork_limited"
+});
 
 // Configurar actividad con 5 ejercicios
 server.gradingConfigs.set(activity1, {
@@ -348,7 +394,7 @@ assert.strictEqual(res1.attempt_count, 1);
 assert.strictEqual(res1.score, 10.00);
 assert.strictEqual(res1.status, "correct");
 assert.strictEqual(res1.locked, true);
-console.log("✔ TEST 1 PASSED: Intento 1 correcto -> 10/10, correct, locked");
+console.log("✔ TEST 1 PASSED: Classwork — Intento 1 correcto -> 10/10, correct, locked");
 
 // TEST 2: Intento 1 incorrecto, Intento 2 correcto -> 9.00, correct, locked
 const res2_1 = server.recordExerciseCheck({
@@ -377,7 +423,7 @@ assert.strictEqual(res2_2.attempt_count, 2);
 assert.strictEqual(res2_2.score, 9.00);
 assert.strictEqual(res2_2.status, "correct");
 assert.strictEqual(res2_2.locked, true);
-console.log("✔ TEST 2 PASSED: Intento 2 correcto -> 9/10, correct, locked");
+console.log("✔ TEST 2 PASSED: Classwork — Intento 2 correcto -> 9/10, correct, locked");
 
 // TEST 3: 2 incorrectos, Intento 3 correcto -> 8.00
 server.recordExerciseCheck({ activityId: activity1, studentId: student1, exerciseKey: "ex-03", checkId: crypto.randomUUID(), isCorrect: false });
@@ -387,7 +433,7 @@ assert.strictEqual(res3.attempt_count, 3);
 assert.strictEqual(res3.score, 8.00);
 assert.strictEqual(res3.status, "correct");
 assert.strictEqual(res3.locked, true);
-console.log("✔ TEST 3 PASSED: Intento 3 correcto -> 8/10, correct, locked");
+console.log("✔ TEST 3 PASSED: Classwork — Intento 3 correcto -> 8/10, correct, locked");
 
 // TEST 4: 3 incorrectos, Intento 4 correcto -> 7.00
 server.recordExerciseCheck({ activityId: activity1, studentId: student1, exerciseKey: "ex-04", checkId: crypto.randomUUID(), isCorrect: false });
@@ -398,7 +444,7 @@ assert.strictEqual(res4.attempt_count, 4);
 assert.strictEqual(res4.score, 7.00);
 assert.strictEqual(res4.status, "correct");
 assert.strictEqual(res4.locked, true);
-console.log("✔ TEST 4 PASSED: Intento 4 correcto -> 7/10, correct, locked");
+console.log("✔ TEST 4 PASSED: Classwork — Intento 4 correcto -> 7/10, correct, locked");
 
 // TEST 5: 4 incorrectos -> 1.00, failed, locked. Quinto intento rechazado.
 server.recordExerciseCheck({ activityId: activity1, studentId: student1, exerciseKey: "ex-05", checkId: crypto.randomUUID(), isCorrect: false });
@@ -416,7 +462,7 @@ assert.strictEqual(res5_5.attempt_count, 4);
 assert.strictEqual(res5_5.score, 1.00);
 assert.strictEqual(res5_5.max_attempts_reached, true);
 assert.strictEqual(res5_5.locked, true);
-console.log("✔ TEST 5 PASSED: 4 fallos -> 1/10, failed, locked. 5.º intento rechazado.");
+console.log("✔ TEST 5 PASSED: Classwork — 4 fallos -> 1/10, failed, locked. 5.º intento rechazado.");
 
 // TEST 6: Preservación F5 / reload
 const student2 = "22222222-2222-2222-2222-222222222222";
@@ -616,4 +662,95 @@ assert.strictEqual(submitAfterReopen.success, true);
 assert.strictEqual(submitAfterReopen.score, 10.00);
 console.log("✔ TEST 20 PASSED: Reapertura conserva progreso intacto y permite completar la actividad");
 
-console.log("🎉 ALL 20 EXERCISE PROGRESS, RUNS & LEDGER TESTS PASSED 100%!");
+// ────────────────────────────────────────────────────────────
+// EJECUCIÓN DE PRUEBAS — PARTE B: GAMIFICACIÓN (POLÍTICA ILIMITADA)
+// ────────────────────────────────────────────────────────────
+
+const activityGam = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+const studentGam = "55555555-5555-5555-5555-555555555555";
+
+server.activities.set(activityGam, {
+  activity_type: "gamification",
+  attempt_policy: "gamification_unlimited"
+});
+
+// TEST 21: Gamificación — Intento 1 correcto -> 10.00, correct, locked
+const resGam1 = server.recordExerciseCheck({
+  activityId: activityGam,
+  studentId: studentGam,
+  exerciseKey: "planet-01",
+  checkId: crypto.randomUUID(),
+  isCorrect: true,
+  answerData: { value: "A" }
+});
+assert.strictEqual(resGam1.attempt_count, 1);
+assert.strictEqual(resGam1.score, 10.00);
+assert.strictEqual(resGam1.status, "correct");
+assert.strictEqual(resGam1.locked, true);
+assert.strictEqual(resGam1.remaining_attempts, null);
+console.log("✔ TEST 21 PASSED: Gamificación — Intento 1 correcto devuelve 10/10 y bloquea");
+
+// TEST 22: Gamificación — Intento 2 correcto -> 9.00, correct, locked
+server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-02", checkId: crypto.randomUUID(), isCorrect: false });
+const resGam2 = server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-02", checkId: crypto.randomUUID(), isCorrect: true });
+assert.strictEqual(resGam2.attempt_count, 2);
+assert.strictEqual(resGam2.score, 9.00);
+assert.strictEqual(resGam2.status, "correct");
+assert.strictEqual(resGam2.locked, true);
+console.log("✔ TEST 22 PASSED: Gamificación — Intento 2 correcto devuelve 9/10 y bloquea");
+
+// TEST 23: Gamificación — Intento 3 correcto -> 8.00, correct, locked
+server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-03", checkId: crypto.randomUUID(), isCorrect: false });
+server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-03", checkId: crypto.randomUUID(), isCorrect: false });
+const resGam3 = server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-03", checkId: crypto.randomUUID(), isCorrect: true });
+assert.strictEqual(resGam3.attempt_count, 3);
+assert.strictEqual(resGam3.score, 8.00);
+assert.strictEqual(resGam3.status, "correct");
+assert.strictEqual(resGam3.locked, true);
+console.log("✔ TEST 23 PASSED: Gamificación — Intento 3 correcto devuelve 8/10 y bloquea");
+
+// TEST 24: Gamificación — Intento 4 correcto -> 7.00, correct, locked
+server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-04", checkId: crypto.randomUUID(), isCorrect: false });
+server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-04", checkId: crypto.randomUUID(), isCorrect: false });
+server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-04", checkId: crypto.randomUUID(), isCorrect: false });
+const resGam4 = server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-04", checkId: crypto.randomUUID(), isCorrect: true });
+assert.strictEqual(resGam4.attempt_count, 4);
+assert.strictEqual(resGam4.score, 7.00);
+assert.strictEqual(resGam4.status, "correct");
+assert.strictEqual(resGam4.locked, true);
+console.log("✔ TEST 24 PASSED: Gamificación — Intento 4 correcto devuelve 7/10 y bloquea");
+
+// TEST 25: Gamificación — Intento 10 correcto -> 7.00, correct, locked
+for (let i = 1; i <= 9; i++) {
+  const r = server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-05", checkId: crypto.randomUUID(), isCorrect: false });
+  assert.strictEqual(r.locked, false, `Intento ${i} no debe bloquear`);
+  assert.strictEqual(r.status, "incorrect");
+  assert.strictEqual(r.score, null);
+}
+const resGam10 = server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-05", checkId: crypto.randomUUID(), isCorrect: true });
+assert.strictEqual(resGam10.attempt_count, 10);
+assert.strictEqual(resGam10.score, 7.00);
+assert.strictEqual(resGam10.status, "correct");
+assert.strictEqual(resGam10.locked, true);
+console.log("✔ TEST 25 PASSED: Gamificación — Intento 10 correcto devuelve 7/10 y bloquea");
+
+// TEST 26: Gamificación — 20 respuestas incorrectas NO bloquean
+for (let i = 1; i <= 20; i++) {
+  const r = server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-06", checkId: crypto.randomUUID(), isCorrect: false });
+  assert.strictEqual(r.attempt_count, i);
+  assert.strictEqual(r.locked, false, `Intento incorrecto ${i} NO debe bloquear`);
+  assert.strictEqual(r.status, "incorrect", `Intento ${i} debe ser 'incorrect' (nunca 'failed')`);
+  assert.strictEqual(r.score, null, `Intento ${i} no debe asignar nota`);
+  assert.strictEqual(r.remaining_attempts, null, `Intentos deben ser ilimitados (null)`);
+}
+console.log("✔ TEST 26 PASSED: Gamificación — 20 respuestas incorrectas NO bloquean, mantienen status = 'incorrect' y score = null");
+
+// TEST 27: Gamificación — Intento 21 correcto tras 20 fallos bloquea con 7.00
+const resGam21 = server.recordExerciseCheck({ activityId: activityGam, studentId: studentGam, exerciseKey: "planet-06", checkId: crypto.randomUUID(), isCorrect: true });
+assert.strictEqual(resGam21.attempt_count, 21);
+assert.strictEqual(resGam21.score, 7.00);
+assert.strictEqual(resGam21.status, "correct");
+assert.strictEqual(resGam21.locked, true);
+console.log("✔ TEST 27 PASSED: Gamificación — Intento 21 correcto tras 20 fallos bloquea con nota 7.00");
+
+console.log("🎉 ALL 27 EXERCISE PROGRESS & GAMIFICATION/CLASSWORK POLICY TESTS PASSED 100%!");

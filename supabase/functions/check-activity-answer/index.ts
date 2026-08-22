@@ -355,7 +355,7 @@ serve(async (req: Request) => {
       score: recordRes.score,
       question_score: recordRes.score ?? 0.00,
       locked: isLocked,
-      remaining_attempts: attemptsRemaining ?? 0,
+      remaining_attempts: attemptsRemaining,
       attempts_remaining: attemptsRemaining,
       solution_html: isTerminal && solutionHtml ? solutionHtml : null
     };
