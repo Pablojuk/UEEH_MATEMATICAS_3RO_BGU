@@ -139,6 +139,7 @@ Ubicado en `components/admin/` y respaldado por la Edge Function `admin-api`:
     ├── app-data-driven.test.mjs
     ├── auth-gate.test.mjs
     ├── curriculum-config.test.mjs
+    ├── exercise-progress-service.test.mjs
     ├── game-shell.test.mjs
     ├── immutable-grading.test.mjs
     ├── rpc-contract.test.mjs

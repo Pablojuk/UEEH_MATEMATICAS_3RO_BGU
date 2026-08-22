@@ -46,6 +46,7 @@ console.log("Funciones RPC detectadas en SQL:", Array.from(sqlFunctions.keys()))
 const edgeFiles = [
   path.join(functionsDir, "admin-api/index.ts"),
   path.join(functionsDir, "submit-activity-result/index.ts"),
+  path.join(functionsDir, "check-activity-answer/index.ts"),
   path.join(functionsDir, "claim-student-code/index.ts")
 ];
 
@@ -107,4 +108,3 @@ if (errors.length > 0) {
   console.log(`✅ VERIFICACIÓN DE CONTRATO RPC EXITOSA: Se auditaron ${totalRpcCallsTested} llamadas .rpc(), todas coinciden 100% y la sobrecarga legacy p_question_score está eliminada.`);
   process.exit(0);
 }
-

@@ -72,6 +72,7 @@ La capa `core/` proporciona los módulos reutilizables para toda la aplicación:
 - **`supabase-client.js`**: Instancia singleton del cliente Supabase conectada con la clave pública anónima (`SUPABASE_PUBLISHABLE_KEY`).
 - **`supabase-config.js`**: Configuración centralizada de URL y credenciales públicas del proyecto.
 - **`auth-service.js`**: Control de sesiones, suscripción a eventos de autenticación (`onAuthStateChange`), inicio/cierre de sesión y carga del perfil activo.
+- **`exercise-progress-service.js`**: Persistencia automática de progreso por ejercicio mediante el botón "Comprobar", gestión de ejecuciones (`activity_runs`), consulta y restauración de estados de ejercicios y envío oficial final.
 - **`activity-service.js`**: Gestión de ciclo de vida de actividades académicas, manejo de `sessionStorage` para borradores, generación de identificadores idempotentes (`submission_id`), envío a `submit-activity-result` y cálculo de estados de resumen.
 - **`admin-service.js`**: Cliente para la Edge Function `admin-api`, que ejecuta consultas y mutaciones administrativas (dashboard, estudiantes, matrículas, actividades, matriz de notas y auditoría).
 - **`navigation.js`**: Enrutador ligero para la SPA (Single Page Application), control de renderizado de vistas y reprocesamiento seguro de expresiones matemáticas con MathJax (`typesetPromise`).
@@ -90,6 +91,9 @@ La capa `core/` proporciona los módulos reutilizables para toda la aplicación:
 - **`students`**: Catálogo de estudiantes con `student_code` permanente (ej. `UEEH-STU-000001`), nombres, cédula y estado.
 - **`enrollments`**: Matrículas que vinculan estudiantes con secciones y años lectivos.
 - **`activities`**: Catálogo de actividades formativas y sumativas con fechas de apertura (`opens_at`), vencimiento (`due_at`), puntajes (`minimum_score = 1.00`, `max_score = 10.00`) y ruta de origen (`source_path`).
+- **`activity_runs`**: Registro de ejecuciones o sesiones de trabajo del estudiante por actividad (`status = 'in_progress' | 'submitted'`), garantizando como máximo 1 ejecución activa simultánea.
+- **`activity_exercise_progress`**: Estado consolidado del ejercicio dentro del run activo (`status = 'pending' | 'incorrect' | 'correct' | 'failed'`), intentos acumulados (1 a 4) y nota asignada.
+- **`activity_exercise_checks`**: Historial inmutable de comprobaciones por ejercicio con garantía de idempotencia histórica (`check_id`).
 - **`activity_attempts`**: Registro de cada intento de entrega realizado por el estudiante, incluyendo fecha de entrega, puntaje obtenido y estado.
 - **`activity_results`**: Calificación oficial consolidada por actividad (`best_score`), que almacena la mejor nota obtenida por el estudiante.
 

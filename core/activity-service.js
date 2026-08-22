@@ -156,6 +156,20 @@ export async function fetchStudentActivitySummary() {
     console.error("Error al consultar resultados del estudiante:", resErr);
   }
 
+  let activeRunsSet = new Set();
+  try {
+    const { data: runs } = await supabase
+      .from("activity_runs")
+      .select("activity_id")
+      .eq("status", "in_progress");
+
+    if (Array.isArray(runs)) {
+      activeRunsSet = new Set(runs.map((r) => r.activity_id));
+    }
+  } catch (_) {
+    // Si la tabla no existe o error, continuar
+  }
+
   const resultMap = new Map((results || []).map((r) => [r.activity_id, r]));
 
   const now = new Date();
@@ -180,6 +194,9 @@ export async function fetchStudentActivitySummary() {
     } else if (pendingLocal) {
       displayState = "PENDING_RETRY";
       statusText = "🟡 Pendiente de confirmar (Fallo de conexión previa)";
+    } else if (activeRunsSet.has(act.id)) {
+      displayState = "IN_PROGRESS";
+      statusText = "📝 En progreso";
     } else if (act.due_at && now > new Date(act.due_at)) {
       displayState = "PROCESSING_CLOSURE";
       statusText = "⏳ Cierre en procesamiento";

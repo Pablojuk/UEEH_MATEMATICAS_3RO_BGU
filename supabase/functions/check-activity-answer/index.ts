@@ -96,9 +96,14 @@ serve(async (req: Request) => {
       "score",
       "question_score",
       "attempt_number",
+      "attempt_count",
       "correct_answer",
       "expected_answer",
-      "is_correct"
+      "is_correct",
+      "correct",
+      "locked",
+      "remaining_attempts",
+      "status"
     ];
     for (const field of FORBIDDEN_FIELDS) {
       if (field in payload) {
@@ -111,28 +116,29 @@ serve(async (req: Request) => {
 
     const {
       activity_key,
-      run_id,
-      phase,
+      exercise_key,
       question_id,
+      check_id,
       question_submission_id,
-      user_answer
+      answer,
+      user_answer,
+      run_id,
+      phase
     } = payload;
+
+    const resolvedExerciseKey = String(exercise_key ?? question_id ?? "").trim();
+    const resolvedCheckId = String(check_id ?? question_submission_id ?? "").trim();
+    const resolvedAnswer = answer !== undefined ? answer : user_answer;
 
     // 4. Validar formato de tipos obligatorios
     if (!activity_key || typeof activity_key !== "string") {
       return new Response(JSON.stringify({ error: "activity_key requerido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
-    if (!run_id || typeof run_id !== "string" || !UUID_REGEX.test(run_id)) {
-      return new Response(JSON.stringify({ error: "run_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    if (!resolvedExerciseKey) {
+      return new Response(JSON.stringify({ error: "exercise_key (o question_id) requerido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
-    if (!phase || !["initial", "recovery", "gamification"].includes(phase)) {
-      return new Response(JSON.stringify({ error: "phase debe ser 'initial', 'recovery' o 'gamification'" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-    }
-    if (!question_id || (typeof question_id !== "string" && typeof question_id !== "number")) {
-      return new Response(JSON.stringify({ error: "question_id requerido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-    }
-    if (!question_submission_id || typeof question_submission_id !== "string" || !UUID_REGEX.test(question_submission_id)) {
-      return new Response(JSON.stringify({ error: "question_submission_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    if (!resolvedCheckId || !UUID_REGEX.test(resolvedCheckId)) {
+      return new Response(JSON.stringify({ error: "check_id (o question_submission_id) debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     // 5. Autenticación por JWT de Supabase Auth
@@ -207,7 +213,7 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "El plazo de entrega para esta actividad ha vencido" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 9. Obtener la pauta privada mediante RPC (FASE 3 / RPC service_role)
+    // 9. Obtener la pauta privada mediante RPC get_activity_grading_config
     const { data: gradingConfigData, error: cfgError } = await serviceClient
       .rpc("get_activity_grading_config", { p_activity_id: activity.id });
 
@@ -223,7 +229,7 @@ serve(async (req: Request) => {
     let partialFraction: number | null = null;
     let solutionHtml: string | null = null;
 
-    const qStr = String(question_id);
+    const qStr = resolvedExerciseKey;
 
     if (graderType === "determinants_gamification_v1") {
       const planetCfg = config.planets?.[qStr];
@@ -232,15 +238,15 @@ serve(async (req: Request) => {
       }
 
       if (planetCfg.isInvertibleCheck) {
-        const uAns = String(user_answer?.answer ?? "").trim();
-        const uInv = Boolean(user_answer?.isInvertible);
+        const uAns = String(resolvedAnswer?.answer ?? "").trim();
+        const uInv = Boolean(resolvedAnswer?.isInvertible);
         isCorrect = planetCfg.answers.includes(uAns) && (uInv === planetCfg.correctInvertible);
       } else {
-        const uAns = String(user_answer ?? "").trim();
+        const uAns = String(resolvedAnswer ?? "").trim();
         isCorrect = planetCfg.answers.includes(uAns);
       }
 
-      if (isCorrect && planetCfg.solution_html) {
+      if (planetCfg.solution_html) {
         solutionHtml = planetCfg.solution_html;
       }
 
@@ -249,17 +255,17 @@ serve(async (req: Request) => {
       const qCfg = targetGroup?.[qStr];
 
       if (!qCfg) {
-        return new Response(JSON.stringify({ error: `Pregunta ${qStr} no existe en la pauta de ${phase}` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: `Pregunta ${qStr} no existe en la pauta de ${phase || "initial"}` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       }
 
       if (qCfg.mode === "mcq") {
-        const uIdx = Number(user_answer);
+        const uIdx = Number(resolvedAnswer);
         isCorrect = uIdx === qCfg.correctIndex;
       } else if (qCfg.mode === "input") {
-        const uAns = String(user_answer ?? "").trim();
+        const uAns = String(resolvedAnswer ?? "").trim();
         isCorrect = qCfg.acceptedAnswers ? qCfg.acceptedAnswers.includes(uAns) : false;
       } else if (qCfg.mode === "fill") {
-        const userBlanks: any[] = Array.isArray(user_answer) ? user_answer : [];
+        const userBlanks: any[] = Array.isArray(resolvedAnswer) ? resolvedAnswer : [];
         const expectedBlanks: any[] = qCfg.blanks || [];
         let matchCount = 0;
 
@@ -277,31 +283,48 @@ serve(async (req: Request) => {
       if (qCfg.solution_html) {
         solutionHtml = qCfg.solution_html;
       }
+    } else if (graderType === "exercise_set") {
+      const exCfg = config.exercises?.[qStr];
+      if (!exCfg) {
+        return new Response(JSON.stringify({ error: `Ejercicio ${qStr} no existe en la pauta` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+
+      if (exCfg.type === "mcq") {
+        const uVal = String(resolvedAnswer ?? "").trim();
+        isCorrect = uVal === String(exCfg.correct_option ?? exCfg.correctIndex ?? "").trim();
+      } else if (exCfg.type === "numeric" || exCfg.type === "input") {
+        const uAns = String(resolvedAnswer ?? "").trim();
+        const accepted = exCfg.accepted_answers || exCfg.acceptedAnswers || [];
+        isCorrect = accepted.includes(uAns);
+      }
+
+      if (exCfg.solution_html) {
+        solutionHtml = exCfg.solution_html;
+      }
     } else {
       return new Response(JSON.stringify({ error: `Tipo de calificador '${graderType}' no soportado` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 11. Registrar o recuperar el intento con bloqueo server-side (RPC Gateway)
-    const { data: recordRes, error: recError } = await serviceClient.rpc("record_question_attempt", {
+    const user_answer = resolvedAnswer;
+
+    // 11. Registrar comprobación atómica con historial e idempotencia en Supabase (RPC Gateway)
+    const { data: recordRes, error: recError } = await serviceClient.rpc("record_exercise_check", {
       p_activity_id: activity.id,
       p_student_id: student.id,
-      p_run_id: run_id,
-      p_phase: phase,
-      p_question_id: qStr,
-      p_question_submission_id: question_submission_id,
+      p_exercise_key: qStr,
+      p_check_id: resolvedCheckId,
       p_is_correct: isCorrect,
-      p_partial_fraction: partialFraction,
       p_answer_data: { value: user_answer }
     });
 
     if (recError || !recordRes) {
-      console.error("Error al registrar intento de pregunta:", recError);
+      console.error("Error al registrar comprobación de ejercicio:", recError);
       return new Response(JSON.stringify({ error: "Error interno al guardar la respuesta" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     // Fallback de attempts_remaining según grader_type
     let fallbackAttemptsRemaining: number | null = null;
-    if (graderType === "determinants_classwork_v1") {
+    if (graderType === "determinants_classwork_v1" || graderType === "exercise_set") {
       fallbackAttemptsRemaining = Math.max(0, 4 - Number(recordRes.attempt_number || 0));
     } else if (graderType === "determinants_gamification_v1") {
       fallbackAttemptsRemaining = null;
@@ -311,24 +334,31 @@ serve(async (req: Request) => {
       ? recordRes.attempts_remaining
       : fallbackAttemptsRemaining;
 
-    // Sanitizar respuesta devuelta al cliente: NUNCA devolver la respuesta correcta esperada ni pauta
+    // 12. Sanitizar respuesta devuelta al cliente: NUNCA devolver solución si el ejercicio sigue incorrecto/abierto
+    const isLocked = Boolean(recordRes.locked);
+    const isCorrectFinal = recordRes.correct ?? isCorrect;
+    const isTerminal = isLocked || isCorrectFinal || recordRes.status === "correct" || recordRes.status === "failed";
+
     const responsePayload: any = {
       success: true,
       activity_id: activity.id,
-      run_id: run_id,
-      phase: phase,
+      activity_run_id: recordRes.activity_run_id,
+      run_id: recordRes.activity_run_id,
+      phase: phase || "initial",
+      exercise_key: qStr,
       question_id: qStr,
-      is_correct: recordRes.is_correct ?? isCorrect,
-      attempt_number: recordRes.attempt_number,
+      attempt_count: recordRes.attempt_count,
+      attempt_number: recordRes.attempt_count,
+      correct: isCorrectFinal,
+      is_correct: isCorrectFinal,
+      status: recordRes.status,
+      score: recordRes.score,
+      question_score: recordRes.score ?? 0.00,
+      locked: isLocked,
+      remaining_attempts: attemptsRemaining ?? 0,
       attempts_remaining: attemptsRemaining,
-      question_score: recordRes.question_score ?? 0.00,
-      locked: Boolean(recordRes.locked)
+      solution_html: isTerminal && solutionHtml ? solutionHtml : null
     };
-
-    // Solución pedagógica solo si la pregunta fue respondida correctamente o quedó bloqueada
-    if ((responsePayload.is_correct || responsePayload.locked) && solutionHtml) {
-      responsePayload.solution_html = solutionHtml;
-    }
 
     return new Response(JSON.stringify(responsePayload), {
       status: 200,

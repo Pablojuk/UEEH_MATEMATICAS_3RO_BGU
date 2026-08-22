@@ -9,7 +9,16 @@
 import fs from "fs";
 import path from "path";
 import assert from "assert";
-import { buildFreshActivityUrl } from "../core/app.js";
+
+const appPath = path.resolve("core/app.js");
+const appCode = fs.readFileSync(appPath, "utf-8");
+
+// Extraer la función buildFreshActivityUrl de app.js para ejecutar en Node sin resolver dependencias de navegador
+const funcMatch = appCode.match(/export\s+function\s+buildFreshActivityUrl\s*\([\s\S]*?\n\}/);
+if (!funcMatch) {
+  throw new Error("❌ No se encontró buildFreshActivityUrl exportada en core/app.js");
+}
+const buildFreshActivityUrl = new Function("return (" + funcMatch[0].replace(/^export\s+/, "") + ")")();
 
 // ────────────────────────────────────────────────────────────
 // 1. UNIT TEST: buildFreshActivityUrl helper
@@ -78,9 +87,6 @@ console.log("✔ Helper — Edge cases (null, empty) handled safely");
 // ────────────────────────────────────────────────────────────
 // 2. STATIC AUDIT: app.js routing logic
 // ────────────────────────────────────────────────────────────
-
-const appPath = path.resolve("core/app.js");
-const appCode = fs.readFileSync(appPath, "utf-8");
 
 // Verify presentation does NOT use buildFreshActivityUrl
 const presentationBlock = appCode.match(/if\s*\(\s*actionType\s*===\s*["']presentation["']\s*\)[\s\S]*?(?=if\s*\(\s*actionType\s*===)/);
@@ -166,7 +172,7 @@ assert.ok(open2.includes(`v=${token2}`));
 console.log("✔ Timing — Sequential openings generate distinct cache-busting tokens");
 
 // ────────────────────────────────────────────────────────────
-// 5. GITHUB PAGES URL BASE SAFETY
+// 5. GITHUB PAGES BASE URL SAFETY
 // ────────────────────────────────────────────────────────────
 
 const ghBase = "https://pablojuk.github.io/UEEH_MATEMATICAS_3RO_BGU/topics/unit5-determinantes/gamificacion.html";

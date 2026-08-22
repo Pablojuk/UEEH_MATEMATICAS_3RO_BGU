@@ -108,9 +108,6 @@ serve(async (req: Request) => {
     if (!submission_id || typeof submission_id !== "string" || !UUID_REGEX.test(submission_id)) {
       return new Response(JSON.stringify({ error: "submission_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
-    if (!run_id || typeof run_id !== "string" || !UUID_REGEX.test(run_id)) {
-      return new Response(JSON.stringify({ error: "run_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-    }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -167,7 +164,11 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "No tienes permiso para entregar actividades de esta sección" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // Idempotencia: buscar intento existente ANTES de validar disponibilidad/fechas (permite retry tras vencimiento/desactivación)
+    // ──────────────────────────────────────────────────────────────────────────
+    // IDEMPOTENCIA OBLIGATORIA DE SUBMISSION_ID (Precision 3)
+    // ──────────────────────────────────────────────────────────────────────────
+    // Buscar intento existente ANTES de validar disponibilidad/fechas
+    // (permite responder idénticamente ante reintentos tras vencimiento o cierre)
     const { data: existingAttempt } = await serviceClient
       .from("activity_attempts")
       .select("id, attempt_number, score, completed_at")
@@ -224,24 +225,97 @@ serve(async (req: Request) => {
     const graderType = gradingConfigData.grader_type;
     const currentPhase = phase || (graderType === "determinants_gamification_v1" ? "gamification" : "initial");
 
-    // Validar concordancia de fase según grader_type
-    if (graderType === "determinants_gamification_v1" && currentPhase !== "gamification") {
-      return new Response(JSON.stringify({ error: "Fase no válida para este tipo de actividad" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-    }
-    if (graderType === "determinants_classwork_v1" && !["initial", "recovery"].includes(currentPhase)) {
-      return new Response(JSON.stringify({ error: "Fase no válida para este tipo de actividad" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-    }
-
     let computedScore = 0.0;
-    let submissionDetails: any = { submission_id, run_id, phase: currentPhase };
+    let submissionDetails: any = { submission_id, phase: currentPhase };
+    let activeRunId: string | null = null;
 
-    if (graderType === "determinants_gamification_v1") {
-      // Obtener intentos de preguntas del servidor para esta corrida y fase
+    if (graderType === "exercise_set") {
+      // 1. Obtener run activo oficial
+      const { data: activeRun, error: runErr } = await serviceClient
+        .from("activity_runs")
+        .select("id, status")
+        .eq("activity_id", activity.id)
+        .eq("student_id", student.id)
+        .eq("status", "in_progress")
+        .maybeSingle();
+
+      if (runErr || !activeRun) {
+        return new Response(
+          JSON.stringify({ error: "No se encontró una sesión en progreso para esta actividad" }),
+          { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+        );
+      }
+
+      activeRunId = activeRun.id;
+
+      // 2. Obtener lista de ejercicios requeridos desde la pauta privada
+      const requiredExercises = Object.keys(gradingConfigData.config.exercises || {});
+      const totalRequired = requiredExercises.length;
+
+      if (totalRequired === 0) {
+        return new Response(
+          JSON.stringify({ error: "La actividad no tiene ejercicios configurados en la pauta" }),
+          { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 3. Consultar progreso de los ejercicios en el run activo
+      const { data: progressList, error: progErr } = await serviceClient
+        .from("activity_exercise_progress")
+        .select("exercise_key, status, locked, exercise_score")
+        .eq("activity_run_id", activeRun.id);
+
+      if (progErr || !progressList) {
+        return new Response(
+          JSON.stringify({ error: "Error al consultar el progreso de los ejercicios" }),
+          { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
+        );
+      }
+
+      const progressMap = new Map(progressList.map((p: any) => [p.exercise_key, p]));
+
+      // 4. Validar que TODOS los ejercicios requeridos tengan estado terminal (correct o failed / locked)
+      const incompleteExercises = requiredExercises.filter((k) => {
+        const p = progressMap.get(k);
+        if (!p) return true;
+        const isTerminal = p.status === "correct" || p.status === "failed" || p.locked === true;
+        return !isTerminal;
+      });
+
+      if (incompleteExercises.length > 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            code: "ACTIVITY_INCOMPLETE",
+            error: `Te faltan ${incompleteExercises.length} ejercicio(s) por terminar antes de enviar la actividad.`,
+            remaining_exercises: incompleteExercises.length
+          }),
+          { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 5. Calcular nota oficial utilizando el total configurado como denominador inmutable
+      const totalScore = requiredExercises.reduce((acc, k) => {
+        const p = progressMap.get(k);
+        return acc + Number(p?.exercise_score || 1.00);
+      }, 0);
+
+      computedScore = totalScore / totalRequired;
+      submissionDetails.activity_run_id = activeRun.id;
+      submissionDetails.total_exercises = totalRequired;
+      submissionDetails.raw_score = computedScore;
+
+    } else if (graderType === "determinants_gamification_v1") {
+      const payloadRunId = run_id;
+      if (!payloadRunId || typeof payloadRunId !== "string" || !UUID_REGEX.test(payloadRunId)) {
+        return new Response(JSON.stringify({ error: "run_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+
       const { data: runSummaryData, error: summaryErr } = await serviceClient
         .rpc("get_activity_run_summary", {
           p_activity_id: activity.id,
           p_student_id: student.id,
-          p_run_id: run_id,
+          p_run_id: payloadRunId,
           p_phase: "gamification"
         });
 
@@ -249,7 +323,6 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ error: "No se encontraron intentos registrados para este juego" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       }
 
-      // Servidor exige exactamente los 6 planetas correctos dentro del mismo run_id
       const correctPlanets = runSummaryData.filter((q: any) => q.is_correct === true);
       if (correctPlanets.length < 6) {
         return new Response(
@@ -258,18 +331,23 @@ serve(async (req: Request) => {
         );
       }
 
-      // Promedio oficial de las notas de los 6 ejercicios/planetas (10/9/8/7 según intento)
       const totalGamificationScore = runSummaryData.reduce((acc: number, q: any) => acc + Number(q.terminal_score || 0), 0);
       computedScore = totalGamificationScore / Number(runSummaryData.length || 6);
+      submissionDetails.run_id = payloadRunId;
       submissionDetails.planets_completed = runSummaryData.length;
 
     } else if (graderType === "determinants_classwork_v1") {
+      const payloadRunId = run_id;
+      if (!payloadRunId || typeof payloadRunId !== "string" || !UUID_REGEX.test(payloadRunId)) {
+        return new Response(JSON.stringify({ error: "run_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+
       if (currentPhase === "initial") {
         const { data: runSummaryData, error: summaryErr } = await serviceClient
           .rpc("get_activity_run_summary", {
             p_activity_id: activity.id,
             p_student_id: student.id,
-            p_run_id: run_id,
+            p_run_id: payloadRunId,
             p_phase: "initial"
           });
 
@@ -277,11 +355,15 @@ serve(async (req: Request) => {
           return new Response(JSON.stringify({ error: "No se encontraron intentos para el Trabajo en Clase" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
         }
 
-        // Servidor exige exactamente 14 ejercicios terminales (is_correct=true O locked=true O attempt_count>=4)
         const terminalQuestions = runSummaryData.filter((q: any) => q.locked === true || q.is_correct === true || q.attempt_count >= 4);
         if (terminalQuestions.length < 14) {
           return new Response(
-            JSON.stringify({ error: `Trabajo en Clase incompleto. Debes resolver los 14 ejercicios iniciales (Finalizados: ${terminalQuestions.length}/14).` }),
+            JSON.stringify({
+              success: false,
+              code: "ACTIVITY_INCOMPLETE",
+              error: `Trabajo en Clase incompleto. Debes resolver los 14 ejercicios iniciales (Finalizados: ${terminalQuestions.length}/14).`,
+              remaining_exercises: 14 - terminalQuestions.length
+            }),
             { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
           );
         }
@@ -290,6 +372,7 @@ serve(async (req: Request) => {
         const rawInitialScore = totalTerminalScore / 14.0;
         computedScore = rawInitialScore;
 
+        submissionDetails.run_id = payloadRunId;
         submissionDetails.phase = "initial";
         submissionDetails.raw_initial_score = rawInitialScore;
         submissionDetails.questions_count = 14;
@@ -299,8 +382,7 @@ serve(async (req: Request) => {
           return new Response(JSON.stringify({ error: "initial_run_id debe ser un UUID válido para la fase de recuperación" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
         }
 
-        // Consultar el intento initial específico correspondiente a initial_run_id
-        const { data: pastAttempts, error: pastErr } = await serviceClient
+        const { data: pastAttempts } = await serviceClient
           .from("activity_attempts")
           .select("submission_data")
           .eq("activity_id", activity.id)
@@ -331,7 +413,7 @@ serve(async (req: Request) => {
           .rpc("get_activity_run_summary", {
             p_activity_id: activity.id,
             p_student_id: student.id,
-            p_run_id: run_id,
+            p_run_id: payloadRunId,
             p_phase: "recovery"
           });
 
@@ -342,7 +424,12 @@ serve(async (req: Request) => {
         const terminalRecovery = recSummaryData.filter((q: any) => q.locked === true || q.is_correct === true || q.attempt_count >= 4);
         if (terminalRecovery.length < 8) {
           return new Response(
-            JSON.stringify({ error: `Fase de recuperación incompleta. Debes completar los 8 ejercicios (Finalizados: ${terminalRecovery.length}/8).` }),
+            JSON.stringify({
+              success: false,
+              code: "ACTIVITY_INCOMPLETE",
+              error: `Fase de recuperación incompleta. Debes completar los 8 ejercicios (Finalizados: ${terminalRecovery.length}/8).`,
+              remaining_exercises: 8 - terminalRecovery.length
+            }),
             { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
           );
         }
@@ -350,17 +437,16 @@ serve(async (req: Request) => {
         const totalRecScore = terminalRecovery.reduce((acc: number, q: any) => acc + Number(q.terminal_score || 0), 0);
         const recoveryAvg = totalRecScore / 8.0;
 
-        // REGLA INMUTABLE: MAX(rawInitialScore, recoveryAvg)
         const finalRaw = Math.max(rawInitialScore, recoveryAvg);
         computedScore = finalRaw;
 
+        submissionDetails.run_id = payloadRunId;
         submissionDetails.phase = "recovery";
         submissionDetails.initial_run_id = initial_run_id;
         submissionDetails.raw_initial_score = rawInitialScore;
         submissionDetails.recovery_score = recoveryAvg;
         submissionDetails.recovery_average = recoveryAvg;
         submissionDetails.final_raw_score = finalRaw;
-
       }
     } else {
       return new Response(JSON.stringify({ error: `Tipo de calificador '${graderType}' no reconocido` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
@@ -383,6 +469,18 @@ serve(async (req: Request) => {
     if (recordError || !recordResult) {
       console.error("Error al ejecutar record_activity_attempt:", recordError);
       return new Response(JSON.stringify({ error: "Error al guardar el resultado oficial en la base de datos" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    // Si existía un activity_run en progreso, marcarlo como submitted
+    if (activeRunId) {
+      await serviceClient
+        .from("activity_runs")
+        .update({
+          status: "submitted",
+          submitted_at: new Date().toISOString(),
+          submission_id: submission_id
+        })
+        .eq("id", activeRunId);
     }
 
     return new Response(
