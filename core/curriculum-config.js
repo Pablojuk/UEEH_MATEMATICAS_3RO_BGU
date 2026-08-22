@@ -283,6 +283,63 @@ export const CURRICULUM_UNITS = [
         viewTitle: "Resultados · Unidad 5 Determinantes"
       }
     }
+  },
+  {
+    unitNumber: 6,
+    slug: "unit6-sucesiones",
+    badge: "aₙ",
+    status: "ACTIVA",
+    title: "Sucesiones convergentes y límite de una sucesión",
+    description: "Término general, cálculo de límites al infinito, convergencia y divergencia de sucesiones.",
+    modalSubtitle: "Cada actividad completada se registra en Supabase como tu calificación oficial.",
+    cardButtonId: "btn-open-unit-sucesiones",
+    requiresStudentData: false,
+    routes: {
+      presentation: {
+        title: "Presentación de la Clase",
+        description: "24 diapositivas interactivas con teoría, ejemplos y ejercicios formativos.",
+        icon: "📽️",
+        actionText: "Iniciar lectura →",
+        actionColor: "text-moodle-orange",
+        buttonId: "btn-unit-6-slides",
+        type: "html-lesson",
+        src: "./topics/unit6-sucesiones/presentation.html",
+        viewerTitle: "Sucesiones convergentes - Presentación de la Clase",
+        viewTitle: "Sucesiones convergentes y límite de una sucesión"
+      },
+      gamification: {
+        title: "Gamificación",
+        description: "Space Math Invaders 1984: Destruye los aliens calculando límites.",
+        icon: "👾",
+        actionText: "Empezar a jugar →",
+        actionColor: "text-violet-600",
+        buttonId: "btn-unit-6-game",
+        type: "html-lesson",
+        src: "./topics/unit6-sucesiones/gamificacion.html",
+        viewerTitle: "Space Math Invaders 1984 · Unidad 6",
+        viewTitle: "Gamificación · Space Math Invaders"
+      },
+      classwork: {
+        title: "Trabajo en Clase",
+        description: "Deber interactivo con 20 ejercicios iniciales + 10 de recuperación.",
+        icon: "📐",
+        actionText: "Ver actividades →",
+        actionColor: "text-blue-600",
+        buttonId: "btn-unit-6-homework",
+        type: "html-lesson",
+        src: "./topics/unit6-sucesiones/deber.html",
+        viewerTitle: "Deber Interactivo | Sucesiones y Límites · Unidad 6",
+        viewTitle: "Trabajo en Clase · Sucesiones"
+      },
+      results: {
+        title: "Resultados de las Actividades",
+        description: "Consulta tu desempeño en la plataforma oficial Supabase.",
+        icon: "📊",
+        buttonId: "btn-unit-6-results",
+        type: "supabase-summary",
+        viewTitle: "Resultados · Unidad 6 Sucesiones"
+      }
+    }
   }
 ];
 

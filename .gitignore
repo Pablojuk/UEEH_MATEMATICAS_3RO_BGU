@@ -10,3 +10,6 @@ scratch/
 
 # Deno lock file
 deno.lock
+
+# Supabase temp
+supabase/.temp/

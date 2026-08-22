@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#b8f2e6" />
+  <title>Sucesiones convergentes y límite de una sucesión · Tercero de BGU</title>
+
+  <!-- Configuración de MathJax v3 con fallback seguro -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      /* Paleta suave de tonos pastel / colores de helado */
+      --celeste: #cfefff;
+      --turquesa: #b8f2e6;
+      --menta: #d9f7d8;
+      --rosa: #ffdce8;
+      --durazno: #ffe1c6;
+      --crema: #fff4bf;
+      --lila: #e8dcff;
+      --arena: #f7ead7;
+      --blanco: #fffdf8;
+      --tinta: #273142;
+      --texto-suave: #596275;
+      --azul-titulo: #244b70;
+      --verde-ok: #1e6454;
+      --rojo-alerta: #943443;
+      --sombra: 0 18px 42px rgba(44, 62, 80, 0.11);
+      --sombra-suave: 0 8px 22px rgba(44, 62, 80, 0.07);
+      --radio-pantalla: 32px;
+      --radio-tarjeta: 22px;
+      --borde: rgba(55, 90, 127, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      color: var(--tinta);
+      background:
+        radial-gradient(circle at 10% 12%, rgba(207, 239, 255, 0.75), transparent 26%),
+        radial-gradient(circle at 90% 8%, rgba(217, 247, 216, 0.75), transparent 28%),
+        radial-gradient(circle at 15% 88%, rgba(232, 220, 255, 0.7), transparent 28%),
+        radial-gradient(circle at 85% 90%, rgba(255, 244, 191, 0.65), transparent 25%),
+        linear-gradient(135deg, #fbfdfe 0%, #edf9f6 45%, #fff7ed 100%);
+      overflow-x: hidden;
+    }
+
+    /* Cuadrícula sutil de fondo */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(55, 90, 127, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(55, 90, 127, 0.035) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    button, input {
+      font-family: inherit;
+    }
+
+    .app {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      padding-bottom: max(14px, env(safe-area-inset-bottom));
+    }
+
+    /* Barra Superior */
+    .topbar {
+      width: min(1180px, calc(100% - 24px));
+      margin: 12px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--tinta);
+      background: rgba(255, 253, 248, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      box-shadow: var(--sombra-suave);
+      border-radius: 22px;
+      padding: 10px 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--turquesa), var(--celeste));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+      font-size: 1.35rem;
+      flex: 0 0 auto;
+    }
+
+    .brand-title {
+      font-weight: 900;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: min(50vw, 560px);
+      font-size: 1rem;
+      color: var(--azul-titulo);
+    }
+
+    .brand small {
+      display: block;
+      color: var(--texto-suave);
+      font-weight: 700;
+      font-size: 0.8rem;
+      margin-top: 2px;
+    }
+
+    .progress-wrap {
+      flex: 1;
+      max-width: 360px;
+      min-width: 130px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: rgba(235, 242, 248, 0.85);
+      border: 1px solid rgba(55, 90, 127, 0.12);
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      font-weight: 850;
+      color: var(--texto-suave);
+      margin-bottom: 3px;
+    }
+
+    .progress-track {
+      height: 10px;
+      background: rgba(55, 90, 127, 0.12);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #b8f2e6, #cfefff, #e8dcff, #fff4bf);
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Contenedor del Deck */
+    .deck {
+      width: min(1180px, calc(100% - 24px));
+      flex: 1;
+      margin: 14px auto;
+      position: relative;
+    }
+
+    .slide {
+      min-height: calc(100dvh - 170px);
+      display: none;
+      align-items: stretch;
+      justify-content: center;
+      animation: fadeSlide 0.35s ease both;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(8px) scale(0.996); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .screen {
+      width: 100%;
+      min-height: 590px;
+      border-radius: var(--radio-pantalla);
+      padding: clamp(20px, 4vw, 42px);
+      background:
+        linear-gradient(145deg, rgba(255, 253, 248, 0.97), rgba(255, 255, 255, 0.92)),
+        radial-gradient(circle at 10% 12%, rgba(207, 239, 255, 0.32), transparent 25%),
+        radial-gradient(circle at 88% 14%, rgba(217, 247, 216, 0.35), transparent 28%);
+      box-shadow: var(--sombra);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      position: relative;
+    }
+
+    .screen::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: 24px;
+      border: 2px dashed rgba(55, 90, 127, 0.10);
+      pointer-events: none;
+    }
+
+    .screen-content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Tipografía */
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      font-size: clamp(2rem, 5.2vw, 3.5rem);
+      line-height: 1.08;
+      color: var(--azul-titulo);
+      margin-bottom: 12px;
+      letter-spacing: -0.8px;
+      font-weight: 900;
+    }
+
+    h2 {
+      font-size: clamp(1.55rem, 3.6vw, 2.4rem);
+      line-height: 1.15;
+      color: var(--azul-titulo);
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+      font-weight: 850;
+    }
+
+    h3 {
+      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+      color: var(--azul-titulo);
+      margin-bottom: 6px;
+      font-weight: 800;
+    }
+
+    p, li {
+      font-size: clamp(0.95rem, 1.3vw, 1.1rem);
+      line-height: 1.55;
+    }
+
+    .lead {
+      font-size: clamp(1rem, 1.55vw, 1.25rem);
+      font-weight: 650;
+      color: #384656;
+      max-width: 980px;
+      margin-bottom: 14px;
+    }
+
+    .muted { color: var(--texto-suave); }
+    .center { text-align: center; }
+
+    /* Layouts */
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: clamp(16px, 3.5vw, 36px);
+      align-items: center;
+      min-height: 480px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: stretch;
+      margin: 10px 0;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      align-items: stretch;
+      margin: 10px 0;
+    }
+
+    /* Píldoras y DUA */
+    .pill-row, .dua-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 4px 0 14px;
+    }
+
+    .pill, .dua {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 850;
+      font-size: 0.82rem;
+      line-height: 1.1;
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: inset 0 0 0 1px rgba(55, 90, 127, 0.12);
+    }
+
+    .dua.compromiso { background: rgba(217, 247, 216, 0.85); color: var(--verde-ok); }
+    .dua.representacion { background: rgba(232, 220, 255, 0.85); color: #4e3d7a; }
+    .dua.accion { background: rgba(207, 239, 255, 0.9); color: #204c6e; }
+
+    /* Tarjetas de Contenido */
+    .card {
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio-tarjeta);
+      padding: clamp(14px, 2vw, 20px);
+      box-shadow: var(--sombra-suave);
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .card.soft-celeste { background: linear-gradient(145deg, rgba(207, 239, 255, 0.85), rgba(255, 255, 255, 0.8)); }
+    .card.soft-menta { background: linear-gradient(145deg, rgba(217, 247, 216, 0.85), rgba(255, 255, 255, 0.8)); }
+    .card.soft-rosa { background: linear-gradient(145deg, rgba(255, 220, 232, 0.85), rgba(255, 255, 255, 0.8)); }
+    .card.soft-crema { background: linear-gradient(145deg, rgba(255, 244, 191, 0.88), rgba(255, 255, 255, 0.8)); }
+    .card.soft-lila { background: linear-gradient(145deg, rgba(232, 220, 255, 0.85), rgba(255, 255, 255, 0.8)); }
+    .card.soft-durazno { background: linear-gradient(145deg, rgba(255, 225, 198, 0.85), rgba(255, 255, 255, 0.8)); }
+
+    .icon-big {
+      font-size: 1.9rem;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .mini-tag {
+      display: inline-block;
+      font-size: 0.74rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--texto-suave);
+      margin-bottom: 4px;
+    }
+
+    /* Cajas Matemáticas */
+    .math-box {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 250, 238, 0.95);
+      border: 1.5px solid rgba(245, 197, 86, 0.35);
+      margin: 8px 0;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    }
+
+    .math-box.center-math {
+      text-align: center;
+    }
+
+    .math-box::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .math-box::-webkit-scrollbar-thumb {
+      background: rgba(55, 90, 127, 0.25);
+      border-radius: 999px;
+    }
+
+    /* Listas de Pasos */
+    .step-list {
+      display: grid;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--borde);
+    }
+
+    .step-number {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--crema), var(--durazno));
+      font-weight: 900;
+      color: #634527;
+      font-size: 1rem;
+    }
+
+    /* Callouts */
+    .callout {
+      border-radius: 18px;
+      padding: 12px 16px;
+      margin: 10px 0;
+      border: 1px solid var(--borde);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--sombra-suave);
+      font-size: 0.94rem;
+      line-height: 1.48;
+    }
+
+    .callout.remember { background: rgba(217, 247, 216, 0.82); border-color: rgba(30, 100, 84, 0.25); }
+    .callout.error { background: rgba(255, 220, 232, 0.85); border-color: rgba(148, 52, 67, 0.25); }
+    .callout.teacher { background: rgba(232, 220, 255, 0.82); border-color: rgba(78, 61, 122, 0.25); }
+
+    /* Tablas */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 18px;
+      border: 1px solid var(--borde);
+      background: rgba(255, 255, 255, 0.85);
+      margin: 10px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 540px;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: middle;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(55, 90, 127, 0.10);
+      font-size: 0.92rem;
+    }
+
+    th {
+      background: rgba(207, 239, 255, 0.85);
+      color: var(--azul-titulo);
+      font-weight: 900;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    /* Botones */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 18px;
+      min-height: 48px;
+      font-weight: 850;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      font-size: 0.96rem;
+      color: var(--tinta);
+      touch-action: manipulation;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(44, 62, 80, 0.12);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary { background: linear-gradient(135deg, var(--turquesa), var(--celeste)); }
+    .btn-secondary { background: linear-gradient(135deg, var(--crema), var(--durazno)); }
+    .btn-ghost { background: rgba(255, 255, 255, 0.85); box-shadow: inset 0 0 0 2px rgba(55, 90, 127, 0.14); }
+
+    /* Controles de Navegación Inferior */
+    .nav-controls {
+      width: min(1180px, calc(100% - 24px));
+      margin: 0 auto 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 3;
+    }
+
+    .slide-counter {
+      font-weight: 900;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255, 253, 248, 0.92);
+      box-shadow: var(--sombra-suave);
+      font-size: 0.92rem;
+      white-space: nowrap;
+      border: 1px solid rgba(55, 90, 127, 0.1);
+    }
+
+    /* Interacciones: Preguntas con feedback */
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .option {
+      text-align: left;
+      padding: 14px 18px;
+      border: 2px solid rgba(55, 90, 127, 0.14);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+      min-height: 56px;
+      font-weight: 800;
+      transition: 0.16s ease;
+      color: var(--tinta);
+      font-size: 0.95rem;
+      line-height: 1.45;
+      display: block;
+      width: 100%;
+    }
+
+    .option:hover, .option:focus {
+      outline: none;
+      border-color: rgba(30, 100, 84, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .option.correct { background: rgba(217, 247, 216, 0.95); border-color: var(--verde-ok); color: var(--verde-ok); }
+    .option.wrong { background: rgba(255, 220, 232, 0.95); border-color: var(--rojo-alerta); color: var(--rojo-alerta); }
+
+    .feedback {
+      display: none;
+      margin-top: 10px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-weight: 850;
+      font-size: 0.94rem;
+    }
+
+    .feedback.show { display: block; animation: fadeSlide 0.2s ease both; }
+    .feedback.ok { background: rgba(217, 247, 216, 0.9); color: var(--verde-ok); }
+    .feedback.bad { background: rgba(255, 220, 232, 0.9); color: var(--rojo-alerta); }
+
+    /* Revelados y Acordeones */
+    .reveal {
+      display: none;
+      margin-top: 12px;
+      animation: fadeSlide 0.22s ease both;
+    }
+    .reveal.show { display: block; }
+
+    .accordion { display: grid; gap: 9px; margin-top: 10px; }
+    .acc-item { border-radius: 18px; overflow: hidden; border: 1px solid var(--borde); background: rgba(255, 255, 255, 0.82); }
+    .acc-head {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      padding: 13px 16px;
+      min-height: 48px;
+      cursor: pointer;
+      font-weight: 850;
+      color: var(--azul-titulo);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.95rem;
+    }
+    .acc-body { display: none; padding: 0 16px 14px; font-size: 0.92rem; }
+    .acc-item.open .acc-body { display: block; }
+
+    /* Hero Art & Animaciones */
+    .hero-art {
+      min-height: 380px;
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.85), transparent 15%),
+        radial-gradient(circle at 75% 20%, rgba(255, 244, 191, 0.9), transparent 22%),
+        linear-gradient(145deg, var(--turquesa), var(--celeste) 50%, var(--lila));
+      box-shadow: var(--sombra-suave);
+      position: relative;
+      overflow: hidden;
+      border: 4px solid rgba(255, 255, 255, 0.65);
+    }
+
+    .hero-art .formula-card {
+      position: absolute;
+      width: min(90%, 340px);
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) rotate(-1.5deg);
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 253, 248, 0.95);
+      box-shadow: 0 16px 36px rgba(44, 62, 80, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      text-align: center;
+    }
+
+    .floating {
+      position: absolute;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      filter: drop-shadow(0 8px 8px rgba(44, 62, 80, 0.12));
+      animation: float 3.4s ease-in-out infinite;
+    }
+    .float-a { left: 8%; top: 8%; animation-delay: 0s; }
+    .float-b { right: 8%; top: 10%; animation-delay: 0.6s; }
+    .float-c { right: 10%; bottom: 8%; animation-delay: 1.2s; }
+    .float-d { left: 8%; bottom: 10%; animation-delay: 1.8s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+
+    .footer-author {
+      margin-top: 14px;
+      font-size: 0.82rem;
+      color: var(--texto-suave);
+      font-weight: 750;
+    }
+
+    /* Gráfico SVG didáctico de límite */
+    .svg-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 10px auto;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--borde);
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: var(--sombra-suave);
+    }
+
+    /* Adaptación Responsiva */
+    @media (max-width: 920px) {
+      .split, .two-col, .three-col {
+        grid-template-columns: 1fr;
+      }
+      .hero-art { min-height: 270px; }
+      .screen { min-height: auto; padding: 22px 18px; }
+      .option-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .brand-title { max-width: 100%; white-space: normal; }
+      .progress-wrap { max-width: none; }
+      .slide { min-height: auto; }
+      .screen { border-radius: 22px; padding: 16px; }
+      .screen::after { inset: 6px; border-radius: 16px; }
+      h1 { letter-spacing: -0.5px; }
+      .nav-controls { flex-wrap: wrap; }
+      .nav-controls .btn { flex: 1 1 120px; }
+      .slide-counter { order: -1; width: 100%; text-align: center; }
+      .btn-row .btn { flex: 1 1 100%; }
+      .step { grid-template-columns: 32px 1fr; gap: 10px; }
+      .step-number { width: 32px; height: 32px; font-size: 0.9rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Barra Superior Docente -->
+    <header class="topbar" aria-label="Barra superior de presentación">
+      <div class="brand">
+        <div class="brand-badge">📈</div>
+        <div>
+          <div class="brand-title" id="brandTitle">Matemáticas · Sucesiones convergentes y límite de una sucesión</div>
+          <small id="brandSubtitle">Tercero de BGU · 90 minutos</small>
+        </div>
+      </div>
+      <div class="progress-wrap" aria-label="Progreso de la sesión">
+        <div class="progress-label">
+          <span>Avance de la clase</span>
+          <span id="globalProgressText">1/22</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="globalProgress"></div></div>
+      </div>
+    </header>
+
+    <!-- Deck de Diapositivas -->
+    <main class="deck" id="deck">
+
+      <!-- SLIDE 1: Portada -->
+      <section class="slide active" id="slide-01" data-slide-title="Portada">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar">
+                <span class="dua compromiso">DUA · Compromiso</span>
+                <span class="dua representacion">DUA · Representación</span>
+              </div>
+              <h1>Sucesiones convergentes y límite de una sucesión</h1>
+              <p class="lead">Una introducción clara, progresiva y guiada al comportamiento asintótico de las sucesiones numéricas y el cálculo de sus límites.</p>
+              <div class="pill-row">
+                <span class="pill">📘 Matemáticas</span>
+                <span class="pill">🎓 Tercero de BGU</span>
+                <span class="pill">⏱️ 90 minutos</span>
+                <span class="pill">📌 Nivel Intermedio</span>
+              </div>
+              <div class="callout remember">
+                <strong>Idea Clave del Módulo:</strong> Una sucesión "converge" cuando, a medida que avanza indefinidamente, sus términos se acercan cada vez más a un <strong>único valor finito</strong>. Aprender a calcular ese valor es el objetivo central de esta sesión.
+              </div>
+              <div class="footer-author">Módulo educativo elaborado por: Econ. Pablo Hernan Juca Farfan · Colección BGU</div>
+            </div>
+            <div class="hero-art" aria-label="Ilustración visual de sucesiones y límites">
+              <div class="floating float-a">🎯</div>
+              <div class="floating float-b">📊</div>
+              <div class="floating float-c">♾️</div>
+              <div class="floating float-d">🔢</div>
+              <div class="formula-card">
+                <div class="mini-tag">Límite al Infinito</div>
+                <div class="math-box center-math">
+                  \[
+                  \lim_{n \to \infty} \frac{1}{n} = 0
+                  \]
+                </div>
+                <small class="muted">A medida que \(n \to \infty\), los términos se aproximan a cero.</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 2: Propósito de la clase -->
+      <section class="slide" id="slide-02" data-slide-title="Propósito de la clase">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua compromiso">DUA · Compromiso</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Propósito y Marco Curricular</h2>
+            <p class="lead">Comprender el concepto intuitivo y algebraico de límite en sucesiones numéricas reales para predecir su comportamiento a largo plazo.</p>
+            <div class="three-col">
+              <div class="card soft-celeste">
+                <span class="icon-big">🎯</span>
+                <h3>Objetivo de Aprendizaje</h3>
+                <p>Reconocer el comportamiento asintótico de sucesiones numéricas, determinando si convergen o divergen mediante tablas, gráficos y reglas formales de límites.</p>
+              </div>
+              <div class="card soft-menta">
+                <span class="icon-big">🧩</span>
+                <h3>Destreza con Criterio de Desempeño</h3>
+                <p>Identificar sucesiones convergentes y calcular su límite al infinito aplicando propiedades algebraicas y simplificación de expresiones racionales.</p>
+              </div>
+              <div class="card soft-lila">
+                <span class="icon-big">✅</span>
+                <h3>Indicador de Evaluación</h3>
+                <p>Calcula el término general y el límite de sucesiones reales sencillas, diferenciando con precisión convergencia de divergencia.</p>
+              </div>
+            </div>
+            <div class="callout teacher">
+              <strong>Para el estudiante:</strong> No requieres conocimientos previos avanzados. Partiremos de ejemplos cotidianos, tablas numéricas y gráficas intuitivas antes del cálculo algebraico.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 3: Ruta de aprendizaje -->
+      <section class="slide" id="slide-03" data-slide-title="Ruta de aprendizaje">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Ruta Pedagógica de la Sesión</h2>
+            <div class="three-col">
+              <div class="card soft-durazno">
+                <span class="mini-tag">Sección 01 · 25 min</span>
+                <h3>Conceptos Fundamentales</h3>
+                <p>Definición de sucesión, término general \(a_n\), dominio natural y clasificación (crecientes, decrecientes y oscilantes).</p>
+                <span class="pill">🔍 Tablas y patrones</span>
+              </div>
+              <div class="card soft-celeste">
+                <span class="mini-tag">Sección 02 · 30 min</span>
+                <h3>Idea de Límite y Convergencia</h3>
+                <p>Comportamiento de \(a_n = 1/n\), gráfico asintótico, definición intuitiva de límite \(\lim_{n \to \infty} a_n = L\) y divergencia.</p>
+                <span class="pill">📈 Visualización gráfica</span>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Sección 03 · 35 min</span>
+                <h3>Cálculo de Límites y Práctica</h3>
+                <p>Reglas prácticas de cálculo (constante entre potencia de \(n\), cociente de polinomios en \(n\)), 4 ejemplos resueltos y reto.</p>
+                <span class="pill">🧮 Modelado y práctica</span>
+              </div>
+            </div>
+            <div class="callout remember">
+              <strong>Estrategia DUA:</strong> Múltiples representaciones (numérica, gráfica y analítica), apoyos visuales y revelado progresivo de procedimientos.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 4: Activación de conocimientos previos -->
+      <section class="slide" id="slide-04" data-slide-title="Activación diagnóstica">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua compromiso">DUA · Compromiso</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Activación: ¿Qué ocurre al dividir un pastel infinitas veces?</h2>
+            <p class="lead">Si tomas una hoja de papel y la cortas por la mitad sucesivamente: \(\frac{1}{2}, \frac{1}{4}, \frac{1}{8}, \frac{1}{16}, \dots\) ¿Qué le ocurre al tamaño de cada pedazo conforme el número de cortes crece indefinidamente?</p>
+            <div class="option-grid" data-question="q_activacion">
+              <button class="option" data-correct="false" onclick="checkOption(this)">Los pedazos se vuelven infinitamente gigantescos.</button>
+              <button class="option" data-correct="true" onclick="checkOption(this)">Los pedazos se hacen extremadamente pequeños, acercándose a 0 sin llegar a desaparecer del todo.</button>
+              <button class="option" data-correct="false" onclick="checkOption(this)">Llega un momento en que el tamaño se vuelve negativo.</button>
+              <button class="option" data-correct="false" onclick="checkOption(this)">El tamaño oscila constantemente entre 1 y -1.</button>
+            </div>
+            <div class="feedback ok" id="q_activacion-ok">
+              ✅ ¡Exacto! Los números se reducen cada vez más y se aproximan progresivamente al número \(0\). Esta es la esencia intuitiva del concepto de <strong>límite</strong> y <strong>convergencia</strong>.
+            </div>
+            <div class="feedback bad" id="q_activacion-bad">
+              💡 Reflexiona: Al dividir un número positivo entre cantidades cada vez más grandes, el cociente se reduce progresivamente hacia el cero.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 5: Conceptos fundamentales: ¿Qué es una sucesión? -->
+      <section class="slide" id="slide-05" data-slide-title="¿Qué es una sucesión?">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>01. Conceptos Fundamentales: ¿Qué es una Sucesión?</h2>
+            <p class="lead">Una <strong>sucesión</strong> es una lista ordenada de números que sigue una regla específica. Cada número de la lista se llama <strong>término</strong>.</p>
+            <div class="split">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Ejemplo Introductorio</span>
+                <p>Observemos la lista de los números pares positivos:</p>
+                <div class="math-box center-math">
+                  \[
+                  2, \; 4, \; 6, \; 8, \; 10, \; \dots
+                  \]
+                </div>
+                <p>Cada término se obtiene sumando \(2\) al anterior. Cada posición se identifica con un número natural:</p>
+                <p class="center">\(n = 1, 2, 3, 4, 5, \dots\)</p>
+              </div>
+              <div class="step-list">
+                <div class="step">
+                  <div class="step-number">1</div>
+                  <div><strong>Posición 1 (\(n=1\)):</strong> Primer término \(\to a_1 = 2\)</div>
+                </div>
+                <div class="step">
+                  <div class="step-number">2</div>
+                  <div><strong>Posición 2 (\(n=2\)):</strong> Segundo término \(\to a_2 = 4\)</div>
+                </div>
+                <div class="step">
+                  <div class="step-number">3</div>
+                  <div><strong>Posición 3 (\(n=3\)):</strong> Tercer término \(\to a_3 = 6\)</div>
+                </div>
+              </div>
+            </div>
+            <div class="callout remember">
+              <strong>Recuerda:</strong> Una sucesión es, en esencia, una función cuyo dominio son los números naturales (\(\mathbb{N} = \{1, 2, 3, 4, \dots\}\)). En lugar de escribir \(a(n)\), usamos la notación con subíndice \(a_n\).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 6: Notación y Término General -->
+      <section class="slide" id="slide-06" data-slide-title="Notación y Término General">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Notación y el Término General (\(a_n\))</h2>
+            <p class="lead">A cada término de la sucesión lo representamos con una letra minúscula y un subíndice que indica su posición en la lista: \(a_1, a_2, a_3, \dots, a_n\).</p>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <h3>El Término General: \(a_n\)</h3>
+                <p>El símbolo \(a_n\) se llama <strong>término general</strong>, porque es una fórmula que permite calcular cualquier término directamente sin necesidad de escribir todos los anteriores.</p>
+                <div class="math-box center-math">
+                  \[
+                  a_n = 2n
+                  \]
+                </div>
+                <p>Reemplazando \(n\) por el número de posición deseado:</p>
+                <ul>
+                  <li>Para \(n=1\): \(a_1 = 2(1) = 2\)</li>
+                  <li>Para \(n=2\): \(a_2 = 2(2) = 4\)</li>
+                  <li>Para \(n=3\): \(a_3 = 2(3) = 6\)</li>
+                </ul>
+              </div>
+              <div class="card soft-crema">
+                <h3>¿Por qué es tan potente \(a_n\)?</h3>
+                <p>Si el docente te pregunta: <em>"¿Cuál es el término en la posición 500?"</em></p>
+                <div class="math-box center-math">
+                  \[
+                  a_{500} = 2(500) = 1000
+                  \]
+                </div>
+                <div class="callout teacher">
+                  <strong>Ventaja didáctica:</strong> ¡No necesitas sumar 2 quinientas veces! La fórmula matemática conecta directamente la posición \(n\) con el valor del término \(a_n\).
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 7: Ejemplos de Sucesiones (Tabla Comparativa) -->
+      <section class="slide" id="slide-07" data-slide-title="Ejemplos de Sucesiones">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Ejemplos de Sucesiones y sus Términos</h2>
+            <p class="lead">Analicemos cómo diferentes términos generales generan distintos patrones numéricos calculando sus cuatro primeros valores (\(n = 1, 2, 3, 4\)):</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Término General (\(a_n\))</th>
+                    <th>\(a_1\)</th>
+                    <th>\(a_2\)</th>
+                    <th>\(a_3\)</th>
+                    <th>\(a_4\)</th>
+                    <th>Descripción Pedagógica</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>\(a_n = n\)</strong></td>
+                    <td>\(1\)</td>
+                    <td>\(2\)</td>
+                    <td>\(3\)</td>
+                    <td>\(4\)</td>
+                    <td>Sucesión de los números naturales.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>\(a_n = 3n - 1\)</strong></td>
+                    <td>\(2\)</td>
+                    <td>\(5\)</td>
+                    <td>\(8\)</td>
+                    <td>\(11\)</td>
+                    <td>Progresión aritmética con razón \(3\).</td>
+                  </tr>
+                  <tr>
+                    <td><strong>\(a_n = \frac{1}{n}\)</strong></td>
+                    <td>\(1\)</td>
+                    <td>\(\frac{1}{2}\)</td>
+                    <td>\(\frac{1}{3}\)</td>
+                    <td>\(\frac{1}{4}\)</td>
+                    <td>Términos fraccionarios decrecientes.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>\(a_n = (-1)^n\)</strong></td>
+                    <td>\(-1\)</td>
+                    <td>\(1\)</td>
+                    <td>\(-1\)</td>
+                    <td>\(1\)</td>
+                    <td>Términos alternados u oscilantes.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout remember">
+              <strong>Observación:</strong> Los signos o fracciones dependen exclusivamente del comportamiento algebraico de \(n\).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 8: Sucesiones Crecientes, Decrecientes y Oscilantes -->
+      <section class="slide" id="slide-08" data-slide-title="Comportamiento Monótono">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua representacion">DUA · Representación</span>
+              <span class="dua accion">DUA · Acción y expresión</span>
+            </div>
+            <h2>Sucesiones Crecientes, Decrecientes y Oscilantes</h2>
+            <p class="lead">Según la relación de orden entre términos consecutivos, clasificamos el comportamiento de una sucesión:</p>
+            <div class="three-col">
+              <div class="card soft-menta">
+                <span class="mini-tag">Tipo 1</span>
+                <h3>Creciente</h3>
+                <p>Cada término es mayor que el anterior para todo \(n\):</p>
+                <div class="math-box center-math">
+                  \[
+                  a_{n+1} > a_n
+                  \]
+                </div>
+                <p><strong>Ejemplo:</strong> \(a_n = 2n + 1\)</p>
+                <p>\(3, 5, 7, 9, 11, \dots\)</p>
+              </div>
+              <div class="card soft-celeste">
+                <span class="mini-tag">Tipo 2</span>
+                <h3>Decreciente</h3>
+                <p>Cada término es menor que el anterior para todo \(n\):</p>
+                <div class="math-box center-math">
+                  \[
+                  a_{n+1} < a_n
+                  \]
+                </div>
+                <p><strong>Ejemplo:</strong> \(a_n = \frac{1}{n}\)</p>
+                <p>\(1, \frac{1}{2}, \frac{1}{3}, \frac{1}{4}, \dots\)</p>
+              </div>
+              <div class="card soft-rosa">
+                <span class="mini-tag">Tipo 3</span>
+                <h3>Oscilante / Alternada</h3>
+                <p>No crece ni decrece de forma continua; sus valores saltan:</p>
+                <div class="math-box center-math">
+                  \[
+                  a_n = (-1)^n
+                  \]
+                </div>
+                <p>\(-1, 1, -1, 1, -1, \dots\)</p>
+              </div>
+            </div>
+            <div class="callout teacher">
+              <strong>Consejo del Docente:</strong> Para intuir si una sucesión crece o decrece, calcula 2 o 3 términos consecutivos y compáralos ordenadamente.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 9: Idea de límite: Acercándose a un valor -->
+      <section class="slide" id="slide-09" data-slide-title="Idea de Límite (Tabla 1/n)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>02. Idea de Límite de una Sucesión · Acercándose a un Valor</h2>
+            <p class="lead">Observemos detalladamente la sucesión \(a_n = \frac{1}{n}\). ¿Qué ocurre con el valor de los términos cuando la posición \(n\) se hace enormemente grande?</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Posición (\(n\))</th>
+                    <th>\(1\)</th>
+                    <th>\(2\)</th>
+                    <th>\(5\)</th>
+                    <th>\(10\)</th>
+                    <th>\(100\)</th>
+                    <th>\(1\,000\)</th>
+                    <th>\(10\,000\)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Valor \(a_n = \frac{1}{n}\)</strong></td>
+                    <td>\(1\)</td>
+                    <td>\(0{,}5\)</td>
+                    <td>\(0{,}2\)</td>
+                    <td>\(0{,}1\)</td>
+                    <td>\(0{,}01\)</td>
+                    <td>\(0{,}001\)</td>
+                    <td>\(0{,}0001\)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <h3>Análisis Numérico</h3>
+                <p>A medida que \(n\) crece hacia el infinito (\(n \to \infty\)), los términos se hacen cada vez más pequeños y se aproximan cada vez más al valor <strong>\(0\)</strong>.</p>
+              </div>
+              <div class="card soft-menta">
+                <h3>Conclusión Fundamental</h3>
+                <p>Decimos formalmente que la sucesión <strong>converge a \(0\)</strong>, o que <strong>su límite es \(0\)</strong>.</p>
+                <div class="math-box center-math">
+                  \[
+                  \lim_{n \to \infty} \frac{1}{n} = 0
+                  \]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 10: Representación Gráfica del Límite -->
+      <section class="slide" id="slide-10" data-slide-title="Gráfico del Límite">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Representación Gráfica del Comportamiento Asintótico</h2>
+            <p class="lead">Los puntos discretos \((n, a_n)\) descienden aproximándose a la línea horizontal \(L = 0\) (eje horizontal) sin traspasarla ni tocarla:</p>
+            <div class="svg-container" aria-label="Gráfica de dispersión de 1/n aproximándose asintóticamente a 0">
+              <svg viewBox="0 0 540 220" width="100%" height="auto" style="display:block; overflow:visible;">
+                <!-- Ejes -->
+                <line x1="40" y1="180" x2="510" y2="180" stroke="#596275" stroke-width="2" />
+                <line x1="40" y1="180" x2="40" y2="20" stroke="#596275" stroke-width="2" />
+                <!-- Flechas -->
+                <polygon points="510,176 520,180 510,184" fill="#596275" />
+                <polygon points="36,20 40,10 44,20" fill="#596275" />
+                <!-- Etiquetas de ejes -->
+                <text x="515" y="198" font-size="14" font-weight="bold" fill="#244b70">n</text>
+                <text x="18" y="24" font-size="14" font-weight="bold" fill="#244b70">aₙ</text>
+                <text x="28" y="196" font-size="12" fill="#596275">0</text>
+                <!-- Línea de Límite -->
+                <line x1="40" y1="180" x2="500" y2="180" stroke="#d9534f" stroke-width="2.5" stroke-dasharray="6,4" />
+                <text x="400" y="170" font-size="13" font-weight="bold" fill="#d9534f">límite = 0</text>
+                <!-- Puntos de la sucesión a_n = 1/n -->
+                <!-- n=1, a1=1 -->
+                <circle cx="80" cy="45" r="5.5" fill="#244b70" />
+                <text x="74" y="35" font-size="12" font-weight="bold" fill="#244b70">a₁</text>
+                <!-- n=2, a2=0.5 -->
+                <circle cx="130" cy="112" r="5.5" fill="#244b70" />
+                <text x="124" y="104" font-size="12" font-weight="bold" fill="#244b70">a₂</text>
+                <!-- n=3, a3=0.33 -->
+                <circle cx="180" cy="135" r="5.5" fill="#244b70" />
+                <text x="174" y="128" font-size="12" font-weight="bold" fill="#244b70">a₃</text>
+                <!-- n=4, a4=0.25 -->
+                <circle cx="230" cy="146" r="5" fill="#244b70" />
+                <!-- n=5, a5=0.2 -->
+                <circle cx="280" cy="153" r="5" fill="#244b70" />
+                <!-- n=6 -->
+                <circle cx="330" cy="158" r="5" fill="#244b70" />
+                <!-- n=7 -->
+                <circle cx="380" cy="162" r="5" fill="#244b70" />
+                <!-- n=8 -->
+                <circle cx="430" cy="166" r="5" fill="#244b70" />
+                <!-- n=9 -->
+                <circle cx="475" cy="170" r="5" fill="#244b70" />
+              </svg>
+            </div>
+            <div class="callout error">
+              <strong>⚠️ Error Frecuente:</strong> No confundas "el límite es 0" con "el término llega a valer 0". En \(a_n = 1/n\), ningún término es exactamente 0: los términos solo se aproximan cada vez más a 0 conforme \(n\) crece.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 11: Definición intuitiva de convergencia -->
+      <section class="slide" id="slide-11" data-slide-title="Definición de Convergencia">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Definición Intuitiva de Convergencia</h2>
+            <p class="lead">La notación matemática formal para expresar el límite de una sucesión es:</p>
+            <div class="card soft-celeste">
+              <div class="math-box center-math">
+                \[
+                \lim_{n \to \infty} a_n = L
+                \]
+              </div>
+              <p class="center"><strong>Se lee:</strong> <em>"El límite de \(a_n\) cuando \(n\) tiende a infinito es igual a \(L\)".</em></p>
+            </div>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <h3>¿Qué significa conceptualmente?</h3>
+                <p>Significa que los términos de la sucesión se acercan tanto como queramos al número real <strong>\(L\)</strong> a medida que el subíndice \(n\) crece indefinidamente sin parar.</p>
+              </div>
+              <div class="card soft-crema">
+                <h3>Unicidad del Límite</h3>
+                <p>Para que una sucesión sea convergente, debe existir un <strong>único valor</strong> finito \(L\) hacia el cual converjan todos sus términos conforme avanzamos en la lista.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 12: Sucesiones Convergentes y Divergentes -->
+      <section class="slide" id="slide-12" data-slide-title="Convergentes vs Divergentes">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua representacion">DUA · Representación</span>
+              <span class="dua accion">DUA · Acción y expresión</span>
+            </div>
+            <h2>Sucesiones Convergentes vs. Sucesiones Divergentes</h2>
+            <p class="lead">Distinguir entre estos dos comportamientos es el núcleo del análisis de sucesiones:</p>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <span class="mini-tag">Tipo C</span>
+                <h3>Sucesión Convergente</h3>
+                <p>Posee un <strong>límite finito</strong> \(L \in \mathbb{R}\).</p>
+                <div class="math-box center-math">
+                  \[
+                  a_n = \frac{1}{n} \implies \lim_{n \to \infty} \frac{1}{n} = 0
+                  \]
+                </div>
+                <div class="callout remember">
+                  Sus términos se estabilizan y se concentran en torno a un único número.
+                </div>
+              </div>
+              <div class="card soft-rosa">
+                <span class="mini-tag">Tipo D</span>
+                <h3>Sucesión Divergente</h3>
+                <p><strong>No se acerca a ningún número real</strong>. Puede crecer sin límite u oscilar indefinidamente.</p>
+                <div class="math-box center-math">
+                  \[
+                  a_n = n \to \infty \quad \text{o} \quad a_n = (-1)^n \text{ (oscila)}
+                  \]
+                </div>
+                <div class="callout error">
+                  No existe un número real fijo \(L\) que describa su valor final.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 13: Reglas Básicas de Cálculo de Límites -->
+      <section class="slide" id="slide-13" data-slide-title="Reglas Básicas de Límites">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>03. Reglas Básicas para el Cálculo de Límites</h2>
+            <p class="lead">Para sucesiones algebraicas, podemos calcular el límite aplicando tres reglas fundamentales directas sin necesidad de elaborar tablas de valores:</p>
+            <div class="three-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Regla 1</span>
+                <h3>Constante entre \(n^k\)</h3>
+                <div class="math-box center-math">
+                  \[
+                  \lim_{n \to \infty} \frac{c}{n^k} = 0 \quad (k > 0)
+                  \]
+                </div>
+                <p>Cualquier constante dividida para una potencia positiva de \(n\) tiende a \(0\).</p>
+              </div>
+              <div class="card soft-crema">
+                <span class="mini-tag">Regla 2</span>
+                <h3>Sucesión Constante</h3>
+                <div class="math-box center-math">
+                  \[
+                  \lim_{n \to \infty} c = c
+                  \]
+                </div>
+                <p>El límite de un valor constante es exactamente la misma constante.</p>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Regla 3</span>
+                <h3>Cociente Lineal en \(n\)</h3>
+                <div class="math-box center-math">
+                  \[
+                  \lim_{n \to \infty} \frac{an+b}{cn+d} = \frac{a}{c}
+                  \]
+                </div>
+                <p>El límite es el cociente de los coeficientes principales de primer grado.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 14: Estrategia Docente de Cálculo -->
+      <section class="slide" id="slide-14" data-slide-title="Estrategia Docente">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua representacion">DUA · Representación</span>
+              <span class="dua accion">DUA · Acción y expresión</span>
+            </div>
+            <h2>Estrategia Docente: Técnica de División</h2>
+            <p class="lead">¿Cómo resolver cualquier límite indeterminado de expresiones racionales con \(n\)?</p>
+            <div class="split">
+              <div class="card soft-durazno">
+                <h3>El Método de la Mayor Potencia</h3>
+                <div class="step-list">
+                  <div class="step">
+                    <div class="step-number">1</div>
+                    <div>Identifica la <strong>mayor potencia de \(n\)</strong> presente en el denominador.</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">2</div>
+                    <div><strong>Divide cada término</strong> del numerador y del denominador entre esa potencia.</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">3</div>
+                    <div>Aplica la <strong>Regla 1</strong>: todas las fracciones con \(n\) en el denominador se anulan hacia \(0\).</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card soft-lila">
+                <span class="icon-big">💡</span>
+                <h3>¿Por qué funciona este método?</h3>
+                <p>Transforma una forma indeterminada del tipo \(\left[\frac{\infty}{\infty}\right]\) en una suma de límites elementales sencillos con constantes y ceros.</p>
+                <div class="callout remember">
+                  <strong>Efecto clave:</strong> Solo sobreviven los coeficientes de los términos de mayor exponente.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 15: Ejemplo 1 - Nivel Básico -->
+      <section class="slide" id="slide-05" data-slide-title="Ejemplo 1 (Básico)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 1 · Nivel Básico</h2>
+            <p class="lead">Calcular el límite de la sucesión: \(\lim_{n \to \infty} \frac{5}{n}\)</p>
+            <div class="split">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Procedimiento Completo</span>
+                <div class="step-list">
+                  <div class="step">
+                    <div class="step-number">1</div>
+                    <div><strong>Análisis:</strong> A medida que \(n\) crece, el numerador permanece fijo en \(5\) mientras el denominador crece sin límite.</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">2</div>
+                    <div><strong>Aplicar Regla 1:</strong> Constante dividida para \(n\) tiende a cero: \(\frac{c}{n} \to 0\).</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">3</div>
+                    <div><strong>Resultado:</strong> \(\lim_{n \to \infty} \frac{5}{n} = 0\).</div>
+                  </div>
+                </div>
+                <div class="callout remember">
+                  <strong>Conclusión:</strong> La sucesión converge a \(0\).
+                </div>
+              </div>
+              <div class="card soft-crema">
+                <h3>Visualización Numérica</h3>
+                <div class="math-box center-math">
+                  \[
+                  \begin{aligned}
+                  a_1 &= \frac{5}{1} = 5 \\
+                  a_{10} &= \frac{5}{10} = 0{,}5 \\
+                  a_{1000} &= \frac{5}{1000} = 0{,}005 \\
+                  &\Downarrow \\
+                  \mathbf{\lim_{n \to \infty} \frac{5}{n}} &= \mathbf{0}
+                  \end{aligned}
+                  \]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 16: Ejemplo 2 - Nivel Básico -->
+      <section class="slide" id="slide-16" data-slide-title="Ejemplo 2 (Básico)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 2 · Nivel Básico</h2>
+            <p class="lead">Calcular el límite: \(\lim_{n \to \infty} \frac{2n + 1}{n}\)</p>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <span class="mini-tag">Paso 1: Dividir cada término entre \(n\)</span>
+                <div class="math-box center-math">
+                  \[
+                  \frac{2n + 1}{n} = \frac{2n}{n} + \frac{1}{n} = 2 + \frac{1}{n}
+                  \]
+                </div>
+                <p>Separamos la fracción en la suma de dos términos más simples.</p>
+              </div>
+              <div class="card soft-celeste">
+                <span class="mini-tag">Paso 2: Calcular el límite de cada parte</span>
+                <div class="math-box center-math">
+                  \[
+                  \lim_{n \to \infty} \left(2 + \frac{1}{n}\right) = \lim_{n \to \infty} 2 + \lim_{n \to \infty} \frac{1}{n} = 2 + 0
+                  \]
+                </div>
+                <div class="callout remember">
+                  <strong>Resultado Final:</strong> \(\mathbf{\lim_{n \to \infty} \frac{2n+1}{n} = 2}\)
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 17: Ejemplo 3 - Nivel Intermedio (Parte 1) -->
+      <section class="slide" id="slide-17" data-slide-title="Ejemplo 3 (Parte 1)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 3 · Nivel Intermedio (Parte 1)</h2>
+            <p class="lead">Calcular el límite de la expresión racional: \(\lim_{n \to \infty} \frac{3n - 2}{n + 4}\)</p>
+            <div class="split">
+              <div class="card soft-durazno">
+                <span class="mini-tag">Paso 1: Dividir numerador y denominador entre \(n\)</span>
+                <div class="math-box center-math">
+                  \[
+                  \frac{3n - 2}{n + 4} = \frac{\frac{3n}{n} - \frac{2}{n}}{\frac{n}{n} + \frac{4}{n}} = \frac{3 - \frac{2}{n}}{1 + \frac{4}{n}}
+                  \]
+                </div>
+                <p>Simplificamos las expresiones \(\frac{3n}{n} = 3\) y \(\frac{n}{n} = 1\).</p>
+              </div>
+              <div class="card soft-lila">
+                <h3>⚠️ Alerta: Error Frecuente</h3>
+                <p>No es correcto "cancelar" simplemente las \(n\) de un cociente sin dividir absolutamente todos los términos.</p>
+                <div class="callout error">
+                  <strong>Incorrecto:</strong> Tachar la \(n\) de \(3n\) con la \(n\) de \(n+4\).<br>
+                  <strong>Correcto:</strong> Dividir individualmente cada uno de los 4 sumandos entre \(n\).
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 18: Ejemplo 3 - Nivel Intermedio (Parte 2) -->
+      <section class="slide" id="slide-18" data-slide-title="Ejemplo 3 (Parte 2)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 3 · Nivel Intermedio (Parte 2: Límite y Regla de Grados)</h2>
+            <p class="lead">Aplicamos el límite término a término a la fracción simplificada:</p>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <span class="mini-tag">Paso 2: Aplicar Límite Término a Término</span>
+                <div class="math-box center-math">
+                  \[
+                  \lim_{n \to \infty} \frac{3 - \frac{2}{n}}{1 + \frac{4}{n}} = \frac{3 - 0}{1 + 0} = \frac{3}{1} = \mathbf{3}
+                  \]
+                </div>
+                <div class="callout remember">
+                  <strong>Resultado Final:</strong> \(\mathbf{\lim_{n \to \infty} \frac{3n-2}{n+4} = 3}\)
+                </div>
+              </div>
+              <div class="card soft-crema">
+                <span class="mini-tag">Observación Directa del Docente</span>
+                <h3>Cociente de Coeficientes</h3>
+                <p>Cuando el numerador y el denominador tienen el <strong>mismo grado en \(n\)</strong> (aquí ambos de primer grado), el límite es el cociente de los coeficientes de \(n\):</p>
+                <div class="math-box center-math">
+                  \[
+                  \frac{3n - 2}{1n + 4} \implies \frac{3}{1} = 3
+                  \]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 19: Ejemplo 4 - Nivel Intermedio -->
+      <section class="slide" id="slide-19" data-slide-title="Ejemplo 4 (Intermedio)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 4 · Nivel Intermedio</h2>
+            <p class="lead">Calcular el límite de la diferencia: \(\lim_{n \to \infty} \left(6 - \frac{4}{n^2}\right)\)</p>
+            <div class="split">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Procedimiento Detallado</span>
+                <div class="step-list">
+                  <div class="step">
+                    <div class="step-number">1</div>
+                    <div><strong>Separar en dos límites:</strong> \(\lim_{n \to \infty} 6 - \lim_{n \to \infty} \frac{4}{n^2}\)</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">2</div>
+                    <div><strong>Aplicar Regla 2:</strong> \(\lim_{n \to \infty} 6 = 6\) (límite de la constante).</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">3</div>
+                    <div><strong>Aplicar Regla 1:</strong> \(\lim_{n \to \infty} \frac{4}{n^2} = 0\) (pues \(k=2 > 0\)).</div>
+                  </div>
+                </div>
+                <div class="callout remember">
+                  <strong>Resultado:</strong> \(6 - 0 = \mathbf{6}\)
+                </div>
+              </div>
+              <div class="card soft-lila">
+                <h3>Verificación Dinámica</h3>
+                <p>Evalúa cómo se comporta la expresión para potencias crecientes de \(n\):</p>
+                <div class="math-box center-math">
+                  \[
+                  \begin{aligned}
+                  n = 1 &\implies 6 - 4 = 2 \\
+                  n = 2 &\implies 6 - \frac{4}{4} = 5 \\
+                  n = 10 &\implies 6 - \frac{4}{100} = 5{,}96 \\
+                  n = 100 &\implies 6 - \frac{4}{10000} = 5{,}9996 \to \mathbf{6}
+                  \end{aligned}
+                  \]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 20: Errores Frecuentes (Acordeón) -->
+      <section class="slide" id="slide-20" data-slide-title="Errores Frecuentes">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua representacion">DUA · Representación</span>
+              <span class="dua accion">DUA · Acción y expresión</span>
+            </div>
+            <h2>Errores Frecuentes y Cómo Evitarlos</h2>
+            <p class="lead">Haz clic en cada tarjeta para desplegar el análisis didáctico de las confusiones habituales:</p>
+            <div class="accordion">
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  1. Creer que "el límite es 0" significa que algún término vale exactamente 0 <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> En \(a_n = 1/n\), ningún término es cero (\(a_1=1, a_{1000}=0{,}001\)). El límite representa la <em>tendencia asintótica</em> o valor al que se aproxima infinitamente, no un valor que deba alcanzarse obligatoriamente.</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  2. Cancelar la variable n sin dividir todos los términos de la fracción <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> En \(\frac{3n-2}{n+4}\) no se puede tachar la \(n\) directamente. Es obligatorio dividir <em>cada término</em> del numerador y del denominador entre \(n\).</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  3. Afirmar que toda sucesión infinita tiene límite <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> Falso. Sucesiones como \(a_n = n\) crecen sin cota (\(\infty\)) y sucesiones como \(a_n = (-1)^n\) oscilan indefinidamente sin concentrarse en un único valor. Ambas son <strong>divergentes</strong>.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 21: Síntesis Final de la Clase -->
+      <section class="slide" id="slide-21" data-slide-title="Síntesis Conceptual">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Síntesis Conceptual de la Clase</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Concepto Clave</th>
+                    <th>Fórmula o Expresión</th>
+                    <th>Regla Práctica / Significado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Sucesión</strong></td>
+                    <td>\(a_n\) con dominio en \(\mathbb{N}\)</td>
+                    <td>Lista ordenada de términos: \(a_1, a_2, a_3, \dots\)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Convergencia</strong></td>
+                    <td>\(\lim_{n \to \infty} a_n = L\)</td>
+                    <td>Los términos se aproximan a un único valor finito \(L\).</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Divergencia</strong></td>
+                    <td>Sin límite finito</td>
+                    <td>Los términos crecen al infinito u oscilan sin fijarse.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Constante / Potencia de \(n\)</strong></td>
+                    <td>\(\lim_{n \to \infty} \frac{c}{n^k} = 0 \quad (k>0)\)</td>
+                    <td>El denominador crece sin cota y la fracción se anula.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Cociente de Polinomios</strong></td>
+                    <td>\(\lim_{n \to \infty} \frac{an+b}{cn+d} = \frac{a}{c}\)</td>
+                    <td>Dividir entre la mayor potencia de \(n\) del denominador.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout remember">
+              <strong>Regla de oro:</strong> Una sucesión converge si y solo si su límite cuando \(n \to \infty\) es un único número real finito.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 22: Práctica Guiada, Reto y Cierre -->
+      <section class="slide" id="slide-22" data-slide-title="Reto y Cierre">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua compromiso">DUA · Compromiso</span>
+            </div>
+            <h2>Práctica Guiada · Reto Matemático y Cierre</h2>
+            <p class="lead">Pon a prueba tu razonamiento antes de concluir la sesión docente:</p>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Reto de Clase</span>
+                <p>Calcula los 4 primeros términos y el límite al infinito de:</p>
+                <div class="math-box center-math">
+                  \[
+                  a_n = \frac{4n + 3}{2n - 1}
+                  \]
+                </div>
+                <button class="btn btn-primary" onclick="toggleReveal('solucionReto')">Revelar Solución y Procedimiento</button>
+                <div class="reveal" id="solucionReto">
+                  <div class="callout remember">
+                    <strong>Términos:</strong> \(a_1 = \frac{7}{1} = 7, \; a_2 = \frac{11}{3}, \; a_3 = \frac{15}{5} = 3, \; a_4 = \frac{19}{7}\).<br>
+                    <strong>Límite:</strong> Dividiendo entre \(n\): \(\lim_{n \to \infty} \frac{4 + \frac{3}{n}}{2 - \frac{1}{n}} = \frac{4+0}{2-0} = \mathbf{2}\).
+                  </div>
+                </div>
+              </div>
+              <div class="card soft-lila">
+                <span class="mini-tag">Metacognición y Reflexión</span>
+                <h3>Preguntas de Cierre</h3>
+                <ul>
+                  <li>¿Por qué una constante dividida entre \(n\) siempre tiende a \(0\)?</li>
+                  <li>¿Cuál es la diferencia fundamental entre \(a_n = \frac{1}{n}\) y \(a_n = (-1)^n\)?</li>
+                </ul>
+                <div class="callout teacher">
+                  <strong>Mensaje Docente:</strong> El concepto de límite de una sucesión es la piedra angular para comprender el cálculo diferencial, integrales y series infinitas. ¡Gran trabajo en clase!
+                </div>
+              </div>
+            </div>
+            <div class="footer-author center">
+              Matemáticas · Tercero de Bachillerato General Unificado · UEEH
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Controles de Navegación Inferior -->
+    <nav class="nav-controls" aria-label="Controles de navegación">
+      <button class="btn btn-ghost" id="prevBtn" onclick="prevSlide()">← Anterior</button>
+      <div class="slide-counter" id="slideCounter">1 / 22</div>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextSlide()">Siguiente →</button>
+    </nav>
+  </div>
+
+  <script>
+    // Variables editables para configuración docente
+    const PRESENTATION_TITLE = "Sucesiones convergentes y límite de una sucesión";
+    const SUBJECT = "Matemáticas";
+    const COURSE = "Tercero de BGU";
+    const CLASS_DURATION = "90 minutos";
+    const TEACHER_MODE = true;
+
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const progressFill = document.getElementById('globalProgress');
+    const progressText = document.getElementById('globalProgressText');
+    const slideCounter = document.getElementById('slideCounter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const brandTitle = document.getElementById('brandTitle');
+    const brandSubtitle = document.getElementById('brandSubtitle');
+    let currentSlide = 0;
+
+    // Inicializar títulos
+    brandTitle.textContent = `${SUBJECT} · ${PRESENTATION_TITLE}`;
+    brandSubtitle.textContent = `${COURSE} · ${CLASS_DURATION}`;
+
+    function updateSlide() {
+      slides.forEach((slide, index) => {
+        slide.classList.toggle('active', index === currentSlide);
+      });
+      const total = slides.length;
+      const humanIndex = currentSlide + 1;
+      slideCounter.textContent = `${humanIndex} / ${total}`;
+      progressText.textContent = `${humanIndex}/${total}`;
+      progressFill.style.width = `${(humanIndex / total) * 100}%`;
+      prevBtn.disabled = currentSlide === 0;
+      nextBtn.disabled = currentSlide === total - 1;
+
+      const activeTitle = slides[currentSlide].dataset.slideTitle || PRESENTATION_TITLE;
+      document.title = `${humanIndex}. ${activeTitle} · ${PRESENTATION_TITLE}`;
+
+      // Renderizado MathJax dinámico seguro
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([slides[currentSlide]])
+          .catch(err => console.warn("MathJax:", err));
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToSlide(index) {
+      currentSlide = Math.max(0, Math.min(index, slides.length - 1));
+      updateSlide();
+    }
+
+    function nextSlide() { goToSlide(currentSlide + 1); }
+    function prevSlide() { goToSlide(currentSlide - 1); }
+
+    function toggleReveal(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('show');
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([el]).catch(err => console.warn("MathJax:", err));
+      }
+    }
+
+    function checkOption(button) {
+      const grid = button.closest('.option-grid');
+      if (!grid) return;
+      const questionId = grid.dataset.question;
+      grid.querySelectorAll('.option').forEach(opt => {
+        opt.classList.remove('correct', 'wrong');
+      });
+      document.querySelectorAll(`#${questionId}-ok, #${questionId}-bad`).forEach(f => f.classList.remove('show'));
+      
+      const isCorrect = button.dataset.correct === 'true';
+      button.classList.add(isCorrect ? 'correct' : 'wrong');
+      
+      const feedback = document.getElementById(`${questionId}-${isCorrect ? 'ok' : 'bad'}`);
+      if (feedback) feedback.classList.add('show');
+      
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([grid, feedback]).catch(err => console.warn("MathJax:", err));
+      }
+    }
+
+    function toggleAccordion(button) {
+      const item = button.closest('.acc-item');
+      if (!item) return;
+      item.classList.toggle('open');
+      const symbol = button.querySelector('span');
+      if (symbol) symbol.textContent = item.classList.contains('open') ? '−' : '＋';
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([item]).catch(err => console.warn("MathJax:", err));
+      }
+    }
+
+    // Navegación accesible por teclado
+    document.addEventListener('keydown', (event) => {
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+      if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+        if (event.target.tagName !== 'BUTTON') nextSlide();
+      }
+      if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        if (event.target.tagName !== 'BUTTON') prevSlide();
+      }
+      if (event.key === 'Home') goToSlide(0);
+      if (event.key === 'End') goToSlide(slides.length - 1);
+    });
+
+    // Soporte táctil optimizado para celulares Android e iPhone (deslizamiento swipe)
+    let touchStartX = 0;
+    let touchStartY = 0;
+    document.addEventListener('touchstart', (event) => {
+      if (!event.changedTouches || event.changedTouches.length === 0) return;
+      touchStartX = event.changedTouches[0].screenX;
+      touchStartY = event.changedTouches[0].screenY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (event) => {
+      if (!event.changedTouches || event.changedTouches.length === 0) return;
+      const dx = event.changedTouches[0].screenX - touchStartX;
+      const dy = event.changedTouches[0].screenY - touchStartY;
+      if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        if (dx < 0) nextSlide(); else prevSlide();
+      }
+    }, { passive: true });
+
+    // Inicialización de la presentación
+    updateSlide();
+  </script>
+</body>
+</html>

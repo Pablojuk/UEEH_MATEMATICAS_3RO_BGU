@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>TRABAJO EN CLASE - Sucesiones y Límites | UEEH</title>
+
+  <!-- MathJax 3 Configuration -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      --bg1: #f4f9ff;
+      --bg2: #e8f4fc;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --navy: #0f2744;
+      --line: #d8e5f2;
+      --card: #ffffff;
+      --soft: #f8fafc;
+      --mint: #c6f7df;
+      --aqua: #9ce8f0;
+      --lilac: #dacbff;
+      --cream: #fff0b8;
+      --peach: #ffd1bd;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --shadow: 0 16px 40px rgba(15, 39, 68, 0.08);
+      --radius: 22px;
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow-x: hidden;
+    }
+
+    button, input { font: inherit; }
+    button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 14px;
+      padding: 0.85rem 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--navy);
+      background: linear-gradient(135deg, var(--cream), var(--peach));
+      box-shadow: 0 4px 14px rgba(15, 39, 68, 0.08);
+      transition: transform 0.15s ease, filter 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    button:active { transform: scale(0.98); }
+    button:hover:not(:disabled) { filter: brightness(1.02); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    
+    .btnBlue { background: linear-gradient(135deg, var(--blue), #38bdf8); color: white; }
+    .btnGhost { background: white; border: 2px solid var(--line); box-shadow: none; color: var(--navy); }
+    .btnGood { background: linear-gradient(135deg, #dcfce7, var(--mint)); color: #14532d; }
+    .btnControl { background: #e2e8f0; color: var(--navy); min-height: 36px; padding: 0.4rem 0.8rem; box-shadow: none; }
+    
+    .app {
+      width: min(1180px, 100%);
+      margin: auto;
+      padding: clamp(10px, 2vw, 20px);
+      min-height: 100dvh;
+      padding-bottom: calc(20px + var(--safe-bottom));
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 12px 20px;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; color: var(--navy); }
+    .brandIcon {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: grid; place-items: center; font-size: 1.5rem;
+      background: linear-gradient(135deg, var(--aqua), var(--mint));
+      color: var(--navy);
+    }
+    .brand small { display: block; color: var(--muted); font-weight: 600; font-size: 0.85rem; margin-top: 2px; }
+
+    .deck {
+      min-height: calc(100dvh - 120px);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(255,255,255,0.9);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .screen { display: none; padding: clamp(16px, 3vw, 36px); }
+    .screen.active { display: block; animation: fadeIn 0.3s ease both; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+
+    h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.15; color: var(--navy); margin: 0 0 16px; font-weight: 800; }
+    h2 { font-size: clamp(1.2rem, 2.2vw, 1.5rem); color: var(--navy); margin: 0 0 12px; font-weight: 800; }
+    h3 { margin: 0 0 10px; color: var(--blue); font-size: 1.1rem; }
+    p { margin: 0 0 12px; line-height: 1.6; font-size: 1.05rem; }
+    .lead { font-size: 1.1rem; font-weight: 600; color: #334155; }
+
+    .duaRow, .tagRow, .btnRow { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 5px; border-radius: 999px;
+      padding: 0.5rem 0.85rem; font-weight: 800; font-size: 0.85rem;
+    }
+    .tag.green { background: #dcfce7; color: #15803d; }
+    .tag.purple { background: #f3e8ff; color: #7e22ce; }
+    .tag.blue { background: #e0f2fe; color: #0369a1; }
+    .tag.gray { background: #f1f5f9; color: var(--navy); border: 1px solid var(--line); }
+
+    .workLayout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
+    .sidebar { position: sticky; top: 20px; align-self: start; background: var(--soft); padding: 20px; border-radius: 20px; border: 1px solid var(--line); }
+    
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+    .stat { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 12px; text-align: center; }
+    .stat strong { display: block; font-size: 1.5rem; color: var(--navy); }
+    .stat span { font-size: 0.85rem; color: var(--muted); font-weight: 700; }
+
+    .barWrap { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 16px; }
+    .bar { height: 14px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .bar span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--blue), var(--mint)); transition: width 0.4s ease; }
+
+    .exerciseGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 16px 0; }
+    .exBtn { min-height: 46px; padding: 0; border-radius: 12px; background: white; border: 1px solid #cbd5e1; color: #475569; font-size: 1rem; }
+    .exBtn.active { border-color: var(--blue); background: var(--blue); color: white; }
+    .exBtn.done { background: #dcfce7; border-color: #86efac; color: #15803d; }
+    .exBtn.fail { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
+    .exBtn.incorrect { border-color: var(--orange); }
+
+    .panel { background: white; border: 1px solid var(--line); border-radius: 20px; padding: clamp(16px, 2.5vw, 28px); box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
+    .mathBox { background: var(--soft); border-left: 4px solid var(--blue); padding: 14px 18px; border-radius: 12px; margin: 16px 0; overflow-x: auto; font-size: 1.15rem; }
+    
+    .choiceGrid { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 16px 0; }
+    .choice {
+      text-align: left; background: white; border: 2px solid var(--line);
+      border-radius: 14px; padding: 14px; font-weight: 600; color: var(--ink);
+      display: flex; align-items: center; justify-content: flex-start;
+    }
+    .choice.selected { border-color: var(--blue); background: #eff6ff; color: var(--blue); font-weight: 800; }
+    
+    .inputDirect {
+      width: 100%; max-width: 400px; padding: 12px 16px; border-radius: 12px;
+      border: 2px solid var(--line); font-size: 1.1rem; font-weight: 600; color: var(--navy);
+      background: white; outline: none; transition: border-color 0.2s;
+    }
+    .inputDirect:focus { border-color: var(--blue); }
+
+    .orderList { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
+    .orderItem {
+      display: flex; justify-content: space-between; align-items: center;
+      background: white; border: 2px solid var(--line); border-radius: 12px; padding: 12px 16px;
+      font-weight: 600;
+    }
+    .orderItem.locked { opacity: 0.85; background: #f8fafc; }
+    .orderControls { display: flex; gap: 6px; }
+
+    .fillGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 16px 0; }
+    .fillBox { background: var(--soft); padding: 12px; border-radius: 12px; border: 1px solid var(--line); }
+    .fillBox label { display: block; font-size: 0.85rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+    .fillInput { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; color: var(--navy); }
+    .fillInput:focus { border-color: var(--blue); outline: none; }
+
+    .hintBox, .solutionBox {
+      display: none; margin-top: 16px; padding: 16px; border-radius: 14px; line-height: 1.5; font-size: 0.95rem;
+    }
+    .hintBox { background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; }
+    .solutionBox { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+    .hintBox.show, .solutionBox.show { display: block; animation: fadeIn 0.2s ease; }
+
+    .feedback { padding: 14px; border-radius: 14px; margin-top: 14px; font-weight: 700; display: none; }
+    .feedback.show { display: block; }
+    .feedback.ok { background: #dcfce7; color: #15803d; }
+    .feedback.bad { background: #fee2e2; color: #b91c1c; }
+    .feedback.warn { background: #fffbeb; color: #b45309; }
+
+    @media (max-width: 860px) {
+      .workLayout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .exerciseGrid { grid-template-columns: repeat(8, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .exerciseGrid { grid-template-columns: repeat(5, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brandIcon">📐</div>
+        <div>
+          <span>UEEH · Tercero de BGU</span>
+          <small>Trabajo en Clase: Sucesiones convergentes y límite de una sucesión</small>
+        </div>
+      </div>
+      <div class="tagRow" style="margin:0;">
+        <span class="tag gray" id="phaseIndicator">Paralelo A</span>
+        <span class="tag blue">Fase Inicial</span>
+      </div>
+    </header>
+
+    <main class="deck">
+      <!-- 1. PANTALLA INTRODUCCIÓN -->
+      <section class="screen active" id="introScreen">
+        <div class="tagRow"><span class="tag green">Evaluación Sumativa</span><span class="tag purple">4 Intentos por Ejercicio</span></div>
+        <h1>Sucesiones y Límites al Infinito</h1>
+        <p class="lead">Consolidación de destrezas en cálculo de límites de sucesiones, análisis de convergencia y aplicaciones prácticas.</p>
+        
+        <div class="duaRow">
+          <div class="card" style="flex:1; min-width:250px; background:var(--soft); padding:16px; border-radius:16px; border:1px solid var(--line);">
+            <h3>🎯 Escala Institucional</h3>
+            <p style="margin:0; font-size:0.9rem;">
+              • Intento 1: 10.00 pts<br>
+              • Intento 2: 9.00 pts<br>
+              • Intento 3: 8.00 pts<br>
+              • Intento 4: 7.00 pts<br>
+              • 4 fallos: 1.00 pt (Se desbloquea solución formativa).
+            </p>
+          </div>
+          <div class="card" style="flex:1; min-width:250px; background:var(--soft); padding:16px; border-radius:16px; border:1px solid var(--line);">
+            <h3>🔄 Recuperación Pedagógica</h3>
+            <p style="margin:0; font-size:0.9rem;">
+              Si tu promedio en la fase inicial es menor a 7.00/10.00, se activará la fase de recuperación sobre 10 ítems adicionales. Tu nota final será el valor más alto alcanzado.
+            </p>
+          </div>
+        </div>
+
+        <div class="btnRow" style="margin-top:24px;">
+          <button class="btnBlue" onclick="startActivity()">🚀 Iniciar Trabajo en Clase</button>
+        </div>
+      </section>
+
+      <!-- 2. PANTALLA DE TRABAJO -->
+      <section class="screen" id="workScreen">
+        <div class="workLayout">
+          <aside class="sidebar">
+            <h3>Navegación de Ejercicios</h3>
+            <div class="stats">
+              <div class="stat"><strong id="doneCount">0/20</strong><span>Completados</span></div>
+              <div class="stat"><strong id="avgNow">0.00</strong><span>Promedio</span></div>
+            </div>
+            <div class="barWrap">
+              <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700; color:var(--muted);">
+                <span>Progreso</span><span id="pctText">0%</span>
+              </div>
+              <div class="bar"><span id="progressBar"></span></div>
+            </div>
+            
+            <div class="exerciseGrid" id="exerciseGrid">
+              <!-- Inyectado dinámicamente -->
+            </div>
+
+            <div style="margin-top:20px;">
+              <button class="btnBlue" id="finishBtn" onclick="finishActivity()" style="width:100%;" disabled>
+                📤 Enviar Actividad
+              </button>
+            </div>
+          </aside>
+
+          <div class="panel" id="exercisePanel">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. PANTALLA DE RESULTADOS / RESUMEN -->
+      <section class="screen" id="summaryScreen">
+        <div class="tagRow"><span class="tag green">Actividad Concluida</span></div>
+        <h1>Resumen de Rendimiento</h1>
+        <p class="lead">Has completado el Trabajo en Clase sobre Sucesiones y Límites.</p>
+        
+        <div class="duaRow">
+          <div class="card" style="flex:1; min-width:260px; background:var(--soft); padding:24px; border-radius:20px; border:1px solid var(--line); text-align:center;">
+            <h3 style="margin:0;">Calificación Obtenida</h3>
+            <div style="font-size:3rem; font-weight:800; color:var(--blue); margin:12px 0;" id="finalScoreVal">10.00</div>
+            <p id="scoreVerdict" style="font-weight:700; color:var(--green); margin:0;">¡Excelente trabajo!</p>
+          </div>
+        </div>
+
+        <div id="recoveryPrompt" style="display:none; margin-top:20px; padding:20px; background:#fffbeb; border:2px solid #fde68a; border-radius:18px;">
+          <h3 style="color:#92400e; margin:0 0 8px;">🔄 Oportunidad de Recuperación Activa</h3>
+          <p style="color:#78350f; margin:0 0 16px;">Tu puntaje inicial fue menor a 7.00. Tienes disponible la fase de recuperación de 10 ejercicios para elevar tu calificación.</p>
+          <button class="btnBlue" onclick="activateRecovery()">Iniciar Fase de Recuperación</button>
+        </div>
+
+        <div class="btnRow" style="margin-top:24px;">
+          <button class="btnGhost" onclick="returnToCampus()">🏠 Regresar al Campus Virtual</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    import { supabase } from '../../core/supabase-client.js';
+    import { submitActivityResult } from '../../core/activity-service.js';
+
+    const ACTIVITY_KEY = "u6-sucesiones-class-01";
+    const MAX_CHECK_ATTEMPTS = 4;
+
+    // ========================================================
+    // CONTENIDO DE EJERCICIOS VISUALES (Pauta protegida en backend, solution: null)
+    // ========================================================
+    const exercisesVisual = [
+      { exerciseKey: "initial-q01", mode: "mcq", statement: "1. Dada la sucesión", eq: "\\( a_n = 3n - 1 \\)", options: ["11", "10", "12", "14"], hint: "Sustituye la variable n por el número 4.", solution: null },
+      { exerciseKey: "initial-q02", mode: "input", statement: "2. Dada la sucesión", eq: "\\( a_n = n^2 - 2 \\)", hint: "Eleva al cuadrado el número 3 y luego resta 2.", textQ: "Calcula el valor de \\(a_3\\).", solution: null },
+      { 
+        exerciseKey: "initial-q03", mode: "fill", 
+        statement: "3. Completa los espacios analizando el límite:", 
+        eq: "\\( \\lim_{n \\to \\infty} \\frac{1}{n} = \\frac{1}{\\text{[ A ]}} = \\text{[ B ]} \\)", 
+        blanks: [ { id: "b1", label: "Valor conceptual de A" }, { id: "b2", label: "Límite numérico B" } ], 
+        hint: "Escribe 'infinito' en la A, y piensa en el resultado final para la B.",
+        solution: null 
+      },
+      { exerciseKey: "initial-q04", mode: "mcq", statement: "4. Analiza la sucesión:", eq: "\\( a_n = (-1)^n n \\)", options: ["Convergente (tiende a un número fijo)", "Divergente (no se estabiliza)"], hint: "Calcula los primeros 4 términos. Observa si los valores se acercan a un solo número o si varían mucho.", solution: null },
+      { 
+        exerciseKey: "initial-q05", mode: "order", 
+        statement: "5. Ordena los pasos lógicos para resolver el siguiente límite:", 
+        eq: "\\( \\lim_{n \\to \\infty} \\frac{2n+1}{n} \\)", 
+        steps: [
+          { id: "s1", text: "Separar la fracción: \\( \\lim \\left(\\frac{2n}{n} + \\frac{1}{n}\\right) \\)" },
+          { id: "s2", text: "Simplificar la n: \\( \\lim \\left(2 + \\frac{1}{n}\\right) \\)" },
+          { id: "s3", text: "Aplicar el límite al infinito: \\( 2 + 0 \\)" },
+          { id: "s4", text: "Obtener el resultado final: \\( 2 \\)" }
+        ], 
+        hint: "Siempre empezamos dividiendo o separando los términos del numerador.",
+        solution: null 
+      },
+      { exerciseKey: "initial-q06", mode: "mcq", statement: "6. Resuelve el límite al infinito:", eq: "\\( \\lim_{n \\to \\infty} \\frac{n+5}{2n} \\)", options: ["\\( \\frac{1}{2} \\)", "\\( 2 \\)", "\\( 0 \\)", "\\( \\frac{5}{2} \\)"], hint: "Observa los coeficientes que acompañan a la 'n' en el numerador y denominador.", solution: null },
+      { 
+        exerciseKey: "initial-q07", mode: "fill", 
+        statement: "7. Completa la igualdad para el límite:", 
+        eq: "\\( \\lim_{n \\to \\infty} \\frac{5}{n^2} = \\text{[ A ]} \\)", 
+        blanks: [ { id: "b1", label: "Valor de A (Resultado)" } ], 
+        hint: "Un número constante dividido para infinito elevado al cuadrado se aproxima a...",
+        solution: null 
+      },
+      { 
+        exerciseKey: "initial-q08", mode: "order", 
+        statement: "8. Ordena los pasos para resolver la expresión polinómica:", 
+        eq: "\\( \\lim_{n \\to \\infty} \\frac{3n-2}{n+4} \\)", 
+        steps: [
+          { id: "p1", text: "Dividir cada término para \\(n\\)." },
+          { id: "p2", text: "Obtener la expresión simplificada: \\( \\frac{3 - 2/n}{1 + 4/n} \\)" },
+          { id: "p3", text: "Evaluar las fracciones en el infinito: \\( \\frac{3 - 0}{1 + 0} \\)" },
+          { id: "p4", text: "Concluir que el límite es \\( 3 \\)." }
+        ], 
+        hint: "Primero divide, luego simplifica, evalúa los ceros y concluye.",
+        solution: null 
+      },
+      { exerciseKey: "initial-q09", mode: "mcq", statement: "9. Calcula aplicando propiedades de límites:", eq: "\\( \\lim_{n \\to \\infty} \\left(7 - \\frac{3}{n}\\right) \\)", options: ["7", "4", "0", "10"], hint: "El límite de la constante es 7, ¿y el de la fracción?", solution: null },
+      { exerciseKey: "initial-q10", mode: "mcq", statement: "10. ¿Hacia dónde tiende esta sucesión?", eq: "\\( a_n = \\frac{1}{n+3} \\)", options: ["Converge a 0", "Diverge al infinito"], hint: "A medida que el denominador crece, la fracción entera disminuye.", solution: null },
+      { 
+        exerciseKey: "initial-q11", mode: "fill", 
+        statement: "11. Completa el proceso dividiendo para la variable n:", 
+        eq: "\\( \\lim_{n \\to \\infty} \\frac{4n}{2n+1} \\implies \\frac{4}{2 + \\frac{\\text{[ A ]}}{n}} = \\text{[ B ]} \\)", 
+        blanks: [ { id: "b1", label: "Numerador del término A" }, { id: "b2", label: "Límite numérico B" } ], 
+        hint: "El término A es el residuo de dividir 1 para n. El término B resulta de 4 dividido para 2.",
+        solution: null 
+      },
+      { exerciseKey: "initial-q12", mode: "mcq", statement: "12. La sucesión básica:", eq: "\\( a_n = n \\)", options: ["Convergente", "Divergente"], hint: "Si n crece, el valor de la sucesión es simplemente n. ¿Se detiene alguna vez?", solution: null },
+      { exerciseKey: "initial-q13", mode: "input", statement: "13. Calcula el límite de la sucesión constante:", eq: "\\( a_n = 3 \\)", hint: "Si todos los términos son 3, ¿hacia dónde tiende la sucesión?", textQ: "Ingresa el valor del límite.", solution: null },
+      { 
+        exerciseKey: "initial-q14", mode: "fill", 
+        statement: "14. APLICACIÓN MEDICINA: La concentración de un fármaco es:", 
+        eq: "\\( a_n = \\frac{50}{n} \\)", 
+        blanks: [ { id: "b1", label: "Concentración a largo plazo (Límite)" } ], 
+        hint: "Si n crece sin límite (pasan muchas horas), la concentración disminuye totalmente.",
+        solution: null 
+      },
+      { 
+        exerciseKey: "initial-q15", mode: "order", 
+        statement: "15. APLICACIÓN PRODUCCIÓN: Ordena el análisis del rendimiento.", 
+        eq: "\\( a_n = 100 - \\frac{80}{n} \\)", 
+        steps: [
+          { id: "f1", text: "Identificar el modelo: \\( 100 - \\frac{80}{n} \\)" },
+          { id: "f2", text: "Aplicar límite cuando el tiempo \\(n \\to \\infty\\)" },
+          { id: "f3", text: "Deducir que el término \\( \\frac{80}{n} \\) se vuelve \\(0\\)" },
+          { id: "f4", text: "Concluir que la eficiencia se estabiliza en \\(100\\%\\)" }
+        ], 
+        hint: "Empieza por el modelo, aplica el límite, evalúa la fracción a 0 y obtén la conclusión final.",
+        solution: null 
+      },
+      { exerciseKey: "initial-q16", mode: "mcq", statement: "16. RETO MATEMÁTICO: Simplifica y halla:", eq: "\\( \\lim_{n \\to \\infty} \\frac{n^2+1}{n^2} \\)", options: ["1", "0", "2", "\\( \\infty \\)"], hint: "Divide la fracción en dos partes: n²/n² + 1/n².", solution: null },
+      { 
+        exerciseKey: "initial-q17", mode: "fill", 
+        statement: "17. RETO POBLACIÓN: Animales en reserva.", 
+        eq: "\\( a_n = 500 - \\frac{400}{n+1} \\implies 500 - \\text{[ A ]} = \\text{[ B ]} \\)", 
+        blanks: [ { id: "b1", label: "Valor del límite para A" }, { id: "b2", label: "Población estable B" } ], 
+        hint: "Cuando n es inmenso, la fracción entera A desaparece volviéndose cero.",
+        solution: null 
+      },
+      { exerciseKey: "initial-q18", mode: "mcq", statement: "18. Determina el comportamiento:", eq: "\\( a_n = 5 - n \\)", options: ["Creciente", "Decreciente"], hint: "Prueba con n=1 (da 4), n=2 (da 3). ¿Sube o baja?", solution: null },
+      { 
+        exerciseKey: "initial-q19", mode: "order", 
+        statement: "19. Ordena los pasos para demostrar convergencia de:", 
+        eq: "\\( a_n = \\frac{1}{n} \\)", 
+        steps: [
+          { id: "r1", text: "Escribir los primeros términos: \\( 1, 0.5, 0.33, \\dots \\)" },
+          { id: "r2", text: "Observar que los valores son cada vez menores." },
+          { id: "r3", text: "Notar que nunca llegan a ser negativos." },
+          { id: "r4", text: "Concluir que la sucesión converge a \\(0\\)." }
+        ], 
+        hint: "Para demostrar, primero escribe los términos, nota que decrecen, verifica que no pasan de cero y concluye.",
+        solution: null 
+      },
+      { exerciseKey: "initial-q20", mode: "mcq", statement: "20. Analiza y concluye:", eq: "\\( a_n = \\frac{2^n}{n} \\)", options: ["Converge", "Diverge"], hint: "El numerador crece exponencialmente mientras el denominador solo de forma lineal. El numerador gana inmensamente.", solution: null }
+    ];
+
+    const recoveryVisual = [
+      { exerciseKey: "recovery-r01", mode: "input", statement: "R1. Calcula:", eq: "\\( a_n = 4n + 2 \\)", hint: "Reemplaza la n por 3.", textQ: "Encuentra el valor de \\(a_3\\).", solution: null },
+      { 
+        exerciseKey: "recovery-r02", mode: "fill", 
+        statement: "R2. Completa el límite:", 
+        eq: "\\( \\lim_{n \\to \\infty} \\frac{1}{n^2} = \\text{[ A ]} \\)", 
+        blanks: [ { id: "b1", label: "Valor de A" } ], 
+        hint: "Cualquier constante dividida por un número infinitamente grande da cero.",
+        solution: null 
+      },
+      { 
+        exerciseKey: "recovery-r03", mode: "order", 
+        statement: "R3. Ordena los pasos para calcular:", 
+        eq: "\\( \\lim_{n \\to \\infty} \\frac{5n+2}{n} \\)", 
+        steps: [
+          { id: "c1", text: "Separar la fracción en \\( \\frac{5n}{n} + \\frac{2}{n} \\)" },
+          { id: "c2", text: "Simplificar a \\( 5 + \\frac{2}{n} \\)" },
+          { id: "c3", text: "Aplicar límite y obtener \\( 5 \\)" }
+        ], 
+        hint: "Separa, simplifica y concluye.",
+        solution: null 
+      },
+      { exerciseKey: "recovery-r04", mode: "mcq", statement: "R4. Evalúa:", eq: "\\( \\lim_{n \\to \\infty} \\frac{3}{n+1} \\)", options: ["Diverge a infinito", "Converge a 0"], hint: "Numerador fijo, denominador crece sin límite.", solution: null },
+      { 
+        exerciseKey: "recovery-r05", mode: "fill", 
+        statement: "R5. Completa los coeficientes tras dividir para n:", 
+        eq: "\\( \\lim_{n \\to \\infty} \\frac{4n-1}{2n+3} = \\frac{\\text{[ A ]} - 0}{\\text{[ B ]} + 0} = \\text{[ C ]} \\)", 
+        blanks: [ { id: "b1", label: "Valor A" }, { id: "b2", label: "Valor B" }, { id: "b3", label: "Resultado C" } ], 
+        hint: "Los valores A y B son los coeficientes que acompañan a la 'n' en la fracción original.",
+        solution: null 
+      },
+      { 
+        exerciseKey: "recovery-r06", mode: "order", 
+        statement: "R6. Ordena para resolver:", 
+        eq: "\\( \\lim_{n \\to \\infty} \\left(8 - \\frac{1}{n}\\right) \\)", 
+        steps: [
+          { id: "t1", text: "Analizar el límite de la constante y la fracción por separado." },
+          { id: "t2", text: "Saber que el límite de \\( \\frac{1}{n} \\) es \\(0\\)." },
+          { id: "t3", text: "Concluir que \\( 8 - 0 = 8 \\)." }
+        ], 
+        hint: "Analiza, determina el valor de la fracción, y realiza la resta final.",
+        solution: null 
+      },
+      { exerciseKey: "recovery-r07", mode: "input", statement: "R7. Calcula límite de constante:", eq: "\\( a_n = -5 \\)", hint: "No hay 'n' en la expresión, el valor no cambia.", textQ: "Ingresa el límite.", solution: null },
+      { exerciseKey: "recovery-r08", mode: "mcq", statement: "R8. Analiza la tendencia:", eq: "\\( a_n = -n \\)", options: ["Converge a un valor fijo", "Diverge al menos infinito"], hint: "Los valores se hacen cada vez más negativos, sin detenerse.", solution: null },
+      { 
+        exerciseKey: "recovery-r09", mode: "fill", 
+        statement: "R9. Completa el límite en medicina:", 
+        eq: "\\( a_n = 50 - \\frac{10}{n} \\implies 50 - \\text{[ A ]} = \\text{[ B ]} \\)", 
+        blanks: [ { id: "b1", label: "Valor de la fracción A" }, { id: "b2", label: "Límite total B" } ], 
+        hint: "Al infinito, la parte fraccionaria A se pierde.",
+        solution: null 
+      },
+      { exerciseKey: "recovery-r10", mode: "input", statement: "R10. Límite constante modificado:", eq: "\\( a_n = 10 \\)", hint: "Es el mismo límite de una constante.", textQ: "Ingresa la respuesta.", solution: null }
+    ];
+
+    // ========================================================
+    // ESTADO LOCAL DE LA APLICACIÓN
+    // ========================================================
+    let activePhase = "initial";
+    let currentIdx = 0;
+    let currentRunId = crypto.randomUUID();
+    let initialScore = 0;
+    const exerciseState = {};
+
+    function initExerciseState(list) {
+      list.forEach(ex => {
+        let orderData = null;
+        if (ex.mode === "order") {
+          orderData = ex.steps.map(s => s.id);
+        }
+
+        let blanksData = null;
+        if (ex.mode === "fill") {
+          blanksData = Array(ex.blanks.length).fill("");
+        }
+
+        exerciseState[ex.exerciseKey] = {
+          answer: null,
+          order: orderData,
+          blanks: blanksData,
+          attemptCount: 0,
+          status: "pending",
+          score: null,
+          locked: false,
+          solution: null,
+          feedbackText: null,
+          feedbackType: null,
+          showHint: false,
+          showSolution: false
+        };
+      });
+    }
+
+    initExerciseState(exercisesVisual);
+    initExerciseState(recoveryVisual);
+
+    // ========================================================
+    // SUBMISSION GUARD & IDEMPOTENCIA
+    // ========================================================
+    let _submitting = false;
+    let _pendingSubmission = null;
+
+    function getActiveList() { return activePhase === "initial" ? exercisesVisual : recoveryVisual; }
+
+    function showScreen(screenId) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      const el = document.getElementById(screenId);
+      if (el) el.classList.add("active");
+    }
+
+    function typeset() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise().catch(error => { console.warn("MathJax:", error); });
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function startActivity() {
+      showScreen("workScreen");
+      renderWork();
+    }
+
+    function activateRecovery() {
+      activePhase = "recovery";
+      currentIdx = 0;
+      currentRunId = crypto.randomUUID();
+      document.getElementById("phaseIndicator").innerText = "Paralelo A";
+      document.getElementById("phaseIndicator").nextElementSibling.innerText = "Fase de Recuperación";
+      document.getElementById("phaseIndicator").nextElementSibling.className = "tag purple";
+      showScreen("workScreen");
+      renderWork();
+    }
+
+    function navTo(idx) {
+      if (_submitting) return;
+      if (_pendingSubmission !== null && _pendingSubmission.exerciseIndex !== idx) {
+        const curEx = getActiveList()[currentIdx];
+        exerciseState[curEx.exerciseKey].feedbackText = "⚠️ Hay una comprobación pendiente de confirmar. Reintenta antes de navegar.";
+        exerciseState[curEx.exerciseKey].feedbackType = "warn";
+        renderExercisePanel(curEx);
+        return;
+      }
+      currentIdx = idx;
+      renderWork();
+    }
+
+    function renderWork() {
+      const list = getActiveList();
+      const total = list.length;
+      let completedCount = 0;
+      let sumScore = 0;
+
+      list.forEach(ex => {
+        const st = exerciseState[ex.exerciseKey];
+        if (st.status === "correct" || st.status === "failed" || st.locked) {
+          completedCount++;
+          sumScore += (st.score || 1);
+        }
+      });
+
+      const avg = completedCount > 0 ? (sumScore / completedCount).toFixed(2) : "0.00";
+      const pct = Math.round((completedCount / total) * 100);
+
+      document.getElementById("doneCount").innerText = `${completedCount}/${total}`;
+      document.getElementById("avgNow").innerText = avg;
+      document.getElementById("pctText").innerText = `${pct}%`;
+      document.getElementById("progressBar").style.width = `${pct}%`;
+      
+      const btn = document.getElementById("finishBtn");
+      btn.disabled = (completedCount < total);
+      btn.innerText = (activePhase === "initial") ? "📤 Enviar Actividad" : "🏁 Finalizar Recuperación";
+
+      renderNavGrid(list);
+      renderExercisePanel(list[currentIdx]);
+      typeset();
+    }
+
+    function renderNavGrid(list) {
+      const grid = document.getElementById("exerciseGrid");
+      grid.innerHTML = list.map((ex, idx) => {
+        const st = exerciseState[ex.exerciseKey];
+        let cls = "";
+        if (idx === currentIdx) cls += " active";
+        if (st.status === "correct") cls += " done";
+        if (st.status === "failed") cls += " fail";
+        if (st.status === "incorrect") cls += " incorrect";
+        return `<button class="exBtn${cls}" onclick="navTo(${idx})">${idx + 1}</button>`;
+      }).join("");
+    }
+
+    function renderExercisePanel(exVisual) {
+      const st = exerciseState[exVisual.exerciseKey];
+      const panel = document.getElementById("exercisePanel");
+
+      const attemptsText = `${st.attemptCount}/${MAX_CHECK_ATTEMPTS}`;
+      const scoreText = st.score !== null ? `${st.score}/10` : "Pendiente";
+
+      let inputHtml = "";
+      
+      if (exVisual.mode === "mcq") {
+        inputHtml = `<div class="choiceGrid">
+          ${exVisual.options.map((optText, optIdx) => {
+            const isSelected = st.answer === optIdx;
+            let btnCls = "choice";
+            if (isSelected) btnCls += " selected";
+            return `<button class="${btnCls}" onclick="readCurrentAnswerMCQ(${optIdx})" ${st.locked || _submitting ? "disabled" : ""}><b>[${String.fromCharCode(65 + optIdx)}]</b> &nbsp; ${optText}</button>`;
+          }).join("")}
+        </div>`;
+      } else if (exVisual.mode === "input") {
+        inputHtml = `<div style="margin: 20px 0;">
+          ${exVisual.textQ ? `<p style="font-weight:700;">${exVisual.textQ}</p>` : ''}
+          <input type="text" class="inputDirect" 
+                 value="${st.answer !== null ? escapeHtml(st.answer) : ""}" 
+                 placeholder="Escribe tu respuesta aquí..." 
+                 oninput="readCurrentAnswerInput(this.value)"
+                 ${st.locked || _submitting ? "disabled" : ""} />
+        </div>`;
+      } else if (exVisual.mode === "order") {
+        let orderedSteps = st.order.map(id => exVisual.steps.find(s => s.id === id));
+        inputHtml = `<div class="orderList">
+          ${orderedSteps.map((step, idx) => `
+            <div class="orderItem ${st.locked ? 'locked' : ''}">
+              <span>${step.text}</span>
+              <div class="orderControls">
+                 <button class="btnControl" onclick="moveUp(${idx})" ${st.locked || _submitting || idx === 0 ? "disabled" : ""}>▲</button>
+                 <button class="btnControl" onclick="moveDown(${idx})" ${st.locked || _submitting || idx === orderedSteps.length - 1 ? "disabled" : ""}>▼</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>`;
+      } else if (exVisual.mode === "fill") {
+        inputHtml = `<div class="fillGrid">
+          ${exVisual.blanks.map((b, i) => `
+            <div class="fillBox">
+              <label>${b.label}</label>
+              <input type="text" class="fillInput" value="${escapeHtml(st.blanks[i])}" 
+                     oninput="readCurrentFillInput(${i}, this.value)" ${st.locked || _submitting ? "disabled" : ""} />
+            </div>
+          `).join("")}
+        </div>`;
+      }
+
+      panel.innerHTML = `
+        <div class="tagRow" style="margin-top: 0;">
+          <span class="tag gray">Ejercicio ${currentIdx + 1} de ${getActiveList().length}</span>
+          <span class="tag blue">Intentos usados: ${attemptsText}</span>
+          <span class="tag" style="background:#fef3c7; color:#92400e;">Puntaje: ${scoreText}</span>
+        </div>
+        <h2>${exVisual.statement}</h2>
+        ${exVisual.eq ? `<div class="mathBox">${exVisual.eq}</div>` : ''}
+        ${inputHtml}
+        
+        <div class="btnRow" style="margin-top: 20px;">
+          <button class="btnGood" onclick="handleCheck()" id="btnComprobar" ${st.locked || _submitting ? "disabled" : ""}>
+            ${_submitting ? "⏳ Comprobando..." : "✅ Comprobar"}
+          </button>
+          <button class="btnGhost" onclick="toggleHint()">
+            💡 Pista Pedagógica
+          </button>
+          <button class="btnGhost" onclick="toggleSolution()" ${(!st.solution) ? "disabled" : ""}>
+            📝 Ver Solución
+          </button>
+        </div>
+
+        <div class="feedback ${st.feedbackText ? 'show ' + st.feedbackType : ''}">${st.feedbackText || ''}</div>
+        
+        <div class="hintBox ${st.showHint ? 'show' : ''}" id="hintBox"><strong>💡 Pista Pedagógica:</strong><br>${exVisual.hint}</div>
+        <div class="solutionBox ${st.showSolution ? 'show' : ''}" id="solutionBox">${st.solution ? `<strong>📝 Solución Paso a Paso:</strong><br><div class="mathBox">${st.solution}</div>` : ''}</div>
+      `;
+    }
+
+    function readCurrentAnswerMCQ(optIdx) {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      if (exerciseState[exKey].locked || _submitting) return;
+      exerciseState[exKey].answer = optIdx;
+      renderWork();
+    }
+
+    function readCurrentAnswerInput(val) {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      if (exerciseState[exKey].locked || _submitting) return;
+      exerciseState[exKey].answer = val;
+    }
+
+    function readCurrentFillInput(idx, val) {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      if (exerciseState[exKey].locked || _submitting) return;
+      exerciseState[exKey].blanks[idx] = val;
+    }
+
+    function moveUp(idx) {
+      if (idx <= 0) return;
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      if (exerciseState[exKey].locked || _submitting) return;
+      const arr = exerciseState[exKey].order;
+      [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+      renderWork();
+    }
+
+    function moveDown(idx) {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      const arr = exerciseState[exKey].order;
+      if (idx >= arr.length - 1 || exerciseState[exKey].locked || _submitting) return;
+      [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]];
+      renderWork();
+    }
+
+    function toggleHint() {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      exerciseState[exKey].showHint = !exerciseState[exKey].showHint;
+      renderWork();
+    }
+
+    function toggleSolution() {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      if (!exerciseState[exKey].solution) return;
+      exerciseState[exKey].showSolution = !exerciseState[exKey].showSolution;
+      renderWork();
+    }
+
+    async function getAuthSessionToken() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        return session ? session.access_token : null;
+      } catch (err) {
+        console.warn("Could not retrieve auth session token:", err);
+        return null;
+      }
+    }
+
+    async function handleCheck() {
+      if (_submitting) return;
+
+      const exVisual = getActiveList()[currentIdx];
+      const st = exerciseState[exVisual.exerciseKey];
+      if (st.locked) return;
+
+      let userPayload = null;
+      if (exVisual.mode === "mcq") {
+        if (st.answer === null) {
+          st.feedbackText = "Selecciona una opción antes de comprobar.";
+          st.feedbackType = "warn";
+          renderExercisePanel(exVisual);
+          return;
+        }
+        userPayload = st.answer;
+      } else if (exVisual.mode === "input") {
+        if (!st.answer || !st.answer.trim()) {
+          st.feedbackText = "Ingresa un resultado antes de comprobar.";
+          st.feedbackType = "warn";
+          renderExercisePanel(exVisual);
+          return;
+        }
+        userPayload = st.answer.trim();
+      } else if (exVisual.mode === "order") {
+        userPayload = st.order;
+      } else if (exVisual.mode === "fill") {
+        if (st.blanks.some(b => !b.trim())) {
+          st.feedbackText = "Completa todos los campos antes de comprobar.";
+          st.feedbackType = "warn";
+          renderExercisePanel(exVisual);
+          return;
+        }
+        userPayload = st.blanks;
+      }
+
+      // Idempotency check binding
+      const isMatchingPending = _pendingSubmission &&
+        _pendingSubmission.runId === currentRunId &&
+        _pendingSubmission.phase === activePhase &&
+        _pendingSubmission.questionId === exVisual.exerciseKey &&
+        _pendingSubmission.exerciseIndex === currentIdx;
+
+      if (!isMatchingPending) {
+        _pendingSubmission = {
+          id: crypto.randomUUID(),
+          runId: currentRunId,
+          phase: activePhase,
+          questionId: exVisual.exerciseKey,
+          exerciseIndex: currentIdx
+        };
+      }
+
+      const submissionIdToSend = _pendingSubmission.id;
+
+      _submitting = true;
+      renderExercisePanel(exVisual);
+
+      try {
+        const token = await getAuthSessionToken();
+        if (!token) {
+          _submitting = false;
+          _pendingSubmission = null;
+          st.feedbackText = "⚠️ Sesión expirada. Por favor regresa al Campus Virtual para autenticarte.";
+          st.feedbackType = "bad";
+          renderExercisePanel(exVisual);
+          return;
+        }
+
+        const response = await fetch("https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/check-activity-answer", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            activity_key: ACTIVITY_KEY,
+            run_id: currentRunId,
+            phase: activePhase,
+            question_id: exVisual.exerciseKey,
+            question_submission_id: submissionIdToSend,
+            user_answer: userPayload
+          })
+        });
+
+        if (!response.ok) {
+          _submitting = false;
+          st.feedbackText = "⚠️ No se pudo confirmar la respuesta con el servidor. Pulsa Comprobar para reintentar.";
+          st.feedbackType = "bad";
+          renderWork();
+          return;
+        }
+
+        const res = await response.json();
+        _pendingSubmission = null;
+        _submitting = false;
+
+        if (!res || !res.success) {
+          st.feedbackText = res?.error || "Error al verificar la respuesta.";
+          st.feedbackType = "bad";
+          renderWork();
+          return;
+        }
+
+        st.attemptCount = res.attempt_number || (st.attemptCount + 1);
+        st.score = res.question_score;
+        st.locked = Boolean(res.locked);
+        if (res.solution_html) {
+          st.solution = res.solution_html;
+        }
+
+        if (res.is_correct) {
+          st.status = "correct";
+          st.feedbackText = `¡Correcto! Puntaje otorgado por servidor: ${st.score}/10.`;
+          st.feedbackType = "ok";
+          st.showSolution = true;
+        } else if (res.locked || st.attemptCount >= MAX_CHECK_ATTEMPTS) {
+          st.status = "failed";
+          st.feedbackText = `Se agotaron los 4 intentos. Calificación asignada: 1.00/10. Revisa la solución paso a paso.`;
+          st.feedbackType = "bad";
+          st.showSolution = true;
+        } else {
+          st.status = "incorrect";
+          st.feedbackText = `Respuesta incorrecta (Intento ${st.attemptCount}/${MAX_CHECK_ATTEMPTS}). Revisa tus cálculos y vuelve a intentar.`;
+          st.feedbackType = "bad";
+        }
+
+        renderWork();
+      } catch (err) {
+        console.error("Error conectando con servidor:", err);
+        _submitting = false;
+        st.feedbackText = "⚠️ Error de conexión con el servidor. Pulsa Comprobar para reintentar.";
+        st.feedbackType = "bad";
+        renderWork();
+      }
+    }
+
+    async function finishActivity() {
+      const list = getActiveList();
+      let totalSum = 0;
+      list.forEach(ex => {
+        const st = exerciseState[ex.exerciseKey];
+        totalSum += Number(st.score || 1);
+      });
+      const avg = Number((totalSum / list.length).toFixed(2));
+
+      // Transmitir calificación oficial a Supabase
+      try {
+        const res = await submitActivityResult({
+          activityKey: ACTIVITY_KEY,
+          runId: currentRunId,
+          phase: activePhase,
+          submission: {
+            run_id: currentRunId,
+            completed_at: new Date().toISOString()
+          }
+        });
+
+        if (res && res.success && res.data) {
+          const finalOfficial = Number(res.data.score).toFixed(2);
+          document.getElementById("finalScoreVal").innerText = finalOfficial;
+        } else {
+          document.getElementById("finalScoreVal").innerText = avg.toFixed(2);
+        }
+      } catch (e) {
+        console.warn("Fallo registrando en backend:", e);
+        document.getElementById("finalScoreVal").innerText = avg.toFixed(2);
+      }
+
+      if (activePhase === "initial") {
+        initialScore = avg;
+        showScreen("summaryScreen");
+        if (avg < 7.00) {
+          document.getElementById("recoveryPrompt").style.display = "block";
+          document.getElementById("scoreVerdict").innerText = "Puntaje inferior a 7.00. Puedes iniciar la fase de recuperación.";
+          document.getElementById("scoreVerdict").style.color = "var(--orange)";
+        } else {
+          document.getElementById("recoveryPrompt").style.display = "none";
+          document.getElementById("scoreVerdict").innerText = "¡Felicitaciones! Has aprobado el Trabajo en Clase.";
+          document.getElementById("scoreVerdict").style.color = "var(--green)";
+        }
+      } else {
+        const bestScore = Math.max(initialScore, avg);
+        document.getElementById("finalScoreVal").innerText = bestScore.toFixed(2);
+        document.getElementById("recoveryPrompt").style.display = "none";
+        document.getElementById("scoreVerdict").innerText = `Fase de recuperación concluida. Calificación final definitiva: ${bestScore.toFixed(2)}/10.`;
+        showScreen("summaryScreen");
+      }
+    }
+
+    function returnToCampus() {
+      window.location.href = "../../index.html";
+    }
+
+    // Attach to window for onclick bindings
+    window.startActivity = startActivity;
+    window.activateRecovery = activateRecovery;
+    window.navTo = navTo;
+    window.readCurrentAnswerMCQ = readCurrentAnswerMCQ;
+    window.readCurrentAnswerInput = readCurrentAnswerInput;
+    window.readCurrentFillInput = readCurrentFillInput;
+    window.moveUp = moveUp;
+    window.moveDown = moveDown;
+    window.toggleHint = toggleHint;
+    window.toggleSolution = toggleSolution;
+    window.handleCheck = handleCheck;
+    window.finishActivity = finishActivity;
+    window.returnToCampus = returnToCampus;
+    window.escapeHtml = escapeHtml;
+  </script>
+</body>
+</html>

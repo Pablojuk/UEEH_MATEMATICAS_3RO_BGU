@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>UEEH - Space Math Invaders 1984</title>
+    
+    <!-- Configuración MathJax 3 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)'], ['$', '$']],
+                displayMath: [['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            },
+            startup: {
+                typeset: false
+            }
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <style>
+        /* ==========================================
+           VARIABLES DE DISEÑO - RETRO ARCADE 80s (UEEH)
+           ========================================== */
+        :root {
+            --pixel-green: #34d399;   /* Menta arcade */
+            --pixel-cyan: #38bdf8;    /* Celeste neón */
+            --pixel-magenta: #f472b6; /* Rosa arcade */
+            --pixel-yellow: #fde047;  /* Amarillo arcade */
+            --pixel-purple: #a78bfa;  /* Lila arcade */
+            --pixel-dark: #05070f;    /* Fondo gabinete arcade */
+            --pixel-panel: #0f172a;   /* Panel CRT */
+            --pixel-border: #2dd4bf;  /* Turquesa */
+            --pixel-red: #f87171;     /* Alerta */
+            --text-main: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
+            background-color: var(--pixel-dark);
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace, system-ui;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            image-rendering: pixelated;
+        }
+
+        /* Efecto CRT Scanline Retro */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 200;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* ==========================================
+           PANTALLAS DEL SISTEMA
+           ========================================== */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--pixel-dark);
+            z-index: 10;
+            padding: 20px;
+            text-align: center;
+            overflow-y: auto;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        h1, h2, h3 { 
+            color: var(--pixel-green); 
+            text-shadow: 2px 2px 0px #000, 0 0 10px rgba(52, 211, 153, 0.6); 
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        p { 
+            margin-bottom: 0.8rem; 
+            line-height: 1.4; 
+            color: var(--text-main);
+            font-size: 0.92rem;
+        }
+
+        .btn {
+            background-color: #1e1b4b;
+            color: var(--pixel-yellow);
+            border: 3px solid var(--pixel-yellow);
+            padding: 12px 20px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            min-height: 48px;
+            box-shadow: 4px 4px 0px #000, 0 0 10px rgba(253, 224, 71, 0.4);
+            touch-action: manipulation;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            letter-spacing: 1px;
+            transition: transform 0.08s, filter 0.2s;
+        }
+        
+        .btn:active:not(:disabled) { 
+            transform: translate(2px, 2px); 
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .btn:disabled { 
+            opacity: 0.4; 
+            cursor: not-allowed; 
+            filter: grayscale(100%); 
+            transform: none; 
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border-color: var(--pixel-purple);
+            color: var(--pixel-purple);
+            box-shadow: 4px 4px 0px #000;
+        }
+
+        .btn-danger {
+            border-color: var(--pixel-red);
+            color: var(--pixel-red);
+            box-shadow: 4px 4px 0px #000;
+        }
+
+        /* ==========================================
+           CONTENEDOR DE JUEGO Y MOBILE FIRST
+           ========================================== */
+        #game-container {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #020408;
+            border-left: 2px solid #1e293b;
+            border-right: 2px solid #1e293b;
+            height: 100%;
+            height: 100dvh;
+        }
+
+        #hud {
+            padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 5;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--pixel-cyan);
+            background-color: rgba(3, 7, 18, 0.85);
+            border-bottom: 2px solid #1e293b;
+            text-shadow: 2px 2px 0px #000;
+            letter-spacing: 1px;
+        }
+
+        #hud-lives {
+            color: var(--pixel-red);
+            font-size: 1.05rem;
+            letter-spacing: 2px;
+        }
+
+        canvas {
+            display: block;
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        /* Panel de Controles Móviles Optimizado */
+        #mobile-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 16px) 16px;
+            background-color: #030712;
+            border-top: 3px solid var(--pixel-purple);
+            z-index: 15;
+            gap: 12px;
+            touch-action: none;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 14px;
+        }
+
+        .btn-control {
+            width: 64px;
+            height: 60px;
+            background-color: #111827;
+            border: 3px solid var(--pixel-cyan);
+            color: var(--pixel-cyan);
+            font-size: 26px;
+            font-family: inherit;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 3px 3px 0px #000;
+            touch-action: none;
+            -webkit-touch-callout: none;
+        }
+
+        .btn-control:active {
+            background-color: var(--pixel-cyan);
+            color: #000;
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #000;
+        }
+
+        #btn-shoot {
+            flex: 1;
+            max-width: 180px;
+            height: 60px;
+            background-color: #1f1235;
+            border: 3px solid var(--pixel-magenta);
+            color: var(--pixel-magenta);
+            font-size: 1.1rem;
+            font-family: inherit;
+            font-weight: 900;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 3px 3px 0px #000;
+            touch-action: none;
+        }
+
+        #btn-shoot:active {
+            background-color: var(--pixel-magenta);
+            color: #000;
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #000;
+        }
+
+        /* ==========================================
+           MODAL FORMATIVO UEEH (ESTILO ARCADE 80s)
+           ========================================== */
+        #challenge-modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(3, 7, 18, 0.96);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px calc(env(safe-area-inset-bottom, 0px) + 16px) 12px;
+        }
+
+        .modal-content {
+            background-color: var(--pixel-panel);
+            border: 3px solid var(--pixel-purple);
+            max-width: 580px;
+            width: 100%;
+            margin: auto;
+            padding: 16px;
+            box-shadow: 5px 5px 0px #000, 0 0 15px rgba(167, 139, 250, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mathBox {
+            background: #030712;
+            border: 2px dashed var(--pixel-cyan);
+            padding: 12px;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            text-align: center;
+            font-size: 1.15rem;
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-btn {
+            background-color: #030712;
+            border: 2px solid var(--pixel-cyan);
+            color: var(--text-main);
+            padding: 10px 12px;
+            text-align: left;
+            min-height: 48px;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            font-size: 0.92rem;
+            box-shadow: 3px 3px 0px #000;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        
+        .option-btn:hover:not(:disabled) { background-color: rgba(56, 189, 248, 0.15); }
+        .option-btn.selected { 
+            background-color: #1e293b; 
+            border-color: var(--pixel-yellow); 
+            color: var(--pixel-yellow);
+            box-shadow: 3px 3px 0px #000, 0 0 8px rgba(253, 224, 71, 0.5); 
+        }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.75; }
+        
+        .feedback-box {
+            padding: 12px;
+            border: 2px solid;
+            display: none;
+            font-weight: bold;
+            line-height: 1.45;
+            font-size: 0.88rem;
+            box-shadow: 3px 3px 0px #000;
+        }
+        .feedback-box.incorrect { display: block; background: rgba(248, 113, 113, 0.15); border-color: var(--pixel-red); color: #fca5a5; }
+        .feedback-box.correct { display: block; background: rgba(52, 211, 153, 0.15); border-color: var(--pixel-green); color: var(--pixel-green); }
+        .feedback-box.failed { display: block; background: rgba(167, 139, 250, 0.15); border-color: var(--pixel-purple); color: var(--pixel-purple); }
+
+        .solution-box {
+            display: none;
+            background: #030712;
+            border-left: 4px solid var(--pixel-green);
+            padding: 12px;
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+        
+        .score-badge {
+            display: inline-block;
+            background: #000;
+            padding: 4px 10px;
+            border: 2px solid var(--pixel-yellow);
+            color: var(--pixel-yellow);
+            font-size: 0.82rem;
+            font-weight: bold;
+            align-self: flex-start;
+            letter-spacing: 1px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PANTALLA INICIAL -->
+    <div id="start-screen" class="screen active">
+        <h1>👾 SPACE INVADERS '84 👾</h1>
+        <h3 style="color: var(--pixel-yellow); margin-top: 5px;">Tercero de BGU - Matemáticas</h3>
+        <p style="margin-top: 14px;"><b>MISIÓN:</b> Defiende el sector calculando límites de sucesiones cuando \( n \to \infty \).</p>
+        <p>Destruye a las 8 naves alienígenas asignadas aleatoriamente. ¡Cada impacto abrirá un reto único!</p>
+        <p style="color: var(--pixel-red);"><b>DEFENSA:</b> Cuentas con 5 vidas. Si los alienígenas tocan tu línea de base perderás una vida.</p>
+        
+        <div style="background: #000; padding: 12px; border: 2px solid var(--pixel-cyan); margin: 12px 0; max-width: 440px; text-align: left; box-shadow: 4px 4px 0px #000;">
+            <p style="margin:0; font-size: 0.82rem; color: var(--pixel-cyan);"><b>[ SISTEMA DE EVALUACIÓN UEEH ]</b><br>
+            • Intento 1 correcto: 10/10 pts<br>
+            • Intento 2 correcto: 9/10 pts<br>
+            • Intento 3 correcto: 8/10 pts<br>
+            • Intento 4 o superior: 7/10 pts<br>
+            • Intentos ilimitados por reto hasta acertar.</p>
+        </div>
+        
+        <button class="btn" onclick="startGame()">▶ INSERT COIN / INICIAR</button>
+    </div>
+
+    <!-- CONTENEDOR DEL JUEGO -->
+    <div id="game-container" style="display: none;">
+        <div id="hud">
+            <span>ALIENS: <span id="hud-enemies" style="color:var(--pixel-yellow);">8</span>/8</span>
+            <span>VIDAS: <span id="hud-lives">♥♥♥♥♥</span></span>
+            <span>PROGRESO: <span id="hud-progress" style="color:var(--pixel-green);">0</span>%</span>
+        </div>
+        
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+
+        <!-- Controles Táctiles Mobile First Optimizados -->
+        <div id="mobile-controls">
+            <div class="control-group">
+                <button class="btn-control" id="btn-left" aria-label="Izquierda">◀</button>
+                <button class="btn-control" id="btn-right" aria-label="Derecha">▶</button>
+            </div>
+            <button id="btn-shoot">FIRE 💥</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA GAME OVER -->
+    <div id="gameover-screen" class="screen">
+        <h1 style="color: var(--pixel-red);">💀 INVASIÓN TOTAL 💀</h1>
+        <h3 style="color: var(--pixel-yellow); margin-top: 5px;">GAME OVER</h3>
+        <p style="margin-top: 14px;">Has agotado tus 5 vidas defensivas. La flota alienígena penetró el sector.</p>
+        <p>Debes reiniciar la misión de cálculo desde el inicio.</p>
+        
+        <button class="btn btn-danger" style="margin-top: 16px;" onclick="resetAllAndRestart()">🔄 REINICIAR MISIÓN</button>
+    </div>
+
+    <!-- PANTALLA FINAL (VICTORIA) -->
+    <div id="end-screen" class="screen">
+        <h1>🏆 SECTOR ASEGURADO 🏆</h1>
+        <p>Has interceptado y resuelto exitosamente todos los límites del sector.</p>
+        <div style="background: #000; border: 3px solid var(--pixel-green); padding: 18px; margin-bottom: 18px; box-shadow: 5px 5px 0px #000;">
+            <h2 style="margin: 0; color: var(--pixel-yellow);">NOTA OFICIAL: <span id="final-score">10.00</span> / 10</h2>
+        </div>
+        <p id="submission-status-msg" style="font-size: 0.85rem; color: var(--pixel-green); margin-bottom: 18px;">✅ Calificación oficial registrada en Supabase</p>
+        <button id="btn-finalize" class="btn" onclick="finalizeGameAdapter()">FINALIZAR MISIÓN</button>
+        <button class="btn btn-outline" style="margin-top: 12px;" onclick="resetAllAndRestart()">REINICIAR JUEGO</button>
+    </div>
+
+    <!-- MODAL FORMATIVO UEEH -->
+    <div id="challenge-modal">
+        <div class="modal-content">
+            <h3 id="modal-title" style="margin-bottom:0;">🚨 NAVE INTERCEPTADA</h3>
+            <div id="modal-score" class="score-badge">DISPONIBLE: 10/10 PTS</div>
+            
+            <p id="modal-statement" style="margin-top:4px; margin-bottom:2px;">Calcula el límite:</p>
+            <div class="mathBox" id="modal-equation"></div>
+            
+            <div class="options-grid" id="modal-options">
+                <!-- Inyectado dinámicamente -->
+            </div>
+
+            <div id="modal-feedback" class="feedback-box"></div>
+            
+            <div id="modal-solution" class="solution-box">
+                <b style="color:var(--pixel-yellow); text-transform: uppercase;">▶ Procedimiento Pedagógico:</b>
+                <div id="modal-solution-text" style="margin-top: 6px;"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="btn-check" class="btn" onclick="handleCheckClick()">COMPROBAR</button>
+                <button id="btn-continue" class="btn" style="display:none; border-color:var(--pixel-green); color:var(--pixel-green);" onclick="closeChallengeModal()">CONTINUAR ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from '../../core/supabase-client.js';
+        import { submitActivityResult } from '../../core/activity-service.js';
+
+        // ========================================================
+        // 1. CONFIGURACIÓN Y CONSTANTES (UEEH)
+        // ========================================================
+        const ACTIVITY_KEY = "u6-sucesiones-gam-01";
+        const GAME_TITLE = "Space Math Invaders 1984";
+        const SUBJECT = "Matemáticas";
+        const COURSE = "Tercero de BGU";
+        const TOPIC = "Límites de Sucesiones";
+
+        let currentGameRunId = crypto.randomUUID();
+
+        // Estructura de retos pedagógicos (Pauta protegida server-side, solution: null en frontend)
+        const MISSIONS = [
+            { exerciseKey: "level01-q01", statement: "Analiza el límite de la sucesión:", equation: String.raw`\( a_n = 2n + 3 \)`, options: [String.raw`\( 0 \)`, String.raw`\( 2 \)`, String.raw`\( +\infty \)`, String.raw`\( -\infty \)`], hint: "Observa qué sucede con el término 2n a medida que 'n' crece indefinidamente.", solution: null },
+            { exerciseKey: "level01-q02", statement: "Analiza el límite de la sucesión:", equation: String.raw`\( a_n = \frac{1}{n} \)`, options: [String.raw`\( 0 \)`, String.raw`\( 1 \)`, String.raw`\( +\infty \)`, "No existe"], hint: "Si divides 1 entre una cantidad infinitamente grande, el cociente se aproxima a cero.", solution: null },
+            { exerciseKey: "level01-q03", statement: "Analiza el límite de la sucesión:", equation: String.raw`\( a_n = 5 - n \)`, options: [String.raw`\( 0 \)`, String.raw`\( 5 \)`, String.raw`\( +\infty \)`, String.raw`\( -\infty \)`], hint: "El término dominante es '-n'. Al restar valores enormes, el resultado decrece sin límite.", solution: null },
+            { exerciseKey: "level01-q04", statement: "Analiza el límite de la sucesión:", equation: String.raw`\( a_n = (-1)^n \)`, options: [String.raw`\( 0 \)`, String.raw`\( 1 \)`, String.raw`\( -\infty \)`, "No existe (oscila)"], hint: "Prueba dando valores pares e impares a 'n'. Observa que los términos oscilan permanentemente.", solution: null },
+            { exerciseKey: "level01-q05", statement: "Calcula el límite de la sucesión cuando \( n \to \infty \):", equation: String.raw`\[ \lim_{n \to \infty} \frac{1}{n} \]`, options: [String.raw`\( 0 \)`, String.raw`\( 1 \)`, String.raw`\( \infty \)`, String.raw`\( -1 \)`], hint: "Aplica la regla básica para constantes sobre infinito.", solution: null },
+            { exerciseKey: "level01-q06", statement: "Calcula el límite de la sucesión cuando \( n \to \infty \):", equation: String.raw`\[ \lim_{n \to \infty} \frac{5}{n^2} \]`, options: [String.raw`\( 5 \)`, String.raw`\( 0 \)`, String.raw`\( \frac{1}{5} \)`, String.raw`\( \infty \)`], hint: "El denominador cuadrático crece con gran rapidez frente a una constante.", solution: null },
+            { exerciseKey: "level01-q07", statement: "Calcula el límite de la sucesión cuando \( n \to \infty \):", equation: String.raw`\[ \lim_{n \to \infty} \frac{2n + 1}{n} \]`, options: [String.raw`\( 0 \)`, String.raw`\( 1 \)`, String.raw`\( 2 \)`, String.raw`\( \infty \)`], hint: "Divide cada término del numerador individualmente entre 'n'.", solution: null },
+            { exerciseKey: "level01-q08", statement: "Calcula el límite de la sucesión cuando \( n \to \infty \):", equation: String.raw`\[ \lim_{n \to \infty} \frac{3n - 2}{n + 4} \]`, options: [String.raw`\( 3 \)`, String.raw`\( \frac{3}{4} \)`, String.raw`\( -\frac{1}{2} \)`, String.raw`\( \infty \)`], hint: "Al tener el mismo grado en numerador y denominador, divide todo para 'n'.", solution: null }
+        ];
+
+        // ========================================================
+        // 2. MATRICES DE PIXEL ART OCHENTERO (SPRITES RETRO)
+        // ========================================================
+        const SPRITE_PLAYER = [
+            [0,0,0,0,0,1,0,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0],
+            [0,1,1,1,1,1,1,1,1,1,0],
+            [1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,0,0,0,0,0,1,1,1],
+            [1,1,0,0,0,0,0,0,0,1,1]
+        ];
+
+        const SPRITE_ALIEN1_A = [
+            [0,0,1,0,0,0,0,0,1,0,0],
+            [0,0,0,1,0,0,0,1,0,0,0],
+            [0,0,1,1,1,1,1,1,1,0,0],
+            [0,1,1,0,1,1,1,0,1,1,0],
+            [1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,1,1,1,1,1,1,1,0,1],
+            [1,0,1,0,0,0,0,0,1,0,1],
+            [0,0,0,1,1,0,1,1,0,0,0]
+        ];
+
+        const SPRITE_ALIEN1_B = [
+            [0,0,1,0,0,0,0,0,1,0,0],
+            [1,0,0,1,0,0,0,1,0,0,1],
+            [1,0,1,1,1,1,1,1,1,0,1],
+            [1,1,1,0,1,1,1,0,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1],
+            [0,1,1,1,1,1,1,1,1,1,0],
+            [0,0,1,0,0,0,0,0,1,0,0],
+            [0,1,0,0,0,0,0,0,0,1,0]
+        ];
+
+        const SPRITE_ALIEN2_A = [
+            [0,0,0,1,1,0,0,0],
+            [0,0,1,1,1,1,0,0],
+            [0,1,1,1,1,1,1,0],
+            [1,1,0,1,1,0,1,1],
+            [1,1,1,1,1,1,1,1],
+            [0,0,1,0,0,1,0,0],
+            [0,1,0,1,1,0,1,0],
+            [1,0,1,0,0,1,0,1]
+        ];
+
+        const SPRITE_ALIEN2_B = [
+            [0,0,0,1,1,0,0,0],
+            [0,0,1,1,1,1,0,0],
+            [0,1,1,1,1,1,1,0],
+            [1,1,0,1,1,0,1,1],
+            [1,1,1,1,1,1,1,1],
+            [0,1,0,1,1,0,1,0],
+            [1,0,0,0,0,0,0,1],
+            [0,1,0,0,0,0,1,0]
+        ];
+
+        function drawPixelMatrix(context, matrix, startX, startY, pixelSize, color) {
+            context.fillStyle = color;
+            for (let r = 0; r < matrix.length; r++) {
+                for (let c = 0; c < matrix[r].length; c++) {
+                    if (matrix[r][c] === 1) {
+                        context.fillRect(
+                            Math.floor(startX + c * pixelSize),
+                            Math.floor(startY + r * pixelSize),
+                            pixelSize,
+                            pixelSize
+                        );
+                    }
+                }
+            }
+        }
+
+        // ========================================================
+        // 3. ESTADO LOCAL, ALEATORIZACIÓN Y FÍSICAS ARCADE
+        // ========================================================
+        let challengeState = {};
+        let activeExerciseKey = null;
+        let selectedOptionIndex = null;
+        let checkInFlight = false;
+        
+        let gameLoopId;
+        let gameActive = false;
+        let isPaused = false;
+        let animationTick = 0;
+        let playerLives = 5;
+
+        MISSIONS.forEach(m => {
+            challengeState[m.exerciseKey] = {
+                answerIndex: null,
+                attemptCount: 0,
+                status: "pending",
+                score: null,
+                locked: false,
+                solution: null
+            };
+        });
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const player = { x: 370, y: 520, width: 44, height: 32, speed: 6, dx: 0 };
+        let bullets = [];
+        let aliens = [];
+        let particles = [];
+        const keys = { ArrowLeft: false, ArrowRight: false, Space: false };
+
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function getAlienSpeedFactor() {
+            let defeatedCount = 0;
+            for (let key in challengeState) {
+                if (challengeState[key].status === 'correct') {
+                    defeatedCount++;
+                }
+            }
+            return {
+                speed: 1.1 + (defeatedCount * 0.45),
+                dropStep: 16 + (defeatedCount * 3)
+            };
+        }
+
+        function resetAlienPositionsToTop() {
+            aliens.forEach(a => {
+                if (a.status !== 'correct') {
+                    const r = Math.floor(a.gridIndex / 4);
+                    const c = a.gridIndex % 4;
+                    a.x = 80 + c * 165;
+                    a.y = 55 + r * 80;
+                    a.dir = 1;
+                }
+            });
+            player.x = 370;
+            player.dx = 0;
+            bullets = [];
+        }
+
+        function initAliens() {
+            aliens = [];
+            const randomizedMissions = shuffleArray(MISSIONS);
+            let missionIndex = 0;
+
+            for (let r = 0; r < 2; r++) {
+                for (let c = 0; c < 4; c++) {
+                    if (missionIndex < 8) {
+                        const assignedMission = randomizedMissions[missionIndex];
+                        aliens.push({
+                            gridIndex: missionIndex,
+                            x: 80 + c * 165,
+                            y: 55 + r * 80,
+                            pixelSize: 4,
+                            type: r % 2,
+                            missionRef: assignedMission.exerciseKey,
+                            status: challengeState[assignedMission.exerciseKey].status,
+                            dir: 1
+                        });
+                        missionIndex++;
+                    }
+                }
+            }
+        }
+
+        function startGame() {
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('gameover-screen').classList.remove('active');
+            document.getElementById('end-screen').classList.remove('active');
+            document.getElementById('game-container').style.display = 'flex';
+            
+            initAliens();
+            playerLives = 5;
+            gameActive = true;
+            isPaused = false;
+            updateHUD();
+            typeset(); 
+            gameLoop();
+        }
+
+        function createRetroExplosion(x, y, color) {
+            for(let i = 0; i < 18; i++){
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.floor(Math.random() * 9) - 4) * 1.5,
+                    vy: (Math.floor(Math.random() * 9) - 4) * 1.5,
+                    size: 4,
+                    life: 1.0, 
+                    color: color
+                });
+            }
+        }
+
+        function loseLife() {
+            playerLives--;
+            updateHUD();
+            createRetroExplosion(player.x + 22, player.y + 16, '#f87171');
+            
+            if (playerLives <= 0) {
+                gameActive = false;
+                document.getElementById('game-container').style.display = 'none';
+                document.getElementById('gameover-screen').classList.add('active');
+            } else {
+                isPaused = true;
+                setTimeout(() => {
+                    resetAlienPositionsToTop();
+                    isPaused = false;
+                }, 500);
+            }
+        }
+
+        function resetAllAndRestart() {
+            currentGameRunId = crypto.randomUUID();
+            MISSIONS.forEach(m => {
+                challengeState[m.exerciseKey] = {
+                    answerIndex: null,
+                    attemptCount: 0,
+                    status: "pending",
+                    score: null,
+                    locked: false,
+                    solution: null
+                };
+            });
+            startGame();
+        }
+
+        function shootBullet() {
+            if (!isPaused && bullets.length < 2) {
+                bullets.push({ x: player.x + 20, y: player.y - 4, width: 4, height: 12, speed: 9 });
+            }
+        }
+
+        function updatePhysics() {
+            if (isPaused) return;
+
+            animationTick++;
+            const dynamics = getAlienSpeedFactor();
+
+            // Movimiento Jugador
+            if (keys.ArrowLeft || player.dx < 0) player.x -= player.speed;
+            if (keys.ArrowRight || player.dx > 0) player.x += player.speed;
+            
+            if (player.x < 10) player.x = 10;
+            if (player.x + player.width > canvas.width - 10) player.x = canvas.width - player.width - 10;
+
+            // Proyectiles
+            bullets.forEach((b, i) => {
+                b.y -= b.speed;
+                if (b.y < 0) bullets.splice(i, 1);
+            });
+
+            // Partículas
+            particles.forEach((p, i) => {
+                p.x += p.vx; 
+                p.y += p.vy;
+                p.life -= 0.05;
+                if (p.life <= 0) particles.splice(i, 1);
+            });
+
+            // Movimiento y Descenso de Aliens
+            let reverseAndDrop = false;
+            aliens.forEach(a => {
+                if (a.status !== 'correct') {
+                    const width = a.type === 0 ? 11 * a.pixelSize : 8 * a.pixelSize;
+                    if ((a.x + width >= canvas.width - 15 && a.dir > 0) || (a.x <= 15 && a.dir < 0)) {
+                        reverseAndDrop = true;
+                    }
+                }
+            });
+
+            let alienReachedBottom = false;
+
+            aliens.forEach(a => {
+                if (a.status !== 'correct') {
+                    if (reverseAndDrop) {
+                        a.dir *= -1;
+                        a.y += dynamics.dropStep;
+                    }
+                    a.x += dynamics.speed * a.dir;
+
+                    const height = 8 * a.pixelSize;
+                    if (a.y + height >= 520) {
+                        alienReachedBottom = true;
+                    }
+                }
+            });
+
+            if (alienReachedBottom) {
+                loseLife();
+                return;
+            }
+
+            // Colisiones Bala - Alien
+            bullets.forEach((b, bi) => {
+                aliens.forEach(a => {
+                    if (a.status !== 'correct') {
+                        const width = a.type === 0 ? 11 * a.pixelSize : 8 * a.pixelSize;
+                        const height = 8 * a.pixelSize;
+                        if (b.x > a.x && b.x < a.x + width && b.y > a.y && b.y < a.y + height) {
+                            bullets.splice(bi, 1);
+                            createRetroExplosion(a.x + width / 2, a.y + height / 2, a.type === 0 ? '#38bdf8' : '#f472b6');
+                            isPaused = true;
+                            setTimeout(() => { openMathChallenge(a.missionRef); }, 200);
+                        }
+                    }
+                });
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#05070f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Cuadrículas estelares 80s
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = 0.2;
+            for(let i = 0; i < 20; i++){
+                ctx.fillRect((i * 47) % canvas.width, (i * 83) % canvas.height, 3, 3);
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Línea de defensa límite (Base)
+            ctx.fillStyle = playerLives > 2 ? '#34d399' : '#f87171';
+            ctx.fillRect(0, 555, canvas.width, 3);
+
+            // Dibujar Jugador
+            drawPixelMatrix(ctx, SPRITE_PLAYER, player.x, player.y, 4, '#34d399');
+
+            // Dibujar Aliens
+            const frameToggle = Math.floor(animationTick / 20) % 2 === 0;
+            aliens.forEach(a => {
+                if (a.status !== 'correct') {
+                    if (a.type === 0) {
+                        const sprite = frameToggle ? SPRITE_ALIEN1_A : SPRITE_ALIEN1_B;
+                        drawPixelMatrix(ctx, sprite, a.x, a.y, a.pixelSize, '#38bdf8');
+                    } else {
+                        const sprite = frameToggle ? SPRITE_ALIEN2_A : SPRITE_ALIEN2_B;
+                        drawPixelMatrix(ctx, sprite, a.x, a.y, a.pixelSize, '#f472b6');
+                    }
+                }
+            });
+            
+            // Balas Pixeladas
+            ctx.fillStyle = '#fde047';
+            bullets.forEach(b => {
+                ctx.fillRect(b.x, b.y, b.width, b.height);
+            });
+
+            // Partículas Pixeladas
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillRect(Math.floor(p.x), Math.floor(p.y), p.size, p.size);
+            });
+            ctx.globalAlpha = 1.0;
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+            if (document.visibilityState === "visible") {
+                updatePhysics();
+                draw();
+            }
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        // Teclado PC
+        window.addEventListener('keydown', e => {
+            if(keys.hasOwnProperty(e.code)) {
+                keys[e.code] = true;
+                if(e.code === 'Space') shootBullet();
+            }
+        });
+        window.addEventListener('keyup', e => {
+            if(keys.hasOwnProperty(e.code)) keys[e.code] = false;
+        });
+
+        // Controles Táctiles (Pointer Events)
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+        const btnShoot = document.getElementById('btn-shoot');
+
+        btnLeft.addEventListener('pointerdown', (e) => { e.preventDefault(); player.dx = -1; });
+        btnLeft.addEventListener('pointerup', (e) => { e.preventDefault(); player.dx = 0; });
+        btnLeft.addEventListener('pointercancel', () => { player.dx = 0; });
+        btnLeft.addEventListener('pointerleave', () => { player.dx = 0; });
+
+        btnRight.addEventListener('pointerdown', (e) => { e.preventDefault(); player.dx = 1; });
+        btnRight.addEventListener('pointerup', (e) => { e.preventDefault(); player.dx = 0; });
+        btnRight.addEventListener('pointercancel', () => { player.dx = 0; });
+        btnRight.addEventListener('pointerleave', () => { player.dx = 0; });
+
+        btnShoot.addEventListener('pointerdown', (e) => { 
+            e.preventDefault(); 
+            shootBullet();
+        });
+
+        // ========================================================
+        // 4. LÓGICA PEDAGÓGICA UEEH Y EVALUACIÓN SERVER-SIDE
+        // ========================================================
+        function typeset() {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise().catch(error => { console.warn("MathJax:", error); });
+            }
+        }
+
+        function openMathChallenge(exerciseKey) {
+            activeExerciseKey = exerciseKey;
+            const mission = MISSIONS.find(m => m.exerciseKey === exerciseKey);
+            const state = challengeState[exerciseKey];
+            
+            selectedOptionIndex = state.answerIndex;
+            
+            document.getElementById('modal-statement').innerText = mission.statement;
+            document.getElementById('modal-equation').innerHTML = mission.equation;
+            
+            const optionsContainer = document.getElementById('modal-options');
+            optionsContainer.innerHTML = '';
+            
+            mission.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                if (selectedOptionIndex === idx) {
+                    btn.classList.add('selected');
+                }
+                btn.innerHTML = `<span><b style="color:var(--pixel-yellow); font-family:inherit;">[${String.fromCharCode(65 + idx)}]</b> &nbsp; ${opt}</span>`;
+                
+                btn.onclick = () => {
+                    if (state.locked || checkInFlight) return;
+                    document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    selectedOptionIndex = idx;
+                    
+                    const btnCheck = document.getElementById('btn-check');
+                    if (btnCheck) btnCheck.disabled = false;
+                };
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('challenge-modal').style.display = 'flex';
+            
+            updateChallengeUIState(state, mission);
+            typeset();
+        }
+
+        function closeChallengeModal() {
+            document.getElementById('challenge-modal').style.display = 'none';
+            const alien = aliens.find(a => a.missionRef === activeExerciseKey);
+            if(alien) alien.status = challengeState[activeExerciseKey].status;
+            activeExerciseKey = null;
+            isPaused = false;
+            updateHUD();
+            checkGameCompletion();
+        }
+
+        async function getAuthSessionToken() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                return session ? session.access_token : null;
+            } catch (err) {
+                console.warn("Error obteniendo token de sesión:", err);
+                return null;
+            }
+        }
+
+        async function checkChallengeAdapter({ exerciseKey, answer, checkId }) {
+            const token = await getAuthSessionToken();
+            if (!token) {
+                return { success: false, error: "Sesión no disponible o expirada. Autentícate en el Campus." };
+            }
+
+            const response = await fetch("https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/check-activity-answer", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    activity_key: ACTIVITY_KEY,
+                    run_id: currentGameRunId,
+                    phase: "gamification",
+                    question_id: exerciseKey,
+                    question_submission_id: checkId,
+                    user_answer: answer
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error("HTTP " + response.status);
+            }
+            return await response.json();
+        }
+
+        async function handleCheckClick() {
+            if (checkInFlight) return;
+            
+            const currentState = challengeState[activeExerciseKey];
+            if (!currentState || currentState.locked) return;
+
+            if (selectedOptionIndex === null) {
+                alert("Debes seleccionar una opción antes de comprobar.");
+                return;
+            }
+
+            const checkId = crypto.randomUUID();
+            const btn = document.getElementById('btn-check');
+            
+            checkInFlight = true;
+            btn.disabled = true;
+            btn.innerText = "COMPROBANDO...";
+
+            try {
+                const result = await checkChallengeAdapter({
+                    exerciseKey: activeExerciseKey,
+                    answer: selectedOptionIndex,
+                    checkId: checkId
+                });
+
+                if (!result || !result.success) {
+                    const fb = document.getElementById('modal-feedback');
+                    fb.className = 'feedback-box incorrect';
+                    fb.innerHTML = result?.error || "Error al verificar con el servidor.";
+                    return;
+                }
+
+                applyCheckResult(result, selectedOptionIndex);
+            } catch (error) {
+                console.warn("Error en comprobación:", error);
+                const fb = document.getElementById('modal-feedback');
+                fb.className = 'feedback-box incorrect';
+                fb.innerHTML = "⚠️ Error de conexión con el servidor. Reintenta.";
+            } finally {
+                checkInFlight = false;
+                btn.innerText = "COMPROBAR";
+                
+                const updatedState = challengeState[activeExerciseKey];
+                if (updatedState && !updatedState.locked) {
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        function applyCheckResult(result, selectedAnswer) {
+            const state = challengeState[result.exercise_key || activeExerciseKey];
+            const mission = MISSIONS.find(m => m.exerciseKey === (result.exercise_key || activeExerciseKey));
+            
+            state.attemptCount = result.attempt_number || (state.attemptCount + 1);
+            state.status = result.status || (result.is_correct ? "correct" : "incorrect");
+            state.score = result.question_score ?? result.score;
+            state.locked = Boolean(result.locked);
+            state.answerIndex = selectedAnswer;
+            if (result.solution_html) {
+                state.solution = result.solution_html;
+            }
+
+            updateChallengeUIState(state, mission);
+            typeset();
+        }
+
+        function updateChallengeUIState(state, mission) {
+            const fb = document.getElementById('modal-feedback');
+            const sol = document.getElementById('modal-solution');
+            const solText = document.getElementById('modal-solution-text');
+            const scoreBadge = document.getElementById('modal-score');
+            const btnCheck = document.getElementById('btn-check');
+            const btnContinue = document.getElementById('btn-continue');
+
+            // Puntaje disponible según intento (Gamificación: 10, 9, 8, 7...)
+            let avail = 10;
+            if (state.attemptCount === 1) avail = 9;
+            else if (state.attemptCount === 2) avail = 8;
+            else if (state.attemptCount >= 3) avail = 7;
+            
+            scoreBadge.innerText = state.score !== null ? `PUNTAJE OBTENIDO: ${state.score}/10` : `DISPONIBLE: ${avail}/10 PTS`;
+
+            if (state.status === "correct") {
+                fb.className = "feedback-box correct";
+                fb.innerHTML = `🌟 ¡EXCELENTE! Límite interceptado con éxito en el intento #${state.attemptCount}. Puntaje otorgado: <b>${state.score}/10</b>.`;
+                
+                if (state.solution) {
+                    solText.innerHTML = state.solution;
+                    sol.style.display = 'block';
+                }
+                
+                btnCheck.style.display = 'none';
+                btnContinue.style.display = 'inline-flex';
+            } else if (state.status === "incorrect") {
+                fb.className = "feedback-box incorrect";
+                fb.innerHTML = `⚠️ RESPUESTA INCORRECTA (Intento ${state.attemptCount}). ${mission.hint} Puedes seguir intentándolo.`;
+                sol.style.display = 'none';
+                btnCheck.style.display = 'inline-flex';
+                btnContinue.style.display = 'none';
+            } else {
+                fb.style.display = 'none';
+                sol.style.display = 'none';
+                btnCheck.style.display = 'inline-flex';
+                btnContinue.style.display = 'none';
+            }
+        }
+
+        function updateHUD() {
+            let activeAliens = 0;
+            let solvedCount = 0;
+            aliens.forEach(a => {
+                if (a.status !== 'correct') activeAliens++;
+                else solvedCount++;
+            });
+            
+            document.getElementById('hud-enemies').innerText = activeAliens;
+            
+            let hearts = "";
+            for (let i = 0; i < playerLives; i++) hearts += "♥";
+            document.getElementById('hud-lives').innerText = hearts;
+            
+            const pct = Math.round((solvedCount / 8) * 100);
+            document.getElementById('hud-progress').innerText = pct;
+        }
+
+        async function checkGameCompletion() {
+            let solvedCount = 0;
+            let totalScore = 0;
+
+            for (let key in challengeState) {
+                if (challengeState[key].status === 'correct') {
+                    solvedCount++;
+                    totalScore += (challengeState[key].score || 7);
+                }
+            }
+
+            if (solvedCount >= 8) {
+                gameActive = false;
+                document.getElementById('game-container').style.display = 'none';
+                document.getElementById('end-screen').classList.add('active');
+
+                const finalAvg = (totalScore / 8).toFixed(2);
+                document.getElementById('final-score').innerText = finalAvg;
+
+                // Enviar entrega final oficial a Supabase
+                try {
+                    const res = await submitActivityResult({
+                        activityKey: ACTIVITY_KEY,
+                        runId: currentGameRunId,
+                        phase: "gamification",
+                        submission: {
+                            run_id: currentGameRunId,
+                            completed_at: new Date().toISOString()
+                        }
+                    });
+
+                    if (res && res.success && res.data) {
+                        const officialScore = Number(res.data.score).toFixed(2);
+                        document.getElementById('final-score').innerText = officialScore;
+                        const statusMsg = document.getElementById('submission-status-msg');
+                        if (statusMsg) {
+                            statusMsg.innerText = `✅ Calificación oficial registrada: ${officialScore}/10 (Intento #${res.data.attempt_number})`;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Error registrando resultado final:", e);
+                }
+            }
+        }
+
+        function finalizeGameAdapter() {
+            window.location.href = "../../index.html";
+        }
+
+        // Exportar funciones para llamadas onclick en HTML
+        window.startGame = startGame;
+        window.resetAllAndRestart = resetAllAndRestart;
+        window.handleCheckClick = handleCheckClick;
+        window.closeChallengeModal = closeChallengeModal;
+        window.finalizeGameAdapter = finalizeGameAdapter;
+    </script>
+</body>
+</html>

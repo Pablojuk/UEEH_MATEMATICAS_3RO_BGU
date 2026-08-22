@@ -249,7 +249,10 @@ serve(async (req: Request) => {
       activeRunId = activeRun.id;
 
       // 2. Obtener lista de ejercicios requeridos desde la pauta privada
-      const requiredExercises = Object.keys(gradingConfigData.config.exercises || {});
+      const targetExercises = (currentPhase === "recovery" && gradingConfigData.config.recoveryExercises)
+        ? gradingConfigData.config.recoveryExercises
+        : (gradingConfigData.config.exercises || {});
+      const requiredExercises = Object.keys(targetExercises);
       const totalRequired = requiredExercises.length;
 
       if (totalRequired === 0) {
@@ -301,6 +304,23 @@ serve(async (req: Request) => {
       }, 0);
 
       computedScore = totalScore / totalRequired;
+
+      if (currentPhase === "recovery") {
+        const { data: initialRun } = await serviceClient
+          .from("activity_runs")
+          .select("final_score")
+          .eq("activity_id", activity.id)
+          .eq("student_id", student.id)
+          .eq("phase", "initial")
+          .eq("status", "completed")
+          .order("completed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const initialScore = Number(initialRun?.final_score || 0);
+        computedScore = Math.max(initialScore, computedScore);
+      }
+
       submissionDetails.activity_run_id = activeRun.id;
       submissionDetails.total_exercises = totalRequired;
       submissionDetails.raw_score = computedScore;

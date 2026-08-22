@@ -284,22 +284,37 @@ serve(async (req: Request) => {
         solutionHtml = qCfg.solution_html;
       }
     } else if (graderType === "exercise_set") {
-      const exCfg = config.exercises?.[qStr];
+      const targetExercises = (phase === "recovery" && config.recoveryExercises)
+        ? config.recoveryExercises
+        : (config.exercises || {});
+      const exCfg = targetExercises[qStr] || config.exercises?.[qStr];
       if (!exCfg) {
         return new Response(JSON.stringify({ error: `Ejercicio ${qStr} no existe en la pauta` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       }
 
-      if (exCfg.type === "mcq") {
+      if (exCfg.type === "mcq" || exCfg.mode === "mcq") {
         const uVal = String(resolvedAnswer ?? "").trim();
         isCorrect = uVal === String(exCfg.correct_option ?? exCfg.correctIndex ?? "").trim();
-      } else if (exCfg.type === "numeric" || exCfg.type === "input") {
-        const uAns = String(resolvedAnswer ?? "").trim();
-        const accepted = exCfg.accepted_answers || exCfg.acceptedAnswers || [];
+      } else if (exCfg.type === "numeric" || exCfg.type === "input" || exCfg.mode === "input") {
+        const uAns = String(resolvedAnswer ?? "").trim().replace(",", ".");
+        const accepted = (exCfg.accepted_answers || exCfg.acceptedAnswers || []).map((a: any) => String(a).trim().replace(",", "."));
         isCorrect = accepted.includes(uAns);
+      } else if (exCfg.type === "fill" || exCfg.mode === "fill") {
+        const userBlanks: any[] = Array.isArray(resolvedAnswer) ? resolvedAnswer : [];
+        const expectedBlanks: any[] = exCfg.blanks || [];
+        isCorrect = expectedBlanks.length > 0 && expectedBlanks.every((b: any, idx: number) => {
+          const uVal = String(userBlanks[idx] ?? "").trim().replace(",", ".").toLowerCase();
+          const accepted = (b.accepted || [b.answer]).map((a: any) => String(a).trim().replace(",", ".").toLowerCase());
+          return accepted.includes(uVal);
+        });
+      } else if (exCfg.type === "order" || exCfg.mode === "order") {
+        const userOrder = Array.isArray(resolvedAnswer) ? resolvedAnswer : [];
+        const correctOrder = exCfg.correctOrder || exCfg.correct_order || [];
+        isCorrect = JSON.stringify(userOrder) === JSON.stringify(correctOrder);
       }
 
-      if (exCfg.solution_html) {
-        solutionHtml = exCfg.solution_html;
+      if (exCfg.solution_html || exCfg.solution) {
+        solutionHtml = exCfg.solution_html || exCfg.solution;
       }
     } else {
       return new Response(JSON.stringify({ error: `Tipo de calificador '${graderType}' no soportado` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
