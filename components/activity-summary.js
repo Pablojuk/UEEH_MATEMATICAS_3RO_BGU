@@ -1,18 +1,29 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Student Activity Summary Component — UEEH Matemáticas 3ro BGU (Unidad 5+)
+// Student Activity Summary Component — UEEH Matemáticas 3ro BGU
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { fetchStudentActivitySummary, submitActivityResult } from "../core/activity-service.js";
 
 /**
  * Renderiza el Resumen de Actividades del Estudiante consultando Supabase como única fuente oficial.
+ * Aislado por unidad curricular de forma data-driven (unitNumber / unitTitle).
  */
-export async function renderStudentActivitySummary(container) {
+export async function renderStudentActivitySummary(container, options = {}) {
+  const unitNumber = typeof options === "object"
+    ? (options?.unitNumber ?? options?.unit ?? null)
+    : (typeof options === "number" ? options : null);
+  const unitTitle = typeof options === "object" ? (options?.unitTitle ?? "") : "";
+
+  const headerTitle = unitNumber ? `Resumen de Actividades • Unidad ${unitNumber}` : "Resumen de Actividades";
+  const headerSubtitle = unitTitle
+    ? `Unidad ${unitNumber}: ${unitTitle}`
+    : "Consulta el estado oficial y las calificaciones de tus actividades evaluables en Supabase.";
+
   container.innerHTML = `
     <div class="space-y-6 animate-fade-in">
       <div class="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-sm">
-        <h2 class="heading-font text-2xl font-bold text-moodle-text-blue">Resumen de Actividades (Unidad 5+)</h2>
-        <p class="text-xs text-neutral-500 mt-0.5">Consulta el estado oficial y las calificaciones de tus actividades evaluables en Supabase.</p>
+        <h2 class="heading-font text-2xl font-bold text-moodle-text-blue">${escapeHTML(headerTitle)}</h2>
+        <p class="text-xs text-neutral-500 mt-0.5">${escapeHTML(headerSubtitle)}</p>
       </div>
 
       <div id="summary-cards-root" class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -21,20 +32,23 @@ export async function renderStudentActivitySummary(container) {
     </div>
   `;
 
-  await loadSummary();
+  await loadSummary(unitNumber);
 }
 
-async function loadSummary() {
+async function loadSummary(unitNumber = null) {
   const root = document.getElementById("summary-cards-root");
   if (!root) return;
 
   try {
-    const list = await fetchStudentActivitySummary();
+    const allItems = await fetchStudentActivitySummary(unitNumber);
+    const list = (unitNumber !== null && unitNumber !== undefined)
+      ? allItems.filter((item) => Number(item.activity?.unit_number) === Number(unitNumber))
+      : allItems;
 
     if (list.length === 0) {
       root.innerHTML = `
         <div class="col-span-full p-8 bg-white rounded-3xl border border-neutral-200/80 text-center text-neutral-400">
-          No hay actividades evaluables registradas para esta unidad.
+          Aún no tienes actividades calificadas en esta unidad.
         </div>
       `;
       return;
@@ -57,7 +71,7 @@ async function loadSummary() {
 
             if (res.success) {
               alert("¡Entrega registrada y confirmada exitosamente en Supabase!");
-              await loadSummary();
+              await loadSummary(unitNumber);
             } else {
               alert(res.error || "No se pudo reintentar la entrega.");
               btn.disabled = false;
@@ -70,7 +84,7 @@ async function loadSummary() {
   } catch (err) {
     root.innerHTML = `
       <div class="col-span-full p-8 bg-white rounded-3xl border border-red-200 text-center text-red-500 font-semibold">
-        Error al cargar el resumen de actividades: ${err.message}
+        Error al cargar el resumen de actividades: ${escapeHTML(err.message)}
       </div>
     `;
   }

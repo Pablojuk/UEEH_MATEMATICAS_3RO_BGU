@@ -134,12 +134,19 @@ export async function submitActivityResult({ activityKey, submission, submission
 
 /**
  * Consulta las actividades y resultados formateados directamente desde Supabase como fuente oficial.
+ * Permite filtrar por unidad curricular específica (unitNumber) de forma data-driven.
  */
-export async function fetchStudentActivitySummary() {
-  const { data: activities, error: actErr } = await supabase
+export async function fetchStudentActivitySummary(unitNumber = null) {
+  let query = supabase
     .from("activities")
     .select("id, activity_key, title, activity_type, unit_number, max_score, minimum_score, opens_at, due_at, display_order")
-    .eq("is_active", true)
+    .eq("is_active", true);
+
+  if (unitNumber !== null && unitNumber !== undefined) {
+    query = query.eq("unit_number", Number(unitNumber));
+  }
+
+  const { data: activities, error: actErr } = await query
     .order("unit_number", { ascending: true })
     .order("display_order", { ascending: true });
 

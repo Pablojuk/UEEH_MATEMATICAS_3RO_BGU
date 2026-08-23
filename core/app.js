@@ -677,7 +677,10 @@ function executeUnitNavigation(unit, actionType) {
         );
         const container = document.getElementById("summary-container");
         if (container) {
-          renderStudentActivitySummary(container);
+          renderStudentActivitySummary(container, {
+            unitNumber: unit.unitNumber,
+            unitTitle: unit.title
+          });
         }
         bindClick("#btn-back-dashboard", () => goToDashboard());
       });
