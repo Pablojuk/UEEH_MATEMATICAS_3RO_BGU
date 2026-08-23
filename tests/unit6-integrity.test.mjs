@@ -33,7 +33,8 @@ assert.ok(!gamContent.includes("AUTHORING_ANSWER_KEY"), "❌ gamificacion.html m
 assert.ok(!gamContent.includes("AUTHORING_MODE = true"), "❌ gamificacion.html must NOT have AUTHORING_MODE active");
 assert.ok(gamContent.includes("u6-sucesiones-gam-01"), "❌ gamificacion.html must use activity_key u6-sucesiones-gam-01");
 assert.ok(gamContent.includes("checkInFlight") || gamContent.includes("_submittingAnswer"), "❌ gamificacion.html must implement in-flight submit guard");
-assert.ok(gamContent.includes("check-activity-answer"), "❌ gamificacion.html must call check-activity-answer Edge Function");
+assert.ok(gamContent.includes("checkExercise"), "❌ gamificacion.html must import and call checkExercise");
+assert.ok(gamContent.includes("getExerciseProgress"), "❌ gamificacion.html must import and call getExerciseProgress");
 assert.ok(gamContent.includes("submitActivityResult"), "❌ gamificacion.html must delegate final grade to submitActivityResult");
 assert.ok(gamContent.includes("import { supabase } from '../../core/supabase-client.js'"), "❌ gamificacion.html must import singleton supabase client");
 
@@ -52,7 +53,7 @@ missions.forEach((m, idx) => {
   assert.ok(m.hint, `❌ Mission ${idx + 1} must have procedural hint`);
   assert.strictEqual(m.solution, null, `❌ Mission ${idx + 1} must have solution: null in public HTML`);
 });
-console.log("✔ Gamificacion — 8 missions verified with in-flight guard, server-side grading, and solution: null");
+console.log("✔ Gamificacion — 8 missions verified with in-flight guard, exercise-progress-service, and solution: null");
 
 // ─────────────────────────────────────────────────────────────
 // 3. DEBER.HTML AUDIT
@@ -65,7 +66,8 @@ assert.ok(!debContent.includes("AUTHORING_ANSWER_KEY"), "❌ deber.html must NOT
 assert.ok(debContent.includes("u6-sucesiones-class-01"), "❌ deber.html must use activity_key u6-sucesiones-class-01");
 assert.ok(debContent.includes("_submitting"), "❌ deber.html must implement _submitting guard");
 assert.ok(debContent.includes("_pendingSubmission"), "❌ deber.html must implement _pendingSubmission binding");
-assert.ok(debContent.includes("check-activity-answer"), "❌ deber.html must call check-activity-answer Edge Function");
+assert.ok(debContent.includes("checkExercise"), "❌ deber.html must import and call checkExercise");
+assert.ok(debContent.includes("getExerciseProgress"), "❌ deber.html must import and call getExerciseProgress");
 assert.ok(debContent.includes("submitActivityResult"), "❌ deber.html must delegate final grade to submitActivityResult");
 assert.ok(debContent.includes("import { supabase } from '../../core/supabase-client.js'"), "❌ deber.html must import singleton supabase client");
 
@@ -86,10 +88,18 @@ assert.strictEqual(recoveryExs.length, 10, `❌ recoveryVisual must have 10 reco
   assert.ok(ex.hint, `❌ Exercise ${idx + 1} must have procedural hint`);
   assert.strictEqual(ex.solution, null, `❌ Exercise ${idx + 1} must have solution: null in public HTML`);
 });
-console.log("✔ Deber — 20 initial + 10 recovery exercises verified with _submitting guard, _pendingSubmission, and solution: null");
+console.log("✔ Deber — 20 initial + 10 recovery exercises verified with _submitting guard, exercise-progress-service, and solution: null");
 
 // ─────────────────────────────────────────────────────────────
-// 4. ORIGINAL SOURCE INTEGRITY AUDIT
+// 4. RETRY IDEMPOTENCY & TECHNICAL ERROR BEHAVIORAL AUDIT
+// ─────────────────────────────────────────────────────────────
+assert.ok(gamContent.includes("_pendingGamCheckIds"), "❌ gamificacion.html must track pending check IDs for idempotent retry");
+assert.ok(gamContent.includes("delete _pendingGamCheckIds"), "❌ gamificacion.html must clean pending check ID only on success");
+assert.ok(debContent.includes("_pendingSubmission = null"), "❌ deber.html must clear _pendingSubmission only on success");
+console.log("✔ Retry Idempotency — Both gamification and classwork retain pending check IDs on technical errors");
+
+// ─────────────────────────────────────────────────────────────
+// 5. ORIGINAL SOURCE INTEGRITY AUDIT
 // ─────────────────────────────────────────────────────────────
 const dropboxDir = "C:\\Users\\ASUS\\Dropbox\\UNIDAD EDUCATIVA EMILIANO HINOZTROZA\\DOCUMENTOS HTML\\SUCESIONES CONVERGENTES Y LÍMITE DE UNA SUCESIÓN";
 const origPres = path.join(dropboxDir, "PRESENTACIÓN.html");

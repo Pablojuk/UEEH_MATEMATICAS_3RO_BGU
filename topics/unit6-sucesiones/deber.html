@@ -319,6 +319,7 @@
   <script type="module">
     import { supabase } from '../../core/supabase-client.js';
     import { submitActivityResult } from '../../core/activity-service.js';
+    import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js';
 
     const ACTIVITY_KEY = "u6-sucesiones-class-01";
     const MAX_CHECK_ATTEMPTS = 4;
@@ -554,6 +555,46 @@
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
+    async function restoreSavedProgress() {
+      try {
+        const progressList = await getExerciseProgress(ACTIVITY_KEY);
+        if (Array.isArray(progressList) && progressList.length > 0) {
+          progressList.forEach(p => {
+            const st = exerciseState[p.exercise_key];
+            if (st) {
+              st.attemptCount = p.attempt_count || 0;
+              st.status = p.status || "pending";
+              st.score = p.exercise_score;
+              st.locked = Boolean(p.locked);
+              if (p.answer_data && p.answer_data.value !== undefined) {
+                if (Array.isArray(p.answer_data.value)) {
+                  if (st.order) st.order = p.answer_data.value;
+                  if (st.blanks) st.blanks = p.answer_data.value;
+                } else {
+                  st.answer = p.answer_data.value;
+                }
+              }
+              if (st.status === "correct") {
+                st.feedbackText = `¡Correcto! Puntaje: ${st.score}/10.`;
+                st.feedbackType = "ok";
+                st.showSolution = true;
+              } else if (st.locked || st.status === "failed") {
+                st.feedbackText = `Se agotaron los 4 intentos. Calificación asignada: ${st.score || 1.00}/10.`;
+                st.feedbackType = "bad";
+                st.showSolution = true;
+              }
+            }
+          });
+          renderWork();
+        }
+      } catch (err) {
+        console.warn("No se pudo cargar progreso previo:", err);
+      }
+    }
+
+    // Restaurar progreso previo al inicializar
+    restoreSavedProgress();
+
     function startActivity() {
       showScreen("workScreen");
       renderWork();
@@ -757,16 +798,6 @@
       renderWork();
     }
 
-    async function getAuthSessionToken() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        return session ? session.access_token : null;
-      } catch (err) {
-        console.warn("Could not retrieve auth session token:", err);
-        return null;
-      }
-    }
-
     async function handleCheck() {
       if (_submitting) return;
 
@@ -826,53 +857,30 @@
       renderExercisePanel(exVisual);
 
       try {
-        const token = await getAuthSessionToken();
-        if (!token) {
-          _submitting = false;
-          _pendingSubmission = null;
-          st.feedbackText = "⚠️ Sesión expirada. Por favor regresa al Campus Virtual para autenticarte.";
-          st.feedbackType = "bad";
-          renderExercisePanel(exVisual);
-          return;
-        }
-
-        const response = await fetch("https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/check-activity-answer", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            activity_key: ACTIVITY_KEY,
-            run_id: currentRunId,
-            phase: activePhase,
-            question_id: exVisual.exerciseKey,
-            question_submission_id: submissionIdToSend,
-            user_answer: userPayload
-          })
+        const res = await checkExercise({
+          activityKey: ACTIVITY_KEY,
+          exerciseKey: exVisual.exerciseKey,
+          answer: userPayload,
+          checkId: submissionIdToSend,
+          runId: currentRunId,
+          phase: activePhase
         });
 
-        if (!response.ok) {
-          _submitting = false;
-          st.feedbackText = "⚠️ No se pudo confirmar la respuesta con el servidor. Pulsa Comprobar para reintentar.";
-          st.feedbackType = "bad";
-          renderWork();
-          return;
-        }
-
-        const res = await response.json();
-        _pendingSubmission = null;
         _submitting = false;
 
         if (!res || !res.success) {
-          st.feedbackText = res?.error || "Error al verificar la respuesta.";
+          // Mantener _pendingSubmission para reintento idempotente
+          st.feedbackText = res?.error || "⚠️ Error de conexión con el servidor. Pulsa Comprobar para reintentar.";
           st.feedbackType = "bad";
           renderWork();
           return;
         }
 
-        st.attemptCount = res.attempt_number || (st.attemptCount + 1);
-        st.score = res.question_score;
+        // Éxito: limpiar comprobación pendiente
+        _pendingSubmission = null;
+
+        st.attemptCount = res.attempt_count || res.attempt_number || (st.attemptCount + 1);
+        st.score = res.question_score ?? res.score;
         st.locked = Boolean(res.locked);
         if (res.solution_html) {
           st.solution = res.solution_html;

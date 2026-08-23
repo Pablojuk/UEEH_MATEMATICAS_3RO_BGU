@@ -486,6 +486,7 @@
     <script type="module">
         import { supabase } from '../../core/supabase-client.js';
         import { submitActivityResult } from '../../core/activity-service.js';
+        import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js';
 
         // ========================================================
         // 1. CONFIGURACIÓN Y CONSTANTES (UEEH)
@@ -679,6 +680,33 @@
                 }
             }
         }
+
+        async function restoreSavedProgress() {
+            try {
+                const progressList = await getExerciseProgress(ACTIVITY_KEY);
+                if (Array.isArray(progressList) && progressList.length > 0) {
+                    progressList.forEach(p => {
+                        const state = challengeState[p.exercise_key];
+                        if (state) {
+                            state.attemptCount = p.attempt_count || 0;
+                            state.status = p.status || "pending";
+                            state.score = p.exercise_score;
+                            state.locked = Boolean(p.locked);
+                            if (p.answer_data && p.answer_data.value !== undefined) {
+                                state.answerIndex = Number(p.answer_data.value);
+                            }
+                        }
+                    });
+                    updateHUD();
+                    checkGameCompletion();
+                }
+            } catch (err) {
+                console.warn("No se pudo cargar progreso previo:", err);
+            }
+        }
+
+        // Cargar progreso previo al iniciar el script
+        restoreSavedProgress();
 
         function startGame() {
             document.getElementById('start-screen').classList.remove('active');
@@ -970,43 +998,7 @@
             checkGameCompletion();
         }
 
-        async function getAuthSessionToken() {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                return session ? session.access_token : null;
-            } catch (err) {
-                console.warn("Error obteniendo token de sesión:", err);
-                return null;
-            }
-        }
-
-        async function checkChallengeAdapter({ exerciseKey, answer, checkId }) {
-            const token = await getAuthSessionToken();
-            if (!token) {
-                return { success: false, error: "Sesión no disponible o expirada. Autentícate en el Campus." };
-            }
-
-            const response = await fetch("https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/check-activity-answer", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    activity_key: ACTIVITY_KEY,
-                    run_id: currentGameRunId,
-                    phase: "gamification",
-                    question_id: exerciseKey,
-                    question_submission_id: checkId,
-                    user_answer: answer
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error("HTTP " + response.status);
-            }
-            return await response.json();
-        }
+        const _pendingGamCheckIds = {};
 
         async function handleCheckClick() {
             if (checkInFlight) return;
@@ -1019,7 +1011,10 @@
                 return;
             }
 
-            const checkId = crypto.randomUUID();
+            if (!_pendingGamCheckIds[activeExerciseKey]) {
+                _pendingGamCheckIds[activeExerciseKey] = crypto.randomUUID();
+            }
+            const checkId = _pendingGamCheckIds[activeExerciseKey];
             const btn = document.getElementById('btn-check');
             
             checkInFlight = true;
@@ -1027,25 +1022,31 @@
             btn.innerText = "COMPROBANDO...";
 
             try {
-                const result = await checkChallengeAdapter({
+                const result = await checkExercise({
+                    activityKey: ACTIVITY_KEY,
                     exerciseKey: activeExerciseKey,
                     answer: selectedOptionIndex,
-                    checkId: checkId
+                    checkId: checkId,
+                    runId: currentGameRunId,
+                    phase: "gamification"
                 });
 
                 if (!result || !result.success) {
                     const fb = document.getElementById('modal-feedback');
                     fb.className = 'feedback-box incorrect';
-                    fb.innerHTML = result?.error || "Error al verificar con el servidor.";
+                    fb.innerHTML = result?.error || "⚠️ No se pudo confirmar tu respuesta con el servidor. Tu progreso está a salvo. Pulsa Comprobar para reintentar.";
                     return;
                 }
+
+                // Éxito: limpiar check_id pendiente
+                delete _pendingGamCheckIds[activeExerciseKey];
 
                 applyCheckResult(result, selectedOptionIndex);
             } catch (error) {
                 console.warn("Error en comprobación:", error);
                 const fb = document.getElementById('modal-feedback');
                 fb.className = 'feedback-box incorrect';
-                fb.innerHTML = "⚠️ Error de conexión con el servidor. Reintenta.";
+                fb.innerHTML = "⚠️ No se pudo confirmar tu respuesta con el servidor. Tu progreso está a salvo. Pulsa Comprobar para reintentar.";
             } finally {
                 checkInFlight = false;
                 btn.innerText = "COMPROBAR";
