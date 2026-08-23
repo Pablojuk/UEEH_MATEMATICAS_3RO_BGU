@@ -1,9 +1,11 @@
 ---
 name: UEEH
-description: Integra una nueva unidad de Matemáticas de Tercero de BGU en la plataforma UEEH a partir de tres archivos fuente ya terminados: presentation.html, gamificacion.html y deber.html. Conserva intactos los originales, crea la nueva unidad siguiendo la arquitectura validada de Unidad 5+ con persistencia por ejercicio, activity_runs, políticas diferenciadas classwork/gamification, grading server-side, Supabase, pruebas, mobile y GitHub Pages sin modificar innecesariamente la infraestructura.
+description: Integra una nueva unidad de Matemáticas de Tercero de BGU en la plataforma UEEH a partir de tres archivos fuente ya terminados: presentation.html, gamificacion.html y deber.html. Conserva intactos los originales, crea la nueva unidad siguiendo la arquitectura validada de Unidad 5+ con persistencia por ejercicio, activity_runs, políticas diferenciadas classwork/gamification, grading server-side, aislamiento de resultados por unidad, cache-busting global de assets, validación de arranque de Edge Functions, Supabase, pruebas, mobile y GitHub Pages sin modificar innecesariamente la infraestructura.
 ---
 
 # UEEH
+
+> Revisión v4: incorpora salvaguardas aprendidas de incidencias reales de producción: servicio compartido obligatorio para COMPROBAR, retry idempotente, validación de BOOT_ERROR/OPTIONS en Edge Functions, resultados aislados por unidad y cache-busting global de módulos compartidos.
 
 ## PROPÓSITO
 
@@ -1073,6 +1075,83 @@ NO usar `localStorage` o `sessionStorage` como fuente oficial.
 
 ---
 
+# INTEGRACIÓN OBLIGATORIA DEL SERVICIO DE PROGRESO
+
+Para TODA actividad evaluable nueva, `gamificacion.html` y `deber.html` de producción DEBEN reutilizar explícitamente el servicio central vigente:
+
+`core/exercise-progress-service.js`
+
+La integración debe comprobar en el código desplegado que se importan y utilizan las funciones vigentes equivalentes a:
+
+`checkExercise(...)`
+
+`getExerciseProgress(...)`
+
+PROHIBIDO implementar en una nueva unidad llamadas `fetch(...)` inline o ad-hoc directamente desde el HTML hacia `check-activity-answer`, aunque el endpoint sea correcto.
+
+PROHIBIDO duplicar dentro de cada HTML la lógica de:
+
+- obtención de sesión/JWT;
+- construcción del request académico;
+- idempotencia de `check_id`;
+- clasificación de errores técnicos;
+- restauración de progreso;
+- retries de comprobación.
+
+La única excepción sería que el repositorio actual haya reemplazado formalmente `exercise-progress-service.js` por otro servicio global equivalente. En ese caso, inspeccionar el código vigente y reutilizar ESE servicio común.
+
+Antes de considerar integrada una actividad evaluable, verificar explícitamente:
+
+1. `gamificacion.html` importa/reutiliza el servicio central = SÍ;
+2. `deber.html` importa/reutiliza el servicio central = SÍ;
+3. `fetch` académico inline hacia `check-activity-answer` = 0;
+4. restauración mediante `getExerciseProgress` o equivalente = SÍ;
+5. autenticación proviene de la sesión Supabase vigente = SÍ.
+
+Si cualquiera falla, la unidad NO está lista para publicación.
+
+---
+
+# RETRY TÉCNICO E IDEMPOTENCIA DE CHECK_ID
+
+Una acción lógica de COMPROBAR genera un único `check_id`.
+
+Si ocurre un error cuyo resultado académico es desconocido, por ejemplo:
+
+- pérdida de red;
+- timeout;
+- `fetch` interrumpido;
+- respuesta del servidor perdida;
+- error técnico antes de recibir confirmación definitiva;
+
+el siguiente reintento del MISMO envío debe reutilizar exactamente el mismo `check_id`.
+
+NO generar un UUID nuevo únicamente porque el usuario volvió a pulsar COMPROBAR después de un error técnico.
+
+Generar un nuevo `check_id` solo cuando existe confirmación definitiva de que la comprobación anterior terminó y el estudiante realiza una NUEVA comprobación académica.
+
+La UI debe conservar durante un error técnico:
+
+- ejercicio actual;
+- respuesta seleccionada/escrita;
+- estado previo confirmado;
+- `check_id` pendiente;
+- botón reactivable para retry.
+
+Un error técnico NO debe:
+
+- marcar `incorrect`;
+- marcar `failed`;
+- asignar 1/10;
+- avanzar de reto;
+- borrar la selección;
+- bloquear el ejercicio;
+- consumir visualmente otro intento sin confirmación server-side.
+
+Gamificación y classwork deben mostrar feedback técnico visible y no destructivo.
+
+---
+
 # GAMIFICACIÓN — INTENTOS
 
 La actividad de tipo:
@@ -1457,6 +1536,77 @@ etc.
 
 El resumen debe continuar siendo genérico.
 
+## AISLAMIENTO OBLIGATORIO DE RESULTADOS POR UNIDAD
+
+La pantalla de resultados de una unidad debe mostrar EXCLUSIVAMENTE las actividades de esa unidad.
+
+Ejemplos:
+
+Resultados Unidad 5
+→ solo `activities.unit_number = 5`
+
+Resultados Unidad 6
+→ solo `activities.unit_number = 6`
+
+Resultados Unidad N
+→ solo `activities.unit_number = N`
+
+La fuente de verdad para este aislamiento debe ser:
+
+`public.activities.unit_number`
+
+NO inferir la unidad únicamente desde `activity_key`, títulos, rutas o texto visible.
+
+El contexto de unidad debe provenir del objeto canónico/data-driven usado por navegación, por ejemplo:
+
+`unit.unitNumber`
+
+`unit.title`
+
+o su equivalente vigente.
+
+El flujo esperado es conceptualmente:
+
+unidad actual
+↓
+`renderStudentActivitySummary(..., { unitNumber, unitTitle })`
+↓
+`fetchStudentActivitySummary(unitNumber)`
+↓
+consulta filtrada por `activities.unit_number`
+↓
+filtro defensivo en componente
+↓
+render de SOLO esa unidad
+
+Preferir que la consulta al backend/Supabase ya incluya el filtro de unidad.
+
+Si el servicio devuelve más registros por compatibilidad, el componente debe aplicar además un filtro defensivo por `activity.unit_number`.
+
+PROHIBIDO:
+
+- mostrar resultados de otra unidad como relleno;
+- usar un encabezado estático como “Unidad 5+” en una pantalla de Unidad 6;
+- hardcodear etiquetas `U5`, `U6`, etc.;
+- crear componentes summary separados por unidad.
+
+El encabezado y las etiquetas de tarjetas deben derivarse dinámicamente de la unidad real.
+
+Si la unidad actual no tiene resultados:
+
+mostrar un estado vacío equivalente a:
+
+“Aún no tienes actividades calificadas en esta unidad.”
+
+NO mostrar resultados de otra unidad.
+
+Antes de considerar lista una nueva unidad, probar al menos:
+
+- abrir resultados de la unidad anterior;
+- abrir resultados de la nueva unidad;
+- volver entre ambas;
+- comprobar que no se conservan tarjetas de la unidad previa en memoria/DOM.
+
 ---
 
 # CURRICULUM CONFIG
@@ -1520,7 +1670,7 @@ Detenerse y analizar antes de introducir hardcoding.
 
 ---
 
-# ANTI-CACHÉ SELECTIVO
+# ANTI-CACHÉ SELECTIVO Y ACTUALIZACIÓN DE ASSETS
 
 La plataforma tiene anti-caché selectivo para actividades evaluables.
 
@@ -1530,31 +1680,84 @@ Esperado:
 
 presentation → caché normal
 
-gamification → URL fresca
+gamification → URL fresca según mecanismo global vigente
 
-classwork/deber → URL fresca
+classwork/deber → URL fresca según mecanismo global vigente
 
 NO agregar lógica:
 
 if unit === 6
 
-NO agregar manualmente:
+NO agregar manualmente dentro de cada HTML:
 
-?v=Date.now()
+`?v=Date.now()`
 
-dentro de gamificacion.html o deber.html.
+NO crear Service Worker nuevo únicamente para resolver caché.
 
-NO versionar:
+NO borrar:
 
-activity-service.js
+`localStorage`
 
-supabase-client.js
+`sessionStorage`
 
-por cada apertura.
+cookies
 
-NO crear múltiples clientes Supabase.
+sesión Supabase
 
-Usar el mecanismo global existente.
+como estrategia de actualización.
+
+## REGLA CRÍTICA PARA MÓDULOS COMPARTIDOS
+
+Los usuarios NO deben necesitar borrar manualmente el caché después de una publicación.
+
+Cuando cambien módulos compartidos como:
+
+- `core/app.js`;
+- `core/activity-service.js`;
+- `core/exercise-progress-service.js`;
+- `components/activity-summary.js`;
+- cliente Supabase/configuración pública equivalente;
+
+el mecanismo GLOBAL de build/deploy debe permitir que una recarga normal obtenga la versión nueva.
+
+No usar un timestamp aleatorio distinto en cada apertura.
+
+Preferir el mecanismo vigente del proyecto basado en:
+
+- versión de aplicación;
+- build id;
+- commit/version estable de despliegue;
+- content hash;
+- o equivalente global ya validado.
+
+El objetivo es:
+
+DEPLOY NUEVO
+↓
+URL/asset versionado cambia de forma estable
+↓
+navegador solicita módulo nuevo
+↓
+no hace falta Ctrl+F5 ni borrar caché
+
+Si el proyecto todavía no cubre módulos compartidos con su cache-busting global:
+
+reportarlo como defecto de infraestructura antes de publicar nuevas unidades.
+
+No crear múltiples clientes Supabase.
+
+## PRUEBA OBLIGATORIA DE CACHÉ DE DEPLOY
+
+Cuando se modifique un módulo compartido:
+
+1. confirmar qué versión/asset se sirve desde GitHub Pages;
+2. comparar con el archivo de `origin/main`;
+3. abrir con navegador que tenga una versión previa almacenada;
+4. realizar recarga normal, NO hard reload;
+5. comprobar que carga la versión nueva;
+6. probar además ventana privada/incógnito como control diagnóstico.
+
+`Ctrl+F5` puede utilizarse para diagnosticar, pero NO puede ser requisito operativo para estudiantes.
 
 ---
 
@@ -1850,7 +2053,7 @@ debe ejecutarse únicamente server-side mediante la infraestructura existente.
 
 NO usar:
 
---no-verify-jwt
+`--no-verify-jwt`
 
 para desplegar funciones que requieren autenticación.
 
@@ -1861,6 +2064,77 @@ Si se modifica una Edge Function:
 ejecutar tests correspondientes antes de deploy.
 
 Solo desplegarla si realmente fue modificada y es necesaria para la nueva unidad.
+
+## VALIDACIÓN DE ARRANQUE OBLIGATORIA
+
+Una Edge Function marcada como `ACTIVE` NO demuestra por sí sola que pueda arrancar correctamente.
+
+Antes de desplegar una función modificada ejecutar, como mínimo:
+
+`deno check supabase/functions/<funcion>/index.ts`
+
+y cualquier chequeo/compilación adicional vigente del proyecto.
+
+Esto debe detectar errores de arranque como:
+
+- identificadores léxicos declarados dos veces;
+- imports inválidos;
+- errores TypeScript/Deno;
+- sintaxis inválida;
+- dependencias que no cargan;
+- código que impide alcanzar `Deno.serve` / `serve`.
+
+NO desplegar una Edge Function si `deno check` falla.
+
+## PREFLIGHT CORS OBLIGATORIO DESPUÉS DE DEPLOY
+
+Después de desplegar una función usada desde navegador, probar remotamente un preflight `OPTIONS` real desde el origen de producción.
+
+Para `check-activity-answer` o equivalente, esperar conceptualmente:
+
+`OPTIONS → 200`
+
+con encabezados CORS correctos.
+
+Un resultado:
+
+`OPTIONS → 503`
+
+`BOOT_ERROR`
+
+o “Function failed to start”
+
+es un BLOQUEANTE de publicación.
+
+No atribuir un `OPTIONS 503` a caché del navegador.
+
+Investigar primero logs de Edge Function y errores de arranque.
+
+## SMOKE POST AUTENTICADO
+
+Después del preflight:
+
+- un POST sin credenciales puede responder 401 y eso es correcto;
+- un POST autenticado de una cuenta test válida debe alcanzar la lógica de la función y devolver la respuesta esperada.
+
+No considerar sana una función únicamente porque:
+
+- figura `ACTIVE`;
+- el deploy terminó sin error;
+- los tests locales pasaron.
+
+Debe existir una verificación remota mínima.
+
+## LOGS POST-DEPLOY
+
+Después de pruebas reales revisar logs remotos.
+
+Esperado:
+
+- sin nuevos `BOOT_ERROR`;
+- sin ráfagas de `OPTIONS 503`;
+- errores 401 únicamente cuando correspondan a pruebas sin sesión/expirada;
+- POST autenticado exitoso cuando la actividad y sesión son válidas.
 
 ---
 
@@ -2104,6 +2378,135 @@ una sola entrega académica y un solo `activity_attempt`.
 
 ---
 
+# TEST OBLIGATORIO DE SERVICIO COMPARTIDO
+
+Para cada nueva unidad evaluable, agregar o reutilizar una prueba data-driven que confirme:
+
+- `gamificacion.html` utiliza `exercise-progress-service.js` o equivalente global vigente;
+- `deber.html` utiliza `exercise-progress-service.js` o equivalente global vigente;
+- no existe `fetch` académico inline directo a `check-activity-answer`;
+- se utiliza la restauración global `getExerciseProgress(...)` o equivalente;
+- errores técnicos preservan la respuesta visible;
+- retry técnico conserva el mismo `check_id`;
+- F5 recupera progreso confirmado desde Supabase.
+
+Esta prueba es obligatoria porque una actividad puede pasar pruebas matemáticas/visuales y aun fallar en producción si omite el servicio central de autenticación y persistencia.
+
+---
+
+# TEST DE AISLAMIENTO DE RESULTADOS POR UNIDAD
+
+Agregar o reutilizar una prueba data-driven que use un dataset con actividades de múltiples unidades.
+
+Caso mínimo:
+
+- U5 gamification;
+- U5 classwork;
+- U6 gamification;
+- U6 classwork.
+
+Cuando `currentUnit = 5`:
+
+esperado → solo 2 tarjetas U5.
+
+Cuando `currentUnit = 6`:
+
+esperado → solo 2 tarjetas U6.
+
+Cuando `currentUnit = 7` y no existen resultados:
+
+esperado → 0 tarjetas de otras unidades y estado vacío específico.
+
+Verificar también:
+
+- encabezado dinámico de unidad;
+- etiqueta de cada tarjeta derivada de `activity.unit_number`;
+- ausencia de hardcoding `U5`/`U6`;
+- volver U5 → U6 → U5 no conserva DOM/resultados de la unidad anterior.
+
+---
+
+# TEST DE CACHE-BUSTING DE MÓDULOS COMPARTIDOS
+
+Si durante la integración se modifica cualquiera de:
+
+`core/app.js`
+
+`core/activity-service.js`
+
+`core/exercise-progress-service.js`
+
+`components/activity-summary.js`
+
+o equivalente compartido:
+
+verificar que el mecanismo de deploy invalide la versión anterior de forma estable.
+
+Esperado:
+
+- recarga normal obtiene versión nueva;
+- no requiere borrar caché;
+- no requiere borrar cookies;
+- no rompe sesión Supabase;
+- no usa `Date.now()` por apertura;
+- incógnito y navegador normal convergen a la misma versión publicada.
+
+---
+
+# TEST DE SALUD REMOTA DE EDGE FUNCTIONS
+
+Si se modifica `check-activity-answer`, `submit-activity-result` u otra Edge Function usada por la unidad:
+
+antes del deploy:
+- `deno check` = PASS.
+
+después del deploy:
+- status remoto = `ACTIVE`;
+- `verify_jwt = true` cuando corresponda;
+- `OPTIONS` remoto = 200;
+- sin `BOOT_ERROR`;
+- POST autenticado con cuenta test = respuesta esperada;
+- logs sin nuevos `OPTIONS 503`.
+
+Un `ACTIVE` con `OPTIONS 503` debe considerarse FAIL.
+
+---
+
+# DIAGNÓSTICO DE ERRORES TÉCNICOS EN COMPROBAR
+
+Si el frontend muestra:
+
+“Error de conexión”
+
+“no se pudo confirmar”
+
+pantalla en blanco
+
+o equivalente:
+
+NO asumir automáticamente que es caché o red.
+
+Seguir este orden:
+
+1. DevTools/Network → HTTP real;
+2. logs de `check-activity-answer`;
+3. preflight `OPTIONS`;
+4. autenticación/JWT;
+5. contrato `activity_key`, `exercise_key`, `check_id`, `answer`;
+6. RPC/SQL;
+7. recién después revisar caché/assets.
+
+Un error técnico NO puede convertirse en:
+
+- respuesta incorrecta;
+- `failed`;
+- nota 1;
+- consumo duplicado de intento.
+
+La UI debe conservar la respuesta y el `check_id` pendiente cuando el resultado académico sea desconocido.
+
+---
+
 # TEST DE INTENTOS
 
 Gamificación (`gamification_unlimited`):
@@ -2316,11 +2719,19 @@ Esperado:
 
 Ejecutar:
 
-node --check
+`node --check`
 
 sobre módulos JavaScript modificados cuando corresponda.
 
+Para TODA Edge Function modificada ejecutar además:
+
+`deno check`
+
+sobre su entrypoint real antes del deploy.
+
 Validar errores HTML/JS razonables en los tres archivos.
+
+No aceptar como sustituto de estos chequeos que una función remota figure simplemente como `ACTIVE`.
 
 ---
 
@@ -2442,7 +2853,7 @@ FASE 11
 CONFIGURAR GRADING PRIVADO + `exercise_key`
 
 FASE 12
-CONECTAR COMPROBAR CON `exercise-progress-service` / `check-activity-answer`
+CONECTAR COMPROBAR OBLIGATORIAMENTE CON `exercise-progress-service` / `check-activity-answer` Y ELIMINAR FETCH ACADÉMICO INLINE
 
 FASE 13
 CONECTAR RESTAURACIÓN DE PROGRESO Y RESULTADO OFICIAL
@@ -2673,6 +3084,11 @@ check-activity-answer modificado = SÍ/NO
 check-activity-answer verify_jwt = true/false
 
 exercise-progress-service reutilizado = SÍ/NO
+fetch académico inline en gamification = 0/OTRO
+fetch académico inline en classwork = 0/OTRO
+getExerciseProgress gamification = SÍ/NO
+getExerciseProgress classwork = SÍ/NO
+retry conserva mismo check_id = SÍ/NO
 activity_runs utilizado = SÍ/NO
 activity_exercise_progress utilizado = SÍ/NO
 activity_exercise_checks utilizado = SÍ/NO
@@ -2718,12 +3134,25 @@ RLS debilitado = NO/OTRO
 migraciones innecesarias = NO/OTRO
 
 ========================================
+RESULTADOS POR UNIDAD
+========================================
+
+unitNumber recibido por summary =
+filtro por activities.unit_number = SÍ/NO
+resultados otra unidad visibles = 0/OTRO
+encabezado dinámico de unidad = SÍ/NO
+estado vacío por unidad = PASS/FAIL
+
+========================================
 ANTI-CACHÉ
 ========================================
 
 presentation caché normal = SÍ/NO
 gamification anti-caché global heredado = SÍ/NO
 classwork anti-caché global heredado = SÍ/NO
+módulos compartidos versionados por deploy = SÍ/NO
+recarga normal obtiene última versión = PASS/FAIL
+requiere borrar caché manualmente = NO/OTRO
 
 lógica unit-specific agregada = NO/OTRO
 
@@ -2742,6 +3171,16 @@ idempotencia submission_id = PASS/FAIL
 restauración de progreso = PASS/FAIL
 F5 conserva intentos = PASS/FAIL
 smoke con ZZ_TEST_VISUAL_U5 = PASS/FAIL/NO EJECUTADO
+COMPROBAR gamification producción = PASS/FAIL
+COMPROBAR classwork producción = PASS/FAIL
+Edge deno check = PASS/FAIL/NO MODIFICADA
+Edge OPTIONS remoto = 200/OTRO/NO MODIFICADA
+Edge BOOT_ERROR = 0/OTRO/NO MODIFICADA
+POST autenticado smoke = PASS/FAIL/NO MODIFICADA
+resultados aislados por unidad = PASS/FAIL
+cache-busting módulos compartidos = PASS/FAIL/NO APLICA
+F5 restore producción = PASS/FAIL
+feedback error técnico no destructivo = PASS/FAIL
 comprobar guarda automáticamente = PASS/FAIL
 botón Guardar agregado = NO/OTRO
 botón Sincronizar agregado = NO/OTRO
