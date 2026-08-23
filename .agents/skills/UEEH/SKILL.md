@@ -1,6 +1,6 @@
 ---
 name: UEEH
-description: Integra una nueva unidad de Matemáticas de Tercero de BGU en la plataforma UEEH a partir de tres archivos fuente ya terminados: presentation.html, gamificacion.html y deber.html. Conserva intactos los originales, crea la nueva unidad siguiendo la arquitectura validada de la Unidad 5, integra currículo, actividades, grading seguro, Supabase, pruebas, mobile y GitHub Pages sin modificar innecesariamente la infraestructura.
+description: Integra una nueva unidad de Matemáticas de Tercero de BGU en la plataforma UEEH a partir de tres archivos fuente ya terminados: presentation.html, gamificacion.html y deber.html. Conserva intactos los originales, crea la nueva unidad siguiendo la arquitectura validada de Unidad 5+ con persistencia por ejercicio, activity_runs, políticas diferenciadas classwork/gamification, grading server-side, Supabase, pruebas, mobile y GitHub Pages sin modificar innecesariamente la infraestructura.
 ---
 
 # UEEH
@@ -125,7 +125,7 @@ NO copiar ciegamente valores específicos de Unidad 5.
 NO copiar:
 
 - activity_key;
-- question_id;
+- exercise_key;
 - tema;
 - título;
 - contenido;
@@ -135,6 +135,104 @@ NO copiar:
 - unit_number.
 
 La Unidad 5 es PATRÓN, no contenido para duplicar.
+
+---
+
+# ESTADO ARQUITECTÓNICO VALIDADO ACTUAL
+
+Esta Skill fue actualizada para la infraestructura vigente de Unidad 5+.
+
+Antes de integrar una nueva unidad, verificar que el repositorio actual conserve o haya evolucionado de forma compatible con estos componentes:
+
+- `public.activities`;
+- `public.activity_runs`;
+- `public.activity_exercise_progress`;
+- `public.activity_exercise_checks`;
+- `public.activity_attempts`;
+- `public.activity_results`;
+- `private.activity_grading_configs`;
+- `core/exercise-progress-service.js`;
+- `core/activity-service.js`;
+- `components/activity-summary.js`;
+- `check-activity-answer`;
+- `submit-activity-result`.
+
+La infraestructura validada actualmente utiliza:
+
+`activities.attempt_policy`
+
+con dos políticas:
+
+`classwork_limited`
+
+para Trabajo en clase / Deber, y:
+
+`gamification_unlimited`
+
+para Gamificación.
+
+Regla `classwork_limited`:
+
+1 correcto → 10
+2 correcto → 9
+3 correcto → 8
+4 correcto → 7
+4 respuestas incorrectas → 1, `status = failed`, `locked = true`
+quinto intento → rechazado
+
+Regla `gamification_unlimited`:
+
+1 correcto → 10
+2 correcto → 9
+3 correcto → 8
+4 o cualquier intento posterior correcto → 7
+respuesta incorrecta → `score = null`, `status = incorrect`, `locked = false`
+intentos → ilimitados
+el reto se bloquea únicamente al acertar
+
+La persistencia académica por ejercicio se basa en:
+
+`activity_runs`
+
+para identificar la ejecución completa de una actividad;
+
+`activity_exercise_checks`
+
+para conservar historial inmutable e idempotente de cada comprobación;
+
+`activity_exercise_progress`
+
+para conservar el estado consolidado actual de cada ejercicio.
+
+Principio UX obligatorio:
+
+COMPROBAR
+=
+VALIDAR
++
+CONSUMIR INTENTO
++
+GUARDAR AUTOMÁTICAMENTE EN SUPABASE
+
+NO agregar botones:
+
+Guardar
+
+Guardar progreso
+
+Sincronizar
+
+El estudiante no debe preocuparse por guardar manualmente.
+
+Cada comprobación utiliza un `check_id` idempotente.
+
+La entrega final utiliza `submission_id` idempotente.
+
+F5, cierre del navegador o cambio de dispositivo NO deben reiniciar intentos ni progreso oficial.
+
+Al abrir una actividad evaluable, la UI debe restaurar automáticamente el progreso desde Supabase.
+
+Al momento de esta actualización, `check-activity-answer` se encontraba desplegada con JWT verificado y soporte para las dos políticas. Sin embargo, la regla de fuente de verdad de esta Skill sigue siendo inspeccionar la versión ACTUAL antes de integrar.
 
 ---
 
@@ -560,17 +658,22 @@ Si alguno contiene una pauta evaluativa accesible al estudiante:
 
 trasladarla al backend privado.
 
-No eliminar:
+No eliminar el VALOR PEDAGÓGICO de:
 
 pistas pedagógicas
 
-ni:
+ni de:
 
-soluciones paso a paso
+soluciones paso a paso.
 
-si son parte del aprendizaje.
+Sin embargo, en las copias desplegadas evaluables NO mantener una solución completa accesible en JavaScript/HTML si eso permite descubrir la respuesta antes de tiempo.
 
-Pero las soluciones deben aparecer únicamente en los momentos pedagógicamente permitidos.
+Las soluciones sensibles deben trasladarse al grader/backend privado o a una respuesta server-side segura y solo mostrarse en el momento pedagógicamente permitido:
+
+- después de `correct`;
+- o, para `classwork_limited`, después de `failed`.
+
+En `gamification_unlimited`, una respuesta incorrecta nunca debe liberar la solución completa.
 
 ---
 
@@ -612,7 +715,7 @@ student_id
 
 score
 
-question_score
+exercise_score
 
 attempt_number
 
@@ -654,27 +757,90 @@ Antes de modificar la integración:
 
 INSPECCIONAR la versión ACTUAL de:
 
-supabase/functions/check-activity-answer/
-
-y el patrón utilizado por Unidad 5.
+`supabase/functions/check-activity-answer/`
 
 No inventar un contrato distinto si ya existe uno funcionando.
 
-Mantener:
+El contrato canónico de Unidad 5+ debe basarse conceptualmente en:
+
+`activity_key`
+
+`exercise_key`
+
+`answer`
+
+`check_id`
+
+El frontend NO debe enviar como autoridad:
+
+`student_id`
+
+`score`
+
+`correct`
+
+`attempt_number`
+
+`remaining_attempts`
+
+`locked`
+
+`best_score`
+
+La Edge Function debe mantener:
 
 - autenticación JWT;
+- resolución del estudiante desde `auth.uid()`;
 - validación de estudiante activo;
 - matrícula activa;
 - sección;
 - actividad;
-- apertura;
-- fecha límite;
-- run_id;
-- phase;
-- question_id;
-- question_submission_id;
-- control de intentos;
-- respuesta server-side.
+- `opens_at`;
+- `due_at`;
+- resolución/validación del `activity_run` oficial;
+- validación de `exercise_key` contra grading privado;
+- calificación server-side;
+- `check_id` idempotente;
+- política de intentos obtenida desde la actividad;
+- escritura server-side del historial y progreso.
+
+Si el cliente proporciona `run_id`, nunca confiar en él para crear o reiniciar una ejecución. El backend debe validar o resolver el run oficial del estudiante.
+
+Compatibilidad antigua como:
+
+`question_id`
+
+`question_submission_id`
+
+`phase`
+
+solo debe conservarse si el código ACTUAL realmente la necesita. No crear aliases innecesarios para unidades nuevas.
+
+Para `gamification_unlimited`:
+
+`remaining_attempts = null`
+
+mientras el reto siga abierto.
+
+Para `classwork_limited`:
+
+`remaining_attempts` debe reflejar 3, 2, 1 o 0 según corresponda.
+
+La solución completa o respuesta pedagógica sensible NO debe devolverse mientras el ejercicio permanezca:
+
+`pending`
+
+o:
+
+`incorrect`.
+
+Puede devolverse únicamente cuando el estado terminal permitido sea alcanzado:
+
+`correct`
+
+o, para `classwork_limited`:
+
+`failed`.
 
 Si el nuevo tipo matemático necesita lógica adicional de grading:
 
@@ -683,6 +849,14 @@ EXTENDER únicamente el grader necesario.
 NO reescribir toda la función.
 
 NO debilitar las validaciones existentes.
+
+Si se modifica la Edge Function:
+
+- ejecutar `deno check`;
+- ejecutar tests;
+- desplegar solo si es necesario;
+- mantener `verify_jwt = true`;
+- nunca usar `--no-verify-jwt` para esta función.
 
 ---
 
@@ -734,39 +908,76 @@ agregar tests.
 
 ---
 
-# QUESTION IDs
+# EXERCISE KEYS
 
-Conservar los IDs estables definidos en los HTML fuente.
+Conservar los IDs estables definidos en los HTML fuente, pero mapearlos al concepto vigente:
+
+`exercise_key`.
+
+Preferir que los HTML fuente nuevos ya utilicen una propiedad explícita:
+
+`exerciseKey`.
+
+Ejemplos:
+
+`level01-q01`
+
+`initial-q01`
 
 No convertirlos a IDs aleatorios.
 
-Los question_id deben coincidir entre:
+No usar el texto del ejercicio como identificador.
+
+Los `exercise_key` deben coincidir entre:
 
 frontend
 
-grading config
+grading config privado
 
-attempts
+`activity_exercise_checks`
+
+`activity_exercise_progress`
 
 backend.
 
+Si una fuente antigua utiliza `q1`, `q2`, `g1`, etc. y esos IDs son estables, pueden conservarse y mapearse sin necesidad de renombrar todo el diseño.
+
 ---
 
-# QUESTION SUBMISSION ID
+# CHECK ID
 
-Seguir el patrón actual de Unidad 5.
+La idempotencia vigente por comprobación utiliza:
 
-Cada comprobación debe utilizar el identificador idempotente requerido por el backend.
+`check_id`.
+
+Cada acción lógica de COMPROBAR debe generar un identificador UUID estable para ese request lógico.
+
+Si la red falla después de que el servidor procesó la respuesta:
+
+el retry debe reutilizar el MISMO `check_id`.
+
+Nunca generar un `check_id` nuevo para un retry técnico del mismo clic.
+
+La infraestructura debe soportar idempotencia histórica:
+
+Check A → intento 1
+
+Check B → intento 2
+
+retry tardío Check A
+
+Resultado esperado:
+
+`attempt_count` continúa en 2.
 
 No permitir que:
 
-doble click
+- doble click;
+- doble tap;
+- Enter repetido;
+- retry de red;
 
-doble tap
-
-Enter repetido
-
-produzcan múltiples intentos involuntarios.
+produzcan intentos académicos adicionales.
 
 ---
 
@@ -792,7 +1003,85 @@ Utilizar try/finally cuando corresponda.
 
 ---
 
+# PERSISTENCIA AUTOMÁTICA POR EJERCICIO
+
+REUTILIZAR la infraestructura global vigente.
+
+NO crear tablas ni servicios por unidad.
+
+Componentes esperados:
+
+`public.activity_runs`
+
+`public.activity_exercise_progress`
+
+`public.activity_exercise_checks`
+
+`core/exercise-progress-service.js`
+
+La función pedagógica del botón debe ser:
+
+COMPROBAR
+↓
+`checkExercise(...)`
+↓
+`check-activity-answer`
+↓
+validación server-side
+↓
+registro idempotente del check
+↓
+actualización del progreso
+↓
+respuesta segura a UI
+
+El navegador NO debe escribir directamente en las tablas académicas.
+
+`activity_exercise_checks`:
+
+- historial inmutable de comprobaciones;
+- conserva `check_id`;
+- evita que retries antiguos consuman nuevos intentos.
+
+`activity_exercise_progress`:
+
+- estado consolidado del ejercicio;
+- respuesta guardada;
+- `attempt_count`;
+- `score` terminal cuando corresponda;
+- `status`;
+- `locked`.
+
+`activity_runs`:
+
+- identifica la ejecución completa;
+- evita reiniciar intentos inventando `run_id`;
+- mantiene historial entre intentos completos de la actividad.
+
+Al cargar `gamificacion.html` o `deber.html` de producción:
+
+1. autenticar mediante la plataforma existente;
+2. obtener progreso oficial;
+3. restaurar automáticamente respuestas/estados;
+4. bloquear `correct` y `failed` cuando corresponda;
+5. restaurar contador de intentos;
+6. permitir continuar exactamente donde quedó.
+
+NO exigir al estudiante pulsar un botón “Recuperar”.
+
+NO usar `localStorage` o `sessionStorage` como fuente oficial.
+
+---
+
 # GAMIFICACIÓN — INTENTOS
+
+La actividad de tipo:
+
+`gamification`
+
+debe utilizar explícitamente, cuando el esquema vigente lo permita:
+
+`attempt_policy = gamification_unlimited`.
 
 El frontend puede mostrar:
 
@@ -802,45 +1091,131 @@ Puntaje disponible
 
 pero NO debe decidir oficialmente el intento.
 
-El servidor debe mantener autoridad sobre:
+El servidor mantiene autoridad sobre `attempt_count`.
 
-attempt_number.
+Regla definitiva:
 
-Reglas esperadas:
+1 correcto → 10
 
-1 → 10
-2 → 9
-3 → 8
-4+ → 7
+2 correcto → 9
 
-Nunca confiar en un attempt_number enviado por navegador.
+3 correcto → 8
+
+4 correcto → 7
+
+5 correcto → 7
+
+6 correcto → 7
+
+n correcto → 7
+
+Los intentos son ILIMITADOS.
+
+Si la respuesta es incorrecta:
+
+`score = null`
+
+`status = incorrect`
+
+`locked = false`
+
+`remaining_attempts = null`
+
+El reto continúa abierto.
+
+NO existe:
+
+- `failed` por cantidad de intentos;
+- 1/10 por exceso de intentos;
+- quinto intento bloqueado;
+- límite máximo de comprobaciones.
+
+El reto se bloquea únicamente cuando:
+
+`status = correct`.
+
+El estudiante NO avanza mientras el estado sea `pending` o `incorrect`.
+
+La solución completa NO se muestra hasta acertar.
+
+Nunca confiar en un `attempt_count` enviado por navegador.
 
 ---
 
 # TRABAJO EN CLASE — INTENTOS
 
-El frontend puede representar visualmente:
+La actividad de tipo:
 
-1 → 10
-2 → 9
-3 → 8
-4 → 7
+`classwork`
 
-y estado no logrado:
+debe utilizar explícitamente, cuando el esquema vigente lo permita:
 
-1.
+`attempt_policy = classwork_limited`.
 
-Pero la calificación oficial debe ser server-side.
+Regla definitiva:
 
-La recuperación debe mantener separación entre:
+1 correcto → 10
 
-phase = initial
+2 correcto → 9
 
-y:
+3 correcto → 8
 
-phase = recovery
+4 correcto → 7
 
-o la convención actualmente utilizada por UEEH.
+4.º intento incorrecto → 1
+
+En el cuarto fallo:
+
+`status = failed`
+
+`score = 1`
+
+`locked = true`
+
+No existe quinto intento.
+
+Si el ejercicio queda `correct`:
+
+`locked = true`.
+
+Si está `incorrect` y todavía quedan intentos:
+
+`score = null`
+
+`locked = false`.
+
+La calificación oficial siempre es server-side.
+
+Nunca utilizar 0 como nota terminal.
+
+La UI puede mostrar los intentos restantes, pero el backend es la autoridad.
+
+---
+
+# TRABAJO EN CLASE — RECUPERACIÓN
+
+Los HTML fuente pueden contener una fase pedagógica de recuperación.
+
+NO asumir automáticamente que una recuperación condicional forma parte del MISMO conjunto obligatorio de `exercise_key` del grading oficial.
+
+Antes de integrar recuperación:
+
+1. inspeccionar cómo la Unidad 5 y el backend ACTUAL representan recuperación;
+2. comprobar si `finalize_activity_run` / grading privado soportan ejercicios condicionales;
+3. comprobar cómo se calcula el denominador oficial;
+4. comprobar que los ejercicios de recuperación no se vuelvan obligatorios para estudiantes que no la necesitan.
+
+Si el backend actual YA soporta recuperación condicional:
+
+reutilizar exactamente ese patrón.
+
+Si NO la soporta:
+
+NO inventar una extensión estructural durante una integración ordinaria.
+
+Mantener la recuperación del HTML fuente como experiencia pedagógica de preview o reportar que requiere decisión adicional, por ejemplo una actividad de recuperación separada.
+
+No modificar esquema central únicamente para acomodar una recuperación de una unidad sin aprobación explícita.
 
 ---
 
@@ -863,6 +1238,41 @@ parámetros GET
 variables manipulables.
 
 Supabase/backend es la fuente oficial.
+
+---
+
+# EXERCISE-PROGRESS-SERVICE
+
+REUTILIZAR:
+
+`core/exercise-progress-service.js`
+
+No crear:
+
+`exercise-progress-service-unit6.js`
+
+`exercise-progress-service-unit7.js`
+
+ni copias por unidad.
+
+La integración de `gamificacion.html` y `deber.html` debe adaptarse al contrato genérico vigente, conceptualmente equivalente a:
+
+`checkExercise(...)`
+
+`getExerciseProgress(...)`
+
+`restoreExerciseProgress(...)`
+
+`finalizeActivity(...)`
+
+El HTML de producción debe utilizar este servicio o el equivalente vigente para:
+
+- COMPROBAR;
+- recuperar progreso;
+- aplicar estados bloqueados;
+- finalizar la actividad.
+
+No duplicar fetch/RPC manual en cada unidad si el servicio global ya lo resuelve.
 
 ---
 
@@ -898,29 +1308,64 @@ Agregar tests.
 
 Seguir el patrón vigente de:
 
-submit-activity-result
+`submit-activity-result`
 
-o equivalente actual.
+junto con la finalización del `activity_run` o equivalente actual.
 
 Mantener:
 
-submission_id
+`submission_id`
 
 idempotencia
 
 reintentos
 
-best_score
+`best_score`
 
-attempt_count
+`attempt_count`
 
-minimum_score
+`minimum_score`
 
-status
+`status`
 
 según la arquitectura vigente.
 
-No permitir que el navegador decida el best_score oficial.
+La entrega final debe ser validada server-side.
+
+NO permitir finalizar si faltan ejercicios obligatorios terminales.
+
+Para `classwork_limited`, un ejercicio obligatorio es terminal cuando está:
+
+`correct`
+
+o:
+
+`failed`.
+
+Para `gamification_unlimited`, los retos obligatorios deben llegar a:
+
+`correct`.
+
+No existe `failed` por exceso de intentos en gamificación.
+
+El servidor debe obtener desde el grading privado la lista COMPLETA de `exercise_key` requeridos y utilizar ese total como denominador.
+
+NO calcular denominador usando solo las filas que el estudiante alcanzó a crear.
+
+Si la actividad está incompleta:
+
+rechazar la entrega sin crear `activity_attempt` ni resultado oficial completado.
+
+No permitir que el navegador decida el `best_score` oficial.
+
+La idempotencia de `submission_id` es obligatoria incluso si la primera respuesta HTTP se perdió después de registrar correctamente la entrega.
+
+Retry del mismo `submission_id`:
+
+- NO crea nuevo `activity_run`;
+- NO crea nuevo `activity_attempt`;
+- NO incrementa `attempt_count`;
+- devuelve la confirmación de la entrega ya registrada.
 
 ---
 
@@ -1163,13 +1608,25 @@ comprobar unicidad.
 
 Gamificación:
 
-gamification
+`type = gamification`
+
+`attempt_policy = gamification_unlimited`
 
 Trabajo en clase/deber:
 
-classwork
+`type = classwork`
 
-Utilizar los tipos exactos vigentes en la base de datos.
+`attempt_policy = classwork_limited`
+
+Utilizar los tipos y políticas exactas vigentes en la base de datos.
+
+Para nuevas actividades, si `attempt_policy` existe en el esquema actual, preferir registrarlo EXPLÍCITAMENTE en vez de depender solamente de inferencia por `type`.
+
+No asignar `classwork_limited` a gamificación.
+
+No asignar `gamification_unlimited` a deber/classwork.
+
+Antes de guardar, comprobar que el gateway administrativo actual acepta y persiste `attempt_policy`.
 
 ---
 
@@ -1275,9 +1732,24 @@ No crear un scheduler nuevo.
 
 No duplicar:
 
-finalize_overdue_activities.
+`finalize_overdue_activities`.
 
 Reutilizar infraestructura existente.
+
+Regla institucional vigente:
+
+progreso por ejercicio ≠ entrega oficial.
+
+Si vence una actividad sin envío final confirmado:
+
+- puede generarse `not_submitted` con nota mínima institucional 1 según la arquitectura vigente;
+- NO crear `activity_attempt` falso;
+- NO convertir automáticamente el progreso parcial en entrega;
+- NO borrar `activity_runs`;
+- NO borrar `activity_exercise_progress`;
+- NO borrar `activity_exercise_checks`.
+
+Esto permite que una reapertura recupere el progreso previo.
 
 ---
 
@@ -1287,21 +1759,45 @@ No implementar lógica especial de reapertura por unidad.
 
 Utilizar las reglas globales vigentes.
 
+La reapertura debe preservar:
+
+`activity_runs`
+
+`activity_exercise_progress`
+
+`activity_exercise_checks`.
+
+Si existe un resultado automático `not_submitted`, seguir el patrón global vigente para retirarlo/reabrir sin tocar intentos reales ni progreso previo.
+
+El estudiante debe poder continuar exactamente desde donde quedó.
+
 ---
 
 # GRADING CONFIG
 
 Crear/configurar el grading correspondiente a:
 
-gamification
+`gamification`
 
-classwork
+`classwork`
 
 en la infraestructura privada existente.
+
+El grading privado debe contener, según el tipo soportado:
+
+- lista estable de `exercise_key` obligatorios;
+- tipo de grader por ejercicio;
+- respuestas aceptadas / índices correctos;
+- información pedagógica sensible que no debe exponerse antes de tiempo;
+- cualquier metadato necesario para cálculo server-side.
 
 NO colocar grading config sensible en tablas públicas accesibles.
 
 NO conceder acceso directo a estudiantes a grading privado.
+
+No dejar `AUTHORING_ANSWER_KEY`, `correctIndex`, `acceptedAnswers` o soluciones sensibles en las copias evaluables de producción.
+
+El servidor es autoridad sobre respuesta correcta, intento y puntaje.
 
 ---
 
@@ -1392,6 +1888,78 @@ No hacerlo automáticamente.
 
 ---
 
+
+# CUENTA TÉCNICA PERMANENTE DE PRUEBA
+
+La plataforma conserva intencionalmente una cuenta técnica de estudiante para pruebas funcionales reales.
+
+Identificación actual:
+
+- `official_full_name` con prefijo `ZZ_TEST_`;
+- cuenta conocida: `ZZ_TEST_VISUAL_U5`;
+- `student_code` actual: `UEEH-STU-000011`.
+
+Esta cuenta NO es un residuo ni debe eliminarse durante la integración de nuevas unidades.
+
+Reglas obligatorias:
+
+- NO borrar `ZZ_TEST_VISUAL_U5`;
+- NO eliminar su matrícula;
+- NO eliminar su usuario de autenticación;
+- NO resetear su código;
+- NO reutilizar códigos consumidos;
+- NO resetear secuencias;
+- NO crear otro estudiante de prueba si esta cuenta permite realizar el smoke test requerido;
+- NO considerar esta cuenta como estudiante oficial en conteos académicos del curso.
+
+Estado institucional esperado mientras esta decisión siga vigente:
+
+- estudiantes oficiales = 9;
+- estudiantes test = 1;
+- estudiantes totales = 10;
+- matrículas oficiales = 9;
+- matrículas test = 1;
+- matrículas totales = 10.
+
+Para pruebas de una nueva unidad, PREFERIR esta cuenta técnica antes de crear fixtures adicionales.
+
+Puede utilizarse para comprobar:
+
+- acceso como estudiante;
+- gamificación;
+- trabajo en clase/deber;
+- `Comprobar`;
+- políticas de intentos;
+- restauración después de F5;
+- restauración entre dispositivos;
+- bloqueo de ejercicios;
+- finalización;
+- resultados;
+- reapertura;
+- comportamiento mobile.
+
+Los intentos, resultados y progreso de esta cuenta son datos de prueba y NO deben confundirse con rendimiento académico oficial.
+
+## REPORTES Y EXPORTACIONES
+
+Al revisar reportes académicos, estadísticas o exportaciones oficiales, distinguir cuentas test mediante el criterio vigente:
+
+`official_full_name LIKE 'ZZ_TEST_%'`
+
+Para conteos institucionales oficiales, considerar únicamente registros que NO cumplan dicho criterio.
+
+Si el sistema actual ya dispone de un filtro seguro para excluir cuentas test, REUTILIZARLO.
+
+Si todavía no existe un filtro formal en una exportación concreta:
+
+- NO crear una migración ni refactorización estructural solo por integrar una nueva unidad;
+- reportar claramente que la cuenta test está incluida o debe excluirse al generar el reporte oficial;
+- no modificar automáticamente la arquitectura central salvo autorización específica del usuario.
+
+No utilizar únicamente el rango numérico del `student_code` como autoridad para distinguir estudiantes reales de prueba. El criterio principal vigente es el prefijo explícito `ZZ_TEST_` en `official_full_name`.
+
+---
+
 # PRESENTACIÓN Y SUPABASE
 
 presentation.html:
@@ -1426,15 +1994,23 @@ Agregar pruebas cuando sean necesarias para verificar:
 
 - existencia de los tres archivos;
 - rutas;
-- IDs estables;
+- `exercise_key` estables;
 - ausencia de respuestas públicas;
-- ausencia de AUTHORING_ANSWER_KEY desplegado;
+- ausencia de `AUTHORING_ANSWER_KEY` desplegado;
 - integración curricular;
-- activity_key;
+- `activity_key`;
+- `attempt_policy` correcto;
+- COMPROBAR como único flujo de validación/guardado;
+- ausencia de botones Guardar/Sincronizar añadidos por integración;
+- `check_id` idempotente;
 - doble submit;
+- restauración de progreso;
+- bloqueo correcto de ejercicios terminales;
 - pistas sin respuestas;
 - grading;
-- recuperación;
+- recuperación cuando aplique;
+- finalización solo con ejercicios requeridos completos;
+- `submission_id` idempotente;
 - mobile hooks;
 - ausencia de secretos.
 
@@ -1490,41 +2066,77 @@ No debe aparecer la respuesta final antes de que corresponda.
 
 # TEST DE DOBLE SUBMIT
 
-Simular:
-
-múltiples clicks rápidos.
+Simular múltiples clicks rápidos en COMPROBAR.
 
 Esperado:
 
 una sola comprobación académica.
 
-Simular:
-
-Enter repetido.
+Simular Enter repetido.
 
 Esperado:
 
 una sola comprobación académica.
+
+Simular retry con el mismo `check_id`.
+
+Esperado:
+
+no consume un nuevo intento.
+
+Simular idempotencia histórica:
+
+Check A → intento 1
+
+Check B → intento 2
+
+retry tardío Check A
+
+Esperado:
+
+`attempt_count = 2`, no 3.
+
+Simular retry técnico de entrega final con el mismo `submission_id`.
+
+Esperado:
+
+una sola entrega académica y un solo `activity_attempt`.
 
 ---
 
 # TEST DE INTENTOS
 
-Gamificación:
+Gamificación (`gamification_unlimited`):
 
-1 → 10
-2 → 9
-3 → 8
-4 → 7
-5+ → 7
+1 correcto → 10
 
-Trabajo en clase:
+2 correcto → 9
 
-1 → 10
-2 → 9
-3 → 8
-4 → 7
-no logrado → 1
+3 correcto → 8
+
+4 correcto → 7
+
+5+ correcto → 7
+
+20 respuestas incorrectas → continúa abierto, `score = null`, no bloqueo
+
+correcto después de 20 fallos → 7 y bloqueo
+
+`remaining_attempts = null`
+
+Trabajo en clase (`classwork_limited`):
+
+1 correcto → 10
+
+2 correcto → 9
+
+3 correcto → 8
+
+4 correcto → 7
+
+4.º fallo → 1, `failed`, bloqueado
+
+5.º intento → rechazado
 
 Comprobar frontend Y backend.
 
@@ -1532,19 +2144,43 @@ Backend es la autoridad.
 
 ---
 
+# TEST DE PERSISTENCIA Y RESTAURACIÓN
+
+Verificar como mínimo:
+
+1. estudiante comprueba varios ejercicios;
+2. progreso queda confirmado en Supabase;
+3. recarga/F5;
+4. se recuperan intentos, respuestas, score, status y locked;
+5. correct permanece bloqueado;
+6. failed de classwork permanece bloqueado;
+7. incorrect permanece editable con intentos ya consumidos;
+8. gamificación incorrecta permanece editable aunque tenga más de 4 intentos;
+9. cambio de dispositivo con la misma cuenta recupera el mismo progreso;
+10. no existe botón manual obligatorio de Guardar.
+
+---
+
 # TEST DE RECUPERACIÓN
 
-Cuando aplique:
+Cuando aplique y el backend vigente soporte el modelo utilizado:
 
 verificar:
 
-- phase inicial;
+- fase inicial;
 - activación correcta;
 - IDs independientes;
 - intentos independientes;
 - pistas sin respuesta;
 - soluciones controladas;
-- resultado final coherente.
+- resultado final coherente;
+- ejercicios condicionales NO alteran incorrectamente el denominador oficial.
+
+Si la recuperación del HTML fuente no tiene representación segura en el backend actual:
+
+NO forzarla dentro de la misma actividad durante la integración.
+
+Reportar la discrepancia y la estrategia segura disponible.
 
 ---
 
@@ -1794,22 +2430,22 @@ FASE 7
 INTEGRAR PRESENTATION
 
 FASE 8
-INTEGRAR GAMIFICACIÓN
+INTEGRAR GAMIFICACIÓN CON `gamification_unlimited`
 
 FASE 9
-INTEGRAR TRABAJO EN CLASE
+INTEGRAR TRABAJO EN CLASE CON `classwork_limited`
 
 FASE 10
-EXTRAER PAUTAS DE RESPUESTA
+EXTRAER PAUTAS Y SOLUCIONES SENSIBLES
 
 FASE 11
-CONFIGURAR GRADING PRIVADO
+CONFIGURAR GRADING PRIVADO + `exercise_key`
 
 FASE 12
-CONECTAR VALIDACIÓN SERVER-SIDE
+CONECTAR COMPROBAR CON `exercise-progress-service` / `check-activity-answer`
 
 FASE 13
-CONECTAR RESULTADO OFICIAL
+CONECTAR RESTAURACIÓN DE PROGRESO Y RESULTADO OFICIAL
 
 FASE 14
 REGISTRAR CURRICULUM-CONFIG
@@ -1908,6 +2544,48 @@ SIN CAMBIOS.
 
 ---
 
+# REGLA FINAL DE INTEGRACIÓN DE ACTIVIDADES EVALUABLES
+
+Para cada nueva unidad, la integración correcta debe producir esta experiencia:
+
+Gamificación:
+
+Responder reto
+↓
+COMPROBAR
+↓
+servidor valida y guarda
+↓
+si incorrecto: sigue intentando sin límite
+↓
+si correcto: 10/9/8/7 según intento y bloquea
+
+Trabajo en clase/deber:
+
+Responder ejercicio
+↓
+COMPROBAR
+↓
+servidor valida y guarda
+↓
+1.º=10, 2.º=9, 3.º=8, 4.º=7
+↓
+si falla las 4: 1 y bloquea
+
+En ambos casos:
+
+- no existe botón Guardar;
+- no existe botón Sincronizar;
+- Supabase conserva el progreso;
+- F5 no reinicia intentos;
+- cambio de dispositivo no reinicia intentos;
+- frontend no decide score ni student_id;
+- `check_id` protege cada comprobación;
+- `submission_id` protege la entrega final;
+- la nota oficial se calcula server-side.
+
+---
+
 # REPORTE FINAL OBLIGATORIO
 
 Entregar exactamente un reporte similar a:
@@ -1946,11 +2624,30 @@ gamification integrada = SÍ/NO
 classwork integrada = SÍ/NO
 
 ========================================
+CUENTAS DE ESTUDIANTE
+========================================
+
+students oficiales =
+students test =
+students total =
+
+enrollments oficiales =
+enrollments test =
+enrollments total =
+
+ZZ_TEST_VISUAL_U5 conservado = SÍ/NO/NO EXISTE
+nueva cuenta test creada = NO/OTRO
+cuenta test excluida de conteo académico oficial = SÍ/NO/NO APLICA
+
+========================================
 ACTIVIDADES
 ========================================
 
 activity_key gamification =
 activity_key classwork =
+
+attempt_policy gamification = gamification_unlimited/OTRO
+attempt_policy classwork = classwork_limited/OTRO
 
 gamification activa = SÍ/NO
 classwork activa = SÍ/NO
@@ -1973,6 +2670,12 @@ grading classwork privado = SÍ/NO
 
 check-activity-answer reutilizado = SÍ/NO
 check-activity-answer modificado = SÍ/NO
+check-activity-answer verify_jwt = true/false
+
+exercise-progress-service reutilizado = SÍ/NO
+activity_runs utilizado = SÍ/NO
+activity_exercise_progress utilizado = SÍ/NO
+activity_exercise_checks utilizado = SÍ/NO
 
 nuevo tipo de grader agregado = [...]
 
@@ -1985,13 +2688,17 @@ gamification:
 2=9 = OK/ERROR
 3=8 = OK/ERROR
 4+=7 = OK/ERROR
+intentos ilimitados = OK/ERROR
+incorrecto no bloquea = OK/ERROR
+remaining_attempts null = OK/ERROR
 
 classwork:
 1=10 = OK/ERROR
 2=9 = OK/ERROR
 3=8 = OK/ERROR
 4=7 = OK/ERROR
-no logrado=1 = OK/ERROR
+4.º fallo=1 = OK/ERROR
+5.º intento rechazado = OK/ERROR
 
 recuperación = OK/NO APLICA/ERROR
 pistas sin respuestas = OK/ERROR
@@ -2030,6 +2737,14 @@ fallos =
 
 doble submit gamification = PASS/FAIL
 doble submit classwork = PASS/FAIL
+idempotencia check_id = PASS/FAIL
+idempotencia submission_id = PASS/FAIL
+restauración de progreso = PASS/FAIL
+F5 conserva intentos = PASS/FAIL
+smoke con ZZ_TEST_VISUAL_U5 = PASS/FAIL/NO EJECUTADO
+comprobar guarda automáticamente = PASS/FAIL
+botón Guardar agregado = NO/OTRO
+botón Sincronizar agregado = NO/OTRO
 pistas recuperación = PASS/FAIL
 respuestas públicas = PASS/FAIL
 MathJax = PASS/FAIL
