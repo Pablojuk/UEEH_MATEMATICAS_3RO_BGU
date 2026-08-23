@@ -3,11 +3,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Verifies:
 // 1. Central version module (core/version.js) and withVersion helper
-// 2. Automated module versioning across app.js, activity-service.js,
+// 2. Exact SemVer format and single canonical definition of APP_VERSION
+// 3. Automated module versioning across app.js, activity-service.js,
 //    activity-summary.js, exercise-progress-service.js
-// 3. HTML entry points (index.html, unit5/unit6 activities) with Cache-Control meta
-// 4. Activity selective cache-busting & future unit scalability
-// 5. Zero manual cache clearance requirement across browser updates
+// 4. HTML entry points (index.html, unit5/unit6 activities) with Cache-Control meta
+// 5. Activity selective cache-busting & future unit scalability
+// 6. Zero manual cache clearance requirement across browser updates
 // ═══════════════════════════════════════════════════════════════════════════
 
 import fs from "fs";
@@ -20,12 +21,77 @@ console.log("UNIFIED ASSET & MODULE CACHE-BUSTING TEST SUITE");
 console.log("==================================================");
 
 // ────────────────────────────────────────────────────────────
-// 1. UNIT TEST: core/version.js and withVersion helper
+// 1. UNIT TEST: core/version.js — Single Canonical Source of Truth
 // ────────────────────────────────────────────────────────────
 
-assert.ok(typeof APP_VERSION === "string" && APP_VERSION.length > 0, "❌ APP_VERSION must be a non-empty string");
+const versionFile = path.resolve("core/version.js");
+assert.ok(fs.existsSync(versionFile), "❌ core/version.js must exist");
+
+// Valid SemVer format (e.g. 1.3.0)
+const semverRegex = /^\d+\.\d+\.\d+$/;
+assert.ok(semverRegex.test(APP_VERSION), `❌ APP_VERSION (${APP_VERSION}) must follow strict SemVer format (X.Y.Z)`);
 assert.ok(typeof BUILD_TIMESTAMP === "string" && BUILD_TIMESTAMP.length > 0, "❌ BUILD_TIMESTAMP must be defined");
 console.log(`✔ Version Core — APP_VERSION: ${APP_VERSION} (Build: ${BUILD_TIMESTAMP})`);
+
+// Verify there are NO duplicate definitions of APP_VERSION anywhere in the codebase
+function scanDirectoryForAppVersion(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const definitions = [];
+  const invalidImports = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name !== "node_modules" && entry.name !== ".git" && entry.name !== ".gemini") {
+        const sub = scanDirectoryForAppVersion(fullPath);
+        definitions.push(...sub.definitions);
+        invalidImports.push(...sub.invalidImports);
+      }
+    } else if (entry.isFile() && (entry.name.endsWith(".js") || entry.name.endsWith(".mjs") || entry.name.endsWith(".html"))) {
+      const content = fs.readFileSync(fullPath, "utf-8");
+      
+      // Check for export const APP_VERSION or const APP_VERSION =
+      const defMatch = content.match(/export\s+const\s+APP_VERSION\s*=/g);
+      if (defMatch) {
+        definitions.push({ file: fullPath, count: defMatch.length });
+      }
+
+      // Check for invalid imports (e.g. importing APP_VERSION from anywhere other than version.js)
+      const importMatches = content.match(/import\s*\{[^}]*APP_VERSION[^}]*\}\s*from\s*['"]([^'"]+)['"]/g);
+      if (importMatches) {
+        for (const m of importMatches) {
+          if (!m.includes("version.js")) {
+            invalidImports.push({ file: fullPath, match: m });
+          }
+        }
+      }
+    }
+  }
+
+  return { definitions, invalidImports };
+}
+
+const scanResult = scanDirectoryForAppVersion(process.cwd());
+assert.strictEqual(
+  scanResult.definitions.length,
+  1,
+  `❌ Exactly ONE file must define export const APP_VERSION. Found in: ${scanResult.definitions.map(d => d.file).join(", ")}`
+);
+assert.strictEqual(
+  path.resolve(scanResult.definitions[0].file),
+  versionFile,
+  `❌ The single authoritative definition must be in core/version.js`
+);
+assert.strictEqual(
+  scanResult.invalidImports.length,
+  0,
+  `❌ No file may import APP_VERSION from anything other than version.js. Found: ${JSON.stringify(scanResult.invalidImports)}`
+);
+console.log("✔ Canonical Integrity — Exactly 1 authoritative APP_VERSION definition (core/version.js) and 0 invalid imports");
+
+// ────────────────────────────────────────────────────────────
+// 2. UNIT TEST: withVersion helper logic
+// ────────────────────────────────────────────────────────────
 
 // CASO 1: Simple module path
 const vApp = withVersion("./core/app.js");
@@ -56,7 +122,7 @@ assert.strictEqual(withVersion(""), "");
 console.log("✔ withVersion — Edge cases (null, empty) handled safely");
 
 // ────────────────────────────────────────────────────────────
-// 2. STATIC AUDIT: HTML Entry Points & Meta Cache Control
+// 3. STATIC AUDIT: HTML Entry Points & Meta Cache Control
 // ────────────────────────────────────────────────────────────
 
 const indexHtml = fs.readFileSync("index.html", "utf-8");
@@ -68,7 +134,7 @@ assert.ok(indexHtml.includes(`./assets/css/styles.css?v=${APP_VERSION}`), "❌ i
 console.log("✔ HTML Audit — index.html configured with no-cache headers and versioned entry points");
 
 // ────────────────────────────────────────────────────────────
-// 3. STATIC AUDIT: Core JavaScript Module Dependency Tree
+// 4. STATIC AUDIT: Core JavaScript Module Dependency Tree
 // ────────────────────────────────────────────────────────────
 
 // A. main.js -> app.js
@@ -101,7 +167,7 @@ assert.ok(actServJs.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ activi
 console.log("✔ Module Audit — core/activity-service.js imports supabase-client.js?v=APP_VERSION");
 
 // ────────────────────────────────────────────────────────────
-// 4. STATIC AUDIT: Unit 5 & Unit 6 Activity Pages
+// 5. STATIC AUDIT: Unit 5 & Unit 6 Activity Pages
 // ────────────────────────────────────────────────────────────
 
 const u6Deber = fs.readFileSync("topics/unit6-sucesiones/deber.html", "utf-8");
@@ -121,15 +187,15 @@ assert.ok(u5Gam.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ Unit 5 gam
 console.log("✔ Activity Audit — Unit 5 & Unit 6 activity pages configured with no-cache headers and versioned services");
 
 // ────────────────────────────────────────────────────────────
-// 5. BEHAVIORAL SIMULATION: Version Upgrade from 1.3.0 to 1.4.0
+// 6. BEHAVIORAL SIMULATION: Version Upgrade from 1.3.0 to 1.3.1
 // ────────────────────────────────────────────────────────────
 
 const simulatedOldUrl = withVersion("./core/app.js", "1.3.0");
-const simulatedNewUrl = withVersion("./core/app.js", "1.4.0");
+const simulatedNewUrl = withVersion("./core/app.js", "1.3.1");
 
 assert.strictEqual(simulatedOldUrl, "./core/app.js?v=1.3.0");
-assert.strictEqual(simulatedNewUrl, "./core/app.js?v=1.4.0");
-assert.notStrictEqual(simulatedOldUrl, simulatedNewUrl, "❌ New release must generate distinct URL to force fresh fetch");
+assert.strictEqual(simulatedNewUrl, "./core/app.js?v=1.3.1");
+assert.notStrictEqual(simulatedOldUrl, simulatedNewUrl, "❌ Incremental release (1.3.0 -> 1.3.1) must generate distinct URL to force fresh fetch");
 console.log("✔ Upgrade Simulation — Bumping version completely invalidates previous cache in all browsers (Zero manual Ctrl+F5 required)");
 
 console.log("🎉 ALL UNIFIED ASSET & MODULE CACHE-BUSTING TESTS PASSED 100%!");
