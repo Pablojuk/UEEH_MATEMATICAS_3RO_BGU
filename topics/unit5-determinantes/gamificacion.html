@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Odisea Espacial: La Ruta de los 6 Planetas</title>
   
   <!-- Tipografías de Google -->
@@ -872,7 +875,7 @@
 
     async function getAuthSessionToken() {
       try {
-        const authModule = await import('../../core/supabase-client.js');
+        const authModule = await import('../../core/supabase-client.js?v=1.3.0');
         const { data: { session } } = await authModule.supabase.auth.getSession();
         return session ? session.access_token : null;
       } catch (err) {
@@ -1204,7 +1207,7 @@
 
       // Enviar resultado final a Supabase server-side grading
       try {
-        const actModule = await import('../../core/activity-service.js');
+        const actModule = await import('../../core/activity-service.js?v=1.3.0');
         const res = await actModule.submitActivityResult({
           activityKey: "u5-determinantes-gam-01",
           runId: currentGameRunId,

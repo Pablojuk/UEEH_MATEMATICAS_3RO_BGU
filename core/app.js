@@ -9,6 +9,7 @@ import { crearFeedbackBox } from "../components/feedback-box.js";
 import { initAuthGate } from "../components/auth-gate.js";
 import { logout } from "./auth-service.js";
 import { CURRICULUM_UNITS, getUnitByNumber } from "./curriculum-config.js";
+import { APP_VERSION, withVersion } from "./version.js";
 
 const LOGO_URL = "./assets/img/logo-ueeh.png";
 const HERO_IMAGE_URL = "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80";
@@ -574,29 +575,8 @@ function handleUnitAction(unitNumber, actionType) {
   executeUnitNavigation(unit, actionType);
 }
 
-export function buildFreshActivityUrl(pathStr, token = Date.now().toString()) {
-  if (!pathStr || typeof pathStr !== "string") return pathStr;
-
-  try {
-    const dummyBase = "https://ueeh-app.internal/";
-    const url = new URL(pathStr, dummyBase);
-    url.searchParams.set("v", token);
-
-    if (pathStr.startsWith("./")) {
-      const pathname = url.pathname.replace(/^\//, "");
-      return `./${pathname}${url.search}${url.hash}`;
-    } else if (pathStr.startsWith("/")) {
-      return `${url.pathname}${url.search}${url.hash}`;
-    } else if (!pathStr.startsWith("http://") && !pathStr.startsWith("https://")) {
-      const pathname = url.pathname.replace(/^\//, "");
-      return `${pathname}${url.search}${url.hash}`;
-    } else {
-      return url.href;
-    }
-  } catch {
-    const separator = pathStr.includes("?") ? "&" : "?";
-    return `${pathStr}${separator}v=${token}`;
-  }
+export function buildFreshActivityUrl(pathStr, token = APP_VERSION) {
+  return withVersion(pathStr, token);
 }
 
 function executeUnitNavigation(unit, actionType) {
@@ -668,7 +648,7 @@ function executeUnitNavigation(unit, actionType) {
   if (actionType === "results") {
     if (route.type === "supabase-summary") {
       showToast(`Cargando resultados de Unidad ${unit.unitNumber}...`);
-      import("../components/activity-summary.js").then(({ renderStudentActivitySummary }) => {
+      import(`../components/activity-summary.js?v=${APP_VERSION}`).then(({ renderStudentActivitySummary }) => {
         renderView(
           layout(
             route.viewTitle || `Resultados · Unidad ${unit.unitNumber} ${unit.title}`,
@@ -705,7 +685,7 @@ function bindDashboardEvents() {
   bindClick("#btn-header-admin", () => {
     if (currentAuthProfile?.role === "admin") {
       sessionStorage.setItem("ueeh_active_view", "admin");
-      import("../components/admin/admin-shell.js").then((m) => {
+      import(`../components/admin/admin-shell.js?v=${APP_VERSION}`).then((m) => {
         window.onReturnToCampus = () => {
           sessionStorage.setItem("ueeh_active_view", "campus");
           goToDashboard();
@@ -1037,7 +1017,7 @@ export function iniciarApp() {
 
     const activeView = sessionStorage.getItem("ueeh_active_view");
     if (activeView === "admin" && profile?.role === "admin") {
-      import("../components/admin/admin-shell.js").then((m) => {
+      import(`../components/admin/admin-shell.js?v=${APP_VERSION}`).then((m) => {
         window.onReturnToCampus = () => {
           sessionStorage.setItem("ueeh_active_view", "campus");
           goToDashboard();

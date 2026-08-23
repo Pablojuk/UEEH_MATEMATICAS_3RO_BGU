@@ -2,7 +2,7 @@
 // Frontend Activity Service — UEEH Matemáticas 3ro BGU (Unidad 5+)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { supabase } from "./supabase-client.js";
+import { supabase } from "./supabase-client.js?v=1.3.0";
 
 const SUBMIT_FUNCTION_URL = "https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/submit-activity-result";
 

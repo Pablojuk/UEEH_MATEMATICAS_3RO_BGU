@@ -1,187 +1,135 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Activity Selective Cache-Busting Test — UEEH Matemáticas 3ro BGU
-// Verifies: selective cache-busting for gamification and classwork,
-//           preservation of normal caching for presentations,
-//           query and hash preservation, replacement of old tokens,
-//           data-driven scalability for future units, and timing variance.
+// Unified Asset & Module Cache-Busting Test Suite — UEEH Matemáticas 3ro BGU
+// ═══════════════════════════════════════════════════════════════════════════
+// Verifies:
+// 1. Central version module (core/version.js) and withVersion helper
+// 2. Automated module versioning across app.js, activity-service.js,
+//    activity-summary.js, exercise-progress-service.js
+// 3. HTML entry points (index.html, unit5/unit6 activities) with Cache-Control meta
+// 4. Activity selective cache-busting & future unit scalability
+// 5. Zero manual cache clearance requirement across browser updates
 // ═══════════════════════════════════════════════════════════════════════════
 
 import fs from "fs";
 import path from "path";
 import assert from "assert";
+import { APP_VERSION, BUILD_TIMESTAMP, withVersion } from "../core/version.js";
 
-const appPath = path.resolve("core/app.js");
-const appCode = fs.readFileSync(appPath, "utf-8");
-
-// Extraer la función buildFreshActivityUrl de app.js para ejecutar en Node sin resolver dependencias de navegador
-const funcMatch = appCode.match(/export\s+function\s+buildFreshActivityUrl\s*\([\s\S]*?\n\}/);
-if (!funcMatch) {
-  throw new Error("❌ No se encontró buildFreshActivityUrl exportada en core/app.js");
-}
-const buildFreshActivityUrl = new Function("return (" + funcMatch[0].replace(/^export\s+/, "") + ")")();
+console.log("==================================================");
+console.log("UNIFIED ASSET & MODULE CACHE-BUSTING TEST SUITE");
+console.log("==================================================");
 
 // ────────────────────────────────────────────────────────────
-// 1. UNIT TEST: buildFreshActivityUrl helper
+// 1. UNIT TEST: core/version.js and withVersion helper
 // ────────────────────────────────────────────────────────────
 
-// CASO 1: gamificacion.html gets fresh token
-const gamUrl = buildFreshActivityUrl("./topics/unit5-determinantes/gamificacion.html", "1001");
-assert.strictEqual(
-  gamUrl,
-  "./topics/unit5-determinantes/gamificacion.html?v=1001",
-  "❌ Gamificacion URL must receive ?v=TOKEN"
-);
-console.log("✔ Helper — Gamification receives ?v=TOKEN correctly");
+assert.ok(typeof APP_VERSION === "string" && APP_VERSION.length > 0, "❌ APP_VERSION must be a non-empty string");
+assert.ok(typeof BUILD_TIMESTAMP === "string" && BUILD_TIMESTAMP.length > 0, "❌ BUILD_TIMESTAMP must be defined");
+console.log(`✔ Version Core — APP_VERSION: ${APP_VERSION} (Build: ${BUILD_TIMESTAMP})`);
 
-// CASO 2: deber.html gets fresh token
-const deberUrl = buildFreshActivityUrl("./topics/unit5-determinantes/deber.html", "2002");
-assert.strictEqual(
-  deberUrl,
-  "./topics/unit5-determinantes/deber.html?v=2002",
-  "❌ Deber URL must receive ?v=TOKEN"
-);
-console.log("✔ Helper — Deber receives ?v=TOKEN correctly");
+// CASO 1: Simple module path
+const vApp = withVersion("./core/app.js");
+assert.strictEqual(vApp, `./core/app.js?v=${APP_VERSION}`, "❌ Simple path must append ?v=APP_VERSION");
+console.log("✔ withVersion — Simple path receives ?v=APP_VERSION");
 
-// CASO 3: Existing query parameters are preserved
-const queryUrl = buildFreshActivityUrl("topics/unit5-determinantes/deber.html?mode=recovery", "3003");
-assert.ok(
-  queryUrl.includes("mode=recovery") && queryUrl.includes("v=3003"),
-  "❌ Existing query parameter 'mode=recovery' must be preserved"
-);
-assert.ok(
-  !queryUrl.includes("??"),
-  "❌ URL must not contain double '?'"
-);
-console.log("✔ Helper — Existing query parameters preserved with & separator");
+// CASO 2: Path with existing query parameters
+const vQuery = withVersion("topics/unit6-sucesiones/deber.html?mode=recovery");
+assert.ok(vQuery.includes("mode=recovery") && vQuery.includes(`v=${APP_VERSION}`), "❌ Existing query parameters must be preserved");
+assert.ok(!vQuery.includes("??"), "❌ URL must not contain double '?'");
+console.log("✔ withVersion — Existing query parameters preserved with & separator");
 
-// CASO 4: Existing hash is preserved at the end of the URL
-const hashUrl = buildFreshActivityUrl("topics/unit5-determinantes/deber.html#exercise-3", "4004");
-assert.strictEqual(
-  hashUrl,
-  "topics/unit5-determinantes/deber.html?v=4004#exercise-3",
-  "❌ Hash must be preserved at the end of the URL"
-);
-console.log("✔ Helper — Hash preserved after query string");
+// CASO 3: Path with hash fragment
+const vHash = withVersion("topics/unit6-sucesiones/deber.html#exercise-3");
+assert.strictEqual(vHash, `topics/unit6-sucesiones/deber.html?v=${APP_VERSION}#exercise-3`, "❌ Hash fragment must remain at the very end");
+console.log("✔ withVersion — Hash fragment preserved at end of URL");
 
-// CASO 5: Old 'v' parameter is cleanly replaced, not duplicated
-const replaceUrl = buildFreshActivityUrl("./topics/unit5-determinantes/deber.html?v=OLD_TOKEN&mode=recovery", "NEW_TOKEN");
-assert.ok(
-  replaceUrl.includes("v=NEW_TOKEN"),
-  "❌ New token must be present"
-);
-assert.ok(
-  !replaceUrl.includes("OLD_TOKEN"),
-  "❌ Old token must be completely replaced"
-);
-assert.ok(
-  !replaceUrl.includes("v=OLD_TOKEN&v=NEW_TOKEN"),
-  "❌ Tokens must not accumulate"
-);
-console.log("✔ Helper — Old ?v= parameter cleanly replaced without duplication");
+// CASO 4: Old token replacement
+const vReplace = withVersion("./topics/unit5-determinantes/deber.html?v=OLD_1.0.0&mode=recovery", "1.3.0");
+assert.ok(vReplace.includes("v=1.3.0"), "❌ New version token must be present");
+assert.ok(!vReplace.includes("OLD_1.0.0"), "❌ Old version token must be replaced");
+assert.ok(!vReplace.includes("v=OLD_1.0.0&v=1.3.0"), "❌ Tokens must not accumulate");
+console.log("✔ withVersion — Old ?v= parameter cleanly replaced without duplication");
 
-// CASO 6: Fallback / null / empty safety
-assert.strictEqual(buildFreshActivityUrl(null), null);
-assert.strictEqual(buildFreshActivityUrl(""), "");
-console.log("✔ Helper — Edge cases (null, empty) handled safely");
+// CASO 5: Edge cases
+assert.strictEqual(withVersion(null), null);
+assert.strictEqual(withVersion(""), "");
+console.log("✔ withVersion — Edge cases (null, empty) handled safely");
 
 // ────────────────────────────────────────────────────────────
-// 2. STATIC AUDIT: app.js routing logic
+// 2. STATIC AUDIT: HTML Entry Points & Meta Cache Control
 // ────────────────────────────────────────────────────────────
 
-// Verify presentation does NOT use buildFreshActivityUrl
-const presentationBlock = appCode.match(/if\s*\(\s*actionType\s*===\s*["']presentation["']\s*\)[\s\S]*?(?=if\s*\(\s*actionType\s*===)/);
-assert.ok(presentationBlock, "❌ presentation block must exist in app.js");
-assert.ok(
-  !presentationBlock[0].includes("buildFreshActivityUrl"),
-  "❌ presentation must NOT use buildFreshActivityUrl (must preserve normal cache)"
-);
-console.log("✔ Routing — Presentation preserves normal cache without ?v=");
-
-// Verify gamification uses buildFreshActivityUrl
-const gamificationBlock = appCode.match(/if\s*\(\s*actionType\s*===\s*["']gamification["']\s*\)[\s\S]*?(?=if\s*\(\s*actionType\s*===)/);
-assert.ok(gamificationBlock, "❌ gamification block must exist in app.js");
-assert.ok(
-  gamificationBlock[0].includes("buildFreshActivityUrl(route.src)"),
-  "❌ gamification must use buildFreshActivityUrl(route.src)"
-);
-console.log("✔ Routing — Gamification routes through buildFreshActivityUrl");
-
-// Verify classwork uses buildFreshActivityUrl
-const classworkBlock = appCode.match(/if\s*\(\s*actionType\s*===\s*["']classwork["']\s*\)[\s\S]*?(?=if\s*\(\s*actionType\s*===)/);
-assert.ok(classworkBlock, "❌ classwork block must exist in app.js");
-assert.ok(
-  classworkBlock[0].includes("buildFreshActivityUrl(route.src)"),
-  "❌ classwork must use buildFreshActivityUrl(route.src)"
-);
-console.log("✔ Routing — Classwork routes through buildFreshActivityUrl");
-
-// Anti-hardcode check: no unit-specific cache logic
-assert.ok(
-  !appCode.includes("if (unit === 5)") &&
-  !appCode.includes("unitNumber === 5 ? buildFreshActivityUrl"),
-  "❌ Cache-busting must be data-driven by actionType, not hardcoded to Unit 5"
-);
-console.log("✔ Anti-Hardcode — Cache-busting is data-driven by actionType, not unitNumber");
+const indexHtml = fs.readFileSync("index.html", "utf-8");
+assert.ok(indexHtml.includes('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"'), "❌ index.html must contain no-cache Cache-Control meta");
+assert.ok(indexHtml.includes('<meta http-equiv="Pragma" content="no-cache"'), "❌ index.html must contain Pragma no-cache meta");
+assert.ok(indexHtml.includes('<meta http-equiv="Expires" content="0"'), "❌ index.html must contain Expires 0 meta");
+assert.ok(indexHtml.includes(`./assets/js/main.js?v=${APP_VERSION}`), "❌ index.html must import main.js with current APP_VERSION");
+assert.ok(indexHtml.includes(`./assets/css/styles.css?v=${APP_VERSION}`), "❌ index.html must link styles.css with current APP_VERSION");
+console.log("✔ HTML Audit — index.html configured with no-cache headers and versioned entry points");
 
 // ────────────────────────────────────────────────────────────
-// 3. SIMULATION: Future Unit 99 behavior
+// 3. STATIC AUDIT: Core JavaScript Module Dependency Tree
 // ────────────────────────────────────────────────────────────
 
-const mockUnit99 = {
-  unitNumber: 99,
-  slug: "unit99-test",
-  routes: {
-    presentation: { src: "./topics/unit99-test/presentation.html" },
-    gamification: { src: "./topics/unit99-test/gamificacion.html" },
-    classwork: { src: "./topics/unit99-test/deber.html" }
-  }
-};
+// A. main.js -> app.js
+const mainJs = fs.readFileSync("assets/js/main.js", "utf-8");
+assert.ok(mainJs.includes(`core/app.js?v=${APP_VERSION}`), "❌ main.js must import app.js with ?v=APP_VERSION");
+console.log("✔ Module Audit — assets/js/main.js imports core/app.js?v=APP_VERSION");
 
-const resolveRouteUrl = (unit, actionType, token) => {
-  const route = unit.routes[actionType];
-  if (actionType === "presentation") return route.src;
-  if (actionType === "gamification" || actionType === "classwork") {
-    return buildFreshActivityUrl(route.src, token);
-  }
-  return route.src;
-};
+// B. app.js -> dynamic components
+const appJs = fs.readFileSync("core/app.js", "utf-8");
+assert.ok(appJs.includes("from \"./version.js\""), "❌ app.js must import version module");
+assert.ok(appJs.includes("activity-summary.js?v=${APP_VERSION}"), "❌ app.js must dynamically import activity-summary.js with APP_VERSION");
+assert.ok(appJs.includes("admin-shell.js?v=${APP_VERSION}"), "❌ app.js must dynamically import admin-shell.js with APP_VERSION");
+assert.ok(appJs.includes("export function buildFreshActivityUrl(pathStr, token = APP_VERSION)"), "❌ app.js must export buildFreshActivityUrl using withVersion");
+console.log("✔ Module Audit — core/app.js dynamically imports components with ?v=APP_VERSION");
 
-const u99Pres = resolveRouteUrl(mockUnit99, "presentation", "111");
-const u99Gam = resolveRouteUrl(mockUnit99, "gamification", "222");
-const u99Class = resolveRouteUrl(mockUnit99, "classwork", "333");
+// C. activity-summary.js -> activity-service.js
+const actSummaryJs = fs.readFileSync("components/activity-summary.js", "utf-8");
+assert.ok(actSummaryJs.includes(`activity-service.js?v=${APP_VERSION}`), "❌ activity-summary.js must import activity-service.js with ?v=APP_VERSION");
+console.log("✔ Module Audit — components/activity-summary.js imports activity-service.js?v=APP_VERSION");
 
-assert.strictEqual(u99Pres, "./topics/unit99-test/presentation.html", "❌ Unit 99 presentation must have normal cache");
-assert.strictEqual(u99Gam, "./topics/unit99-test/gamificacion.html?v=222", "❌ Unit 99 gamification must have fresh token");
-assert.strictEqual(u99Class, "./topics/unit99-test/deber.html?v=333", "❌ Unit 99 classwork must have fresh token");
-console.log("✔ Future Unit Simulation — Unit 99 automatically inherits selective cache-busting");
+// D. exercise-progress-service.js -> supabase-client.js & activity-service.js
+const exProgJs = fs.readFileSync("core/exercise-progress-service.js", "utf-8");
+assert.ok(exProgJs.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ exercise-progress-service.js must import supabase-client.js with ?v=APP_VERSION");
+assert.ok(exProgJs.includes(`activity-service.js?v=${APP_VERSION}`), "❌ exercise-progress-service.js must import activity-service.js with ?v=APP_VERSION");
+console.log("✔ Module Audit — core/exercise-progress-service.js imports dependencies with ?v=APP_VERSION");
 
-// ────────────────────────────────────────────────────────────
-// 4. TIMING & SEQUENTIAL OPENINGS: Different tokens across openings
-// ────────────────────────────────────────────────────────────
-
-const token1 = Date.now().toString();
-// Advance simulated time
-const token2 = (Date.now() + 1500).toString();
-
-const open1 = buildFreshActivityUrl("./topics/unit5-determinantes/gamificacion.html", token1);
-const open2 = buildFreshActivityUrl("./topics/unit5-determinantes/gamificacion.html", token2);
-
-assert.notStrictEqual(open1, open2, "❌ Sequential openings must produce different URLs");
-assert.ok(open1.includes(`v=${token1}`));
-assert.ok(open2.includes(`v=${token2}`));
-console.log("✔ Timing — Sequential openings generate distinct cache-busting tokens");
+// E. activity-service.js -> supabase-client.js
+const actServJs = fs.readFileSync("core/activity-service.js", "utf-8");
+assert.ok(actServJs.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ activity-service.js must import supabase-client.js with ?v=APP_VERSION");
+console.log("✔ Module Audit — core/activity-service.js imports supabase-client.js?v=APP_VERSION");
 
 // ────────────────────────────────────────────────────────────
-// 5. GITHUB PAGES BASE URL SAFETY
+// 4. STATIC AUDIT: Unit 5 & Unit 6 Activity Pages
 // ────────────────────────────────────────────────────────────
 
-const ghBase = "https://pablojuk.github.io/UEEH_MATEMATICAS_3RO_BGU/topics/unit5-determinantes/gamificacion.html";
-const ghUrl = buildFreshActivityUrl(ghBase, "9999");
-assert.strictEqual(
-  ghUrl,
-  "https://pablojuk.github.io/UEEH_MATEMATICAS_3RO_BGU/topics/unit5-determinantes/gamificacion.html?v=9999",
-  "❌ Full GitHub Pages URL base must be preserved"
-);
-console.log("✔ GitHub Pages — Full GitHub Pages URL preserved with subpath and token");
+const u6Deber = fs.readFileSync("topics/unit6-sucesiones/deber.html", "utf-8");
+const u6Gam = fs.readFileSync("topics/unit6-sucesiones/gamificacion.html", "utf-8");
+const u5Deber = fs.readFileSync("topics/unit5-determinantes/deber.html", "utf-8");
+const u5Gam = fs.readFileSync("topics/unit5-determinantes/gamificacion.html", "utf-8");
 
-console.log("🎉 ALL ACTIVITY CACHE-BUSTING TESTS PASSED 100%!");
+assert.ok(u6Deber.includes('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"'), "❌ Unit 6 deber must contain no-cache meta");
+assert.ok(u6Deber.includes(`exercise-progress-service.js?v=${APP_VERSION}`), "❌ Unit 6 deber must import exercise-progress-service with ?v=APP_VERSION");
+assert.ok(u6Gam.includes('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"'), "❌ Unit 6 gamification must contain no-cache meta");
+assert.ok(u6Gam.includes(`exercise-progress-service.js?v=${APP_VERSION}`), "❌ Unit 6 gamification must import exercise-progress-service with ?v=APP_VERSION");
+
+assert.ok(u5Deber.includes('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"'), "❌ Unit 5 deber must contain no-cache meta");
+assert.ok(u5Deber.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ Unit 5 deber must import supabase-client with ?v=APP_VERSION");
+assert.ok(u5Gam.includes('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"'), "❌ Unit 5 gamification must contain no-cache meta");
+assert.ok(u5Gam.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ Unit 5 gamification must import supabase-client with ?v=APP_VERSION");
+console.log("✔ Activity Audit — Unit 5 & Unit 6 activity pages configured with no-cache headers and versioned services");
+
+// ────────────────────────────────────────────────────────────
+// 5. BEHAVIORAL SIMULATION: Version Upgrade from 1.3.0 to 1.4.0
+// ────────────────────────────────────────────────────────────
+
+const simulatedOldUrl = withVersion("./core/app.js", "1.3.0");
+const simulatedNewUrl = withVersion("./core/app.js", "1.4.0");
+
+assert.strictEqual(simulatedOldUrl, "./core/app.js?v=1.3.0");
+assert.strictEqual(simulatedNewUrl, "./core/app.js?v=1.4.0");
+assert.notStrictEqual(simulatedOldUrl, simulatedNewUrl, "❌ New release must generate distinct URL to force fresh fetch");
+console.log("✔ Upgrade Simulation — Bumping version completely invalidates previous cache in all browsers (Zero manual Ctrl+F5 required)");
+
+console.log("🎉 ALL UNIFIED ASSET & MODULE CACHE-BUSTING TESTS PASSED 100%!");

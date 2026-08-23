@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>UEEH - Space Math Invaders 1984</title>
     
     <!-- Configuración MathJax 3 -->
@@ -484,9 +487,9 @@
     </div>
 
     <script type="module">
-        import { supabase } from '../../core/supabase-client.js';
-        import { submitActivityResult } from '../../core/activity-service.js';
-        import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js';
+        import { supabase } from '../../core/supabase-client.js?v=1.3.0';
+        import { submitActivityResult } from '../../core/activity-service.js?v=1.3.0';
+        import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.3.0';
 
         // ========================================================
         // 1. CONFIGURACIÓN Y CONSTANTES (UEEH)
