@@ -36,7 +36,7 @@ assert.ok(gamContent.includes("checkInFlight") || gamContent.includes("_submitti
 assert.ok(gamContent.includes("checkExercise"), "❌ gamificacion.html must import and call checkExercise");
 assert.ok(gamContent.includes("getExerciseProgress"), "❌ gamificacion.html must import and call getExerciseProgress");
 assert.ok(gamContent.includes("submitActivityResult"), "❌ gamificacion.html must delegate final grade to submitActivityResult");
-assert.ok(gamContent.includes("import { supabase } from '../../core/supabase-client.js'"), "❌ gamificacion.html must import singleton supabase client");
+assert.match(gamContent, /import\s+\{\s*supabase\s*\}\s+from\s+['"]\.\.\/\.\.\/core\/supabase-client\.js(?:\?v=[^'"]+)?['"]/, "❌ gamificacion.html must import singleton supabase client");
 
 // Verify all missions have solution: null
 const missionRegex = /const MISSIONS\s*=\s*(\[[\s\S]*?\]);/;
@@ -69,7 +69,7 @@ assert.ok(debContent.includes("_pendingSubmission"), "❌ deber.html must implem
 assert.ok(debContent.includes("checkExercise"), "❌ deber.html must import and call checkExercise");
 assert.ok(debContent.includes("getExerciseProgress"), "❌ deber.html must import and call getExerciseProgress");
 assert.ok(debContent.includes("submitActivityResult"), "❌ deber.html must delegate final grade to submitActivityResult");
-assert.ok(debContent.includes("import { supabase } from '../../core/supabase-client.js'"), "❌ deber.html must import singleton supabase client");
+assert.match(debContent, /import\s+\{\s*supabase\s*\}\s+from\s+['"]\.\.\/\.\.\/core\/supabase-client\.js(?:\?v=[^'"]+)?['"]/, "❌ deber.html must import singleton supabase client");
 
 // Verify exercisesVisual (20) and recoveryVisual (10)
 const exMatch = debContent.match(/const exercisesVisual\s*=\s*(\[[\s\S]*?\]);/);

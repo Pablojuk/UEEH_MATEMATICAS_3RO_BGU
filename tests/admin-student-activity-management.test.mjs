@@ -9,7 +9,7 @@
 // 5. Audit log generation for RESET_ACTIVITY and REOPEN_ACTIVITY
 // 6. Admin API and Frontend contract conformance
 // 7. UI confirmation safety message and UUID extraction guarantee
-// 8. Student UUID 5-level fallback resolution (id, student_id, gradeInfo, code lookup, name lookup)
+// 8. Student UUID resolution with a canonical student catalog fallback
 // ═══════════════════════════════════════════════════════════════════════════
 
 import fs from "fs";
@@ -60,9 +60,10 @@ console.log("✔ Audit Trail — RESET_ACTIVITY and REOPEN_ACTIVITY audit logs c
 
 // D. Reopen architecture
 assert.ok(migrationSql.includes("FUNCTION private.admin_reopen_student_activity"), "❌ private.admin_reopen_student_activity must be defined");
-assert.ok(migrationSql.includes("UPDATE public.activity_exercise_progress\n  SET locked = false"), "❌ Reopen must unlock exercises");
+assert.ok(migrationSql.includes("private.get_or_create_active_run(p_activity_id, p_student_id)"), "❌ Reopen must resolve or create a new active run");
+assert.ok(!migrationSql.includes("SET locked = false"), "❌ Reopen must preserve the locked historical progress instead of mutating it");
 
-console.log("✔ Reopen Architecture — admin_reopen_student_activity unlocks progress while preserving history & logging audit");
+console.log("✔ Reopen Architecture — admin_reopen_student_activity creates an active run while preserving history & logging audit");
 
 // E. RBAC
 assert.ok(migrationSql.includes("REVOKE EXECUTE ON FUNCTION public.admin_reset_student_activity(uuid, uuid, uuid, text) FROM PUBLIC, anon, authenticated;"), "❌ admin_reset_student_activity must be revoked from public/students");
@@ -96,19 +97,19 @@ assert.ok(adminActJs.includes("resolveStudentUuid"), "❌ admin-activities.js mu
 assert.ok(adminActJs.includes("getVerifiedActivityId"), "❌ admin-activities.js must verify activity UUID before invocation");
 assert.ok(adminActJs.includes("getVerifiedStudentId"), "❌ admin-activities.js must verify student UUID before invocation");
 
-// Student UUID 5-level fallback chain in resolveStudentUuid
+// Student UUID resolver includes matrix and canonical-catalog fallbacks.
 assert.ok(adminActJs.includes("// 1. student.id (UUID directo del objeto de la matriz)"), "❌ resolveStudentUuid must document level 1: student.id");
 assert.ok(adminActJs.includes("// 2. student.student_id (alias UUID)"), "❌ resolveStudentUuid must document level 2: student.student_id");
 assert.ok(adminActJs.includes("// 3. gradeInfo.student_id (UUID del registro de calificación)"), "❌ resolveStudentUuid must document level 3: gradeInfo.student_id");
 assert.ok(adminActJs.includes("// 4. Búsqueda por código institucional en la matriz vigente"), "❌ resolveStudentUuid must document level 4: code lookup");
-assert.ok(adminActJs.includes("// 5. Búsqueda por nombre completo como último fallback"), "❌ resolveStudentUuid must document level 5: name lookup");
+assert.ok(adminActJs.includes("Catálogo administrativo canónico"), "❌ resolveStudentUuid must use the canonical student catalog");
 
-// getVerifiedStudentId also has 5-level fallback
+// getVerifiedStudentId also uses the canonical catalog fallback
 assert.ok(adminActJs.includes("// 1. data-student-id directo del atributo HTML"), "❌ getVerifiedStudentId must check data-student-id first");
 assert.ok(adminActJs.includes("// 2. student.id del objeto closure"), "❌ getVerifiedStudentId must check closure student.id");
 assert.ok(adminActJs.includes("// 3. student.student_id del objeto closure"), "❌ getVerifiedStudentId must check closure student.student_id");
 assert.ok(adminActJs.includes("// 4. Búsqueda por código institucional en la matriz vigente"), "❌ getVerifiedStudentId must search by code");
-assert.ok(adminActJs.includes("// 5. Búsqueda por nombre completo como último fallback"), "❌ getVerifiedStudentId must search by name");
+assert.ok(adminActJs.includes("fetchStudents({ status: \"active\" })"), "❌ grade matrix must preload the canonical active-student catalog");
 
 // Buttons have data-student-code for fallback
 assert.ok(adminActJs.includes('data-student-code="${escapeHTML(student.student_code'), "❌ Buttons must include data-student-code for fallback lookup");
@@ -119,7 +120,7 @@ assert.ok(adminActJs.includes("Esta acción afecta solamente a este estudiante."
 // Mandatory reason
 assert.ok(adminActJs.includes("El motivo es obligatorio para el registro de auditoría."), "❌ UI must enforce mandatory reason for audit trail");
 
-console.log("✔ Admin Frontend — Student detail modal includes 5-level UUID resolver for both student and activity, with code/name fallback");
+console.log("✔ Admin Frontend — Student detail modal resolves UUIDs from the matrix and the canonical student catalog");
 
 // ────────────────────────────────────────────────────────────
 // 4. Edge Function returns student UUID in matrix response
@@ -375,25 +376,21 @@ console.log("✔ Behavioral Simulation — ZZ_TEST_VISUAL_U5 reset successful; o
 // 8. REOPEN SIMULATION
 // ────────────────────────────────────────────────────────────
 
-// Student 2 already has prg-2 with locked=true from the reset simulation (only student 1 was cleaned)
-
 function simulateReopen(adminId, studentId, activityId, reason) {
   validatePayload(studentId, activityId, reason);
 
-  let unlocked = 0;
-  for (const p of testDb.exercise_progress) {
-    if (p.student_id === studentId && p.activity_id === activityId && p.locked) {
-      p.locked = false;
-      unlocked++;
-    }
-  }
+  const existingActive = testDb.runs.find(r => r.student_id === studentId && r.activity_id === activityId && r.status === "in_progress");
+  const reopenedRun = existingActive || {
+    id: "run-reopened-2", student_id: studentId, activity_id: activityId, status: "in_progress"
+  };
+  if (!existingActive) testDb.runs.push(reopenedRun);
 
   testDb.audit_logs.push({
     actor_user_id: adminId, action: "REOPEN_ACTIVITY", entity_type: "activity",
     entity_id: activityId, metadata: { student_id: studentId, activity_id: activityId, reason: reason.trim() }
   });
 
-  return { success: true, unlocked };
+  return { success: true, reopened_run_id: reopenedRun.id, created_new_run: !existingActive };
 }
 
 const reopenRes = simulateReopen(
@@ -404,15 +401,16 @@ const reopenRes = simulateReopen(
 );
 
 assert.strictEqual(reopenRes.success, true);
-assert.ok(reopenRes.unlocked >= 1, "❌ At least 1 progress entry must be unlocked");
+assert.strictEqual(reopenRes.created_new_run, true, "❌ Reopen must create a fresh active run when the previous run was submitted");
 
-// Verify the progress was unlocked for student 2
+// Verify historical progress stays immutable
 const student2Prog = testDb.exercise_progress.find(p => p.student_id === "22222222-2222-4222-8222-222222222222");
-assert.strictEqual(student2Prog.locked, false, "❌ Student 2 progress must be unlocked after reopen");
+assert.strictEqual(student2Prog.locked, true, "❌ Historical progress must remain locked after reopen");
 
-// Verify other students' locked status preserved
+// Verify other students' records remain isolated
 const student3Prog = testDb.exercise_progress.find(p => p.student_id === "33333333-3333-4333-8333-333333333333");
 assert.strictEqual(student3Prog.locked, true, "❌ Student 3 progress must remain locked");
+assert.strictEqual(testDb.runs.filter(r => r.student_id === "33333333-3333-4333-8333-333333333333").length, 0, "❌ Reopen must not create a run for another student");
 
 // Audit log has both entries
 assert.strictEqual(testDb.audit_logs.length, 2);
@@ -422,6 +420,6 @@ assert.strictEqual(testDb.audit_logs[1].action, "REOPEN_ACTIVITY");
 assert.strictEqual(testDb.students.length, 3, "❌ Students table must NOT be modified by reopen");
 assert.strictEqual(testDb.activities.length, 1, "❌ Activities table must NOT be modified by reopen");
 
-console.log("✔ Reopen Simulation — Student 2 unlocked; Student 3 remains locked; students/activities/enrollments intact");
+console.log("✔ Reopen Simulation — Student 2 has a new active run; historical records and other students remain intact");
 
 console.log("🎉 ALL ADMIN INDIVIDUAL STUDENT ACTIVITY MANAGEMENT TESTS PASSED 100%!");

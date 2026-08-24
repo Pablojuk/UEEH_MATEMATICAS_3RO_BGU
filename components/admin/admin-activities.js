@@ -10,6 +10,7 @@ import {
   reopenActivity,
   fetchAcademicYears,
   fetchClassSections,
+  fetchStudents,
   fetchStudentGradesMatrix,
   adminResetStudentActivity,
   adminReopenStudentActivity
@@ -19,6 +20,9 @@ let currentSubView = "grades"; // "grades" (DEFAULT) | "manage"
 let selectedUnitNumber = 5;
 let currentMatrixData = null;
 let currentActivities = [];
+// Catálogo canónico independiente de la matriz. Es el respaldo para versiones
+// anteriores de la API que aún no incluían el UUID dentro de cada fila de nota.
+let currentStudents = [];
 let academicYears = [];
 let classSections = [];
 
@@ -146,12 +150,19 @@ async function loadAndRenderGradesMatrix() {
   const container = document.getElementById("grades-matrix-container");
 
   try {
-    const [matrixData, adminActivities] = await Promise.all([
+    const [matrixData, adminActivities, students] = await Promise.all([
       fetchStudentGradesMatrix(selectedUnitNumber),
-      Array.isArray(currentActivities) && currentActivities.length > 0 ? Promise.resolve(currentActivities) : fetchActivitiesAdminList()
+      Array.isArray(currentActivities) && currentActivities.length > 0 ? Promise.resolve(currentActivities) : fetchActivitiesAdminList(),
+      // No impedir la consulta de notas si una versión antigua de la API no
+      // soporta este catálogo; los UUID que ya vengan en la matriz siguen siendo
+      // suficientes en ese caso.
+      fetchStudents({ status: "active" }).catch(() => [])
     ]);
     if (Array.isArray(adminActivities) && adminActivities.length > 0) {
       currentActivities = adminActivities;
+    }
+    if (Array.isArray(students)) {
+      currentStudents = students;
     }
     currentMatrixData = matrixData;
     filterAndRenderLocalGrades();
@@ -329,9 +340,22 @@ function resolveStudentUuid(student, gradeInfo) {
     if (byCode?.id && UUID_REGEX.test(byCode.id)) return byCode.id;
     if (byCode?.student_id && UUID_REGEX.test(byCode.student_id)) return byCode.student_id;
   }
-  // 5. Búsqueda por nombre completo como último fallback
+  // 5. Catálogo administrativo canónico, por código institucional estable.
+  if (student?.student_code && Array.isArray(currentStudents)) {
+    const byCode = currentStudents.find(s => s.student_code === student.student_code);
+    if (byCode?.id && UUID_REGEX.test(byCode.id)) return byCode.id;
+    if (byCode?.student_id && UUID_REGEX.test(byCode.student_id)) return byCode.student_id;
+  }
+  // 6. Búsqueda por nombre completo como último fallback (solo si es única).
   if (student?.official_full_name && currentMatrixData?.students) {
-    const byName = currentMatrixData.students.find(s => s.official_full_name === student.official_full_name);
+    const matches = currentMatrixData.students.filter(s => s.official_full_name === student.official_full_name);
+    const byName = matches.length === 1 ? matches[0] : null;
+    if (byName?.id && UUID_REGEX.test(byName.id)) return byName.id;
+    if (byName?.student_id && UUID_REGEX.test(byName.student_id)) return byName.student_id;
+  }
+  if (student?.official_full_name && Array.isArray(currentStudents)) {
+    const matches = currentStudents.filter(s => s.official_full_name === student.official_full_name);
+    const byName = matches.length === 1 ? matches[0] : null;
     if (byName?.id && UUID_REGEX.test(byName.id)) return byName.id;
     if (byName?.student_id && UUID_REGEX.test(byName.student_id)) return byName.student_id;
   }
@@ -509,7 +533,7 @@ async function openStudentGradeDetailModal(student, unitNumber, matrixData) {
     return null;
   };
 
-  // Helper para asegurar obtención del UUID del estudiante (5 niveles de fallback)
+  // Helper para asegurar obtención del UUID del estudiante (catálogo canónico incluido)
   const getVerifiedStudentId = (btn) => {
     // 1. data-student-id directo del atributo HTML
     const attrId = btn.getAttribute("data-student-id");
@@ -529,9 +553,24 @@ async function openStudentGradeDetailModal(student, unitNumber, matrixData) {
       if (byCode?.student_id && UUID_REGEX.test(byCode.student_id)) return byCode.student_id;
     }
 
-    // 5. Búsqueda por nombre completo como último fallback
+    // 5. Catálogo administrativo canónico por código institucional.
+    if (stCode && Array.isArray(currentStudents)) {
+      const byCode = currentStudents.find(s => s.student_code === stCode);
+      if (byCode?.id && UUID_REGEX.test(byCode.id)) return byCode.id;
+      if (byCode?.student_id && UUID_REGEX.test(byCode.student_id)) return byCode.student_id;
+    }
+
+    // 6. Búsqueda por nombre completo, únicamente cuando no es ambiguo.
     if (student?.official_full_name && currentMatrixData?.students) {
-      const byName = currentMatrixData.students.find(s => s.official_full_name === student.official_full_name);
+      const matches = currentMatrixData.students.filter(s => s.official_full_name === student.official_full_name);
+      const byName = matches.length === 1 ? matches[0] : null;
+      if (byName?.id && UUID_REGEX.test(byName.id)) return byName.id;
+      if (byName?.student_id && UUID_REGEX.test(byName.student_id)) return byName.student_id;
+    }
+
+    if (student?.official_full_name && Array.isArray(currentStudents)) {
+      const matches = currentStudents.filter(s => s.official_full_name === student.official_full_name);
+      const byName = matches.length === 1 ? matches[0] : null;
       if (byName?.id && UUID_REGEX.test(byName.id)) return byName.id;
       if (byName?.student_id && UUID_REGEX.test(byName.student_id)) return byName.student_id;
     }
@@ -555,7 +594,7 @@ async function openStudentGradeDetailModal(student, unitNumber, matrixData) {
         return;
       }
 
-      const confirmMsg = `Esta acción afecta solamente a este estudiante.\n\n¿Estás seguro de reabrir la actividad "${actTitle}" para ${student.official_full_name}?\n\nSe retirará el bloqueo de ejercicios para permitir una nueva entrega sin eliminar su historial.`;
+      const confirmMsg = `Esta acción afecta solamente a este estudiante.\n\n¿Estás seguro de reabrir la actividad "${actTitle}" para ${student.official_full_name}?\n\nSe creará una nueva ejecución para que pueda realizarla nuevamente. Sus intentos y entregas anteriores se conservarán en el historial.`;
       if (!confirm(confirmMsg)) return;
 
       const reason = prompt("Motivo de la reapertura (obligatorio para auditoría):", "Reapertura de plazo especial por el docente");

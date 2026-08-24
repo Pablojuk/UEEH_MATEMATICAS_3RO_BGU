@@ -145,8 +145,9 @@ DECLARE
   v_is_admin boolean;
   v_student_exists boolean;
   v_activity_key text;
-  v_unlocked_progress_count integer := 0;
-  v_unlocked_runs_count integer := 0;
+  v_reopened_run_id uuid;
+  v_existing_active_run_id uuid;
+  v_created_new_run boolean := false;
   v_cleared_auto_results_count integer := 0;
 BEGIN
   -- 1. Validar actor admin
@@ -178,15 +179,8 @@ BEGIN
   -- Lock transaccional determinista
   PERFORM pg_advisory_xact_lock(hashtext(p_activity_id::text || ':' || p_student_id::text || ':reopen'));
 
-  -- 3. Retirar bloqueo en progreso de ejercicios sin eliminar historial
-  UPDATE public.activity_exercise_progress
-  SET locked = false, updated_at = now()
-  WHERE student_id = p_student_id
-    AND activity_id = p_activity_id
-    AND locked = true;
-  GET DIAGNOSTICS v_unlocked_progress_count = ROW_COUNT;
-
-  -- 4. Si la actividad tiene resultado de cierre automático sin entregas reales, limpiarlo para permitir entrega
+  -- 3. Si la actividad tiene resultado de cierre automático sin entregas reales,
+  -- retirarlo para permitir que continúe la misma ejecución pendiente.
   DELETE FROM public.activity_results
   WHERE student_id = p_student_id
     AND activity_id = p_activity_id
@@ -195,13 +189,17 @@ BEGIN
     AND attempt_count = 0;
   GET DIAGNOSTICS v_cleared_auto_results_count = ROW_COUNT;
 
-  -- 5. Si existe un run in_progress, asegurar que quede activo
-  UPDATE public.activity_runs
-  SET status = 'in_progress'
+  -- 4. Una actividad ya enviada requiere una NUEVA ejecución. No se alteran los
+  -- checks ni el progreso histórico: cada run conserva su propia trazabilidad.
+  SELECT id INTO v_existing_active_run_id
+  FROM public.activity_runs
   WHERE student_id = p_student_id
     AND activity_id = p_activity_id
-    AND status = 'in_progress';
-  GET DIAGNOSTICS v_unlocked_runs_count = ROW_COUNT;
+    AND status = 'in_progress'
+  LIMIT 1;
+
+  v_reopened_run_id := private.get_or_create_active_run(p_activity_id, p_student_id);
+  v_created_new_run := v_existing_active_run_id IS NULL;
 
   -- 6. Registrar en audit_logs
   INSERT INTO public.audit_logs (
@@ -220,7 +218,8 @@ BEGIN
       'activity_id', p_activity_id,
       'activity_key', v_activity_key,
       'reason', COALESCE(NULLIF(trim(p_reason), ''), 'Reapertura administrativa de actividad'),
-      'unlocked_progress_count', v_unlocked_progress_count,
+      'reopened_run_id', v_reopened_run_id,
+      'created_new_run', v_created_new_run,
       'cleared_auto_results_count', v_cleared_auto_results_count
     )
   );
@@ -231,7 +230,8 @@ BEGIN
     'student_id', p_student_id,
     'activity_id', p_activity_id,
     'activity_key', v_activity_key,
-    'unlocked_progress_count', v_unlocked_progress_count,
+    'reopened_run_id', v_reopened_run_id,
+    'created_new_run', v_created_new_run,
     'cleared_auto_results_count', v_cleared_auto_results_count
   );
 END;
