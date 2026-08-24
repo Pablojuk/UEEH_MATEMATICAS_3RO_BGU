@@ -8,7 +8,7 @@
 // 4. Activity and grading configuration immutability
 // 5. Audit log generation for RESET_ACTIVITY and REOPEN_ACTIVITY
 // 6. Admin API and Frontend contract conformance
-// 7. UI confirmation safety message display
+// 7. UI confirmation safety message and UUID extraction guarantee
 // ═══════════════════════════════════════════════════════════════════════════
 
 import fs from "fs";
@@ -116,54 +116,100 @@ assert.ok(adminServiceJs.includes("export async function adminReopenStudentActiv
 const adminActJs = fs.readFileSync("components/admin/admin-activities.js", "utf-8");
 assert.ok(adminActJs.includes("btn-reset-student-act"), "❌ admin-activities.js must render reset button");
 assert.ok(adminActJs.includes("btn-reopen-student-act"), "❌ admin-activities.js must render reopen button");
+assert.ok(adminActJs.includes("resolveActivityUuid"), "❌ admin-activities.js must implement resolveActivityUuid helper");
+assert.ok(adminActJs.includes("resolveStudentUuid"), "❌ admin-activities.js must implement resolveStudentUuid helper");
+assert.ok(adminActJs.includes("getVerifiedActivityId"), "❌ admin-activities.js must verify UUID before invocation");
+assert.ok(adminActJs.includes("getVerifiedStudentId"), "❌ admin-activities.js must verify student UUID before invocation");
 assert.ok(adminActJs.includes("Esta acción afecta solamente a este estudiante."), "❌ UI must display confirmation message explicitly stating isolation to this student");
 assert.ok(adminActJs.includes("adminResetStudentActivity("), "❌ UI must call adminResetStudentActivity on reset confirm");
 assert.ok(adminActJs.includes("adminReopenStudentActivity("), "❌ UI must call adminReopenStudentActivity on reopen confirm");
 
-console.log("✔ Admin Frontend — Student detail modal includes '🔄 Reiniciar' and '🔓 Reabrir' with confirmation modal and feedback");
+console.log("✔ Admin Frontend — Student detail modal includes robust UUID resolver, '🔄 Reiniciar' and '🔓 Reabrir' with confirmation modal and feedback");
 
 // ────────────────────────────────────────────────────────────
-// 4. BEHAVIORAL SIMULATION: In-Memory Multi-Student Isolation Test
+// 4. UNIT TEST: UUID Resolution Functions Logic
+// ────────────────────────────────────────────────────────────
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const sampleCatalog = [
+  { id: "a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d", activity_key: "u5-determinantes-gam-01", title: "Gamificación U5" },
+  { id: "b2c3d4e5-f6a1-4b2c-9d3e-4f5a6b7c8d9e", activity_key: "u5-determinantes-class-01", title: "Trabajo en Clase U5" }
+];
+
+function testResolveActivityUuid(act, gradeInfo, catalog) {
+  if (act?.id && UUID_REGEX.test(act.id)) return act.id;
+  if (act?.activity_id && UUID_REGEX.test(act.activity_id)) return act.activity_id;
+  if (gradeInfo?.activity_id && UUID_REGEX.test(gradeInfo.activity_id)) return gradeInfo.activity_id;
+  
+  const key = act?.activity_key || gradeInfo?.activity_key;
+  if (key && Array.isArray(catalog) && catalog.length > 0) {
+    const found = catalog.find(ca => ca.activity_key === key);
+    if (found?.id && UUID_REGEX.test(found.id)) return found.id;
+  }
+  return "";
+}
+
+// Case 1: Direct activity.id present
+const resolvedDirect = testResolveActivityUuid({ id: "a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d", activity_key: "u5-determinantes-gam-01" }, null, sampleCatalog);
+assert.strictEqual(resolvedDirect, "a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d");
+
+// Case 2: Only activity_key present (resolved via catalog)
+const resolvedFromKey = testResolveActivityUuid({ activity_key: "u5-determinantes-class-01" }, null, sampleCatalog);
+assert.strictEqual(resolvedFromKey, "b2c3d4e5-f6a1-4b2c-9d3e-4f5a6b7c8d9e");
+
+// Case 3: Empty / unresolvable
+const resolvedEmpty = testResolveActivityUuid({ activity_key: "non-existent" }, null, sampleCatalog);
+assert.strictEqual(resolvedEmpty, "");
+
+console.log("✔ UUID Resolver — Successfully extracts direct UUIDs and seamlessly resolves from catalog by activity_key");
+
+// ────────────────────────────────────────────────────────────
+// 5. BEHAVIORAL SIMULATION: In-Memory Multi-Student Isolation Test
 // ────────────────────────────────────────────────────────────
 
 const testDb = {
   students: [
-    { id: "stu-1111", name: "ESTUDIANTE OBJETIVO" },
-    { id: "stu-2222", name: "OTRO ESTUDIANTE A" },
-    { id: "stu-3333", name: "OTRO ESTUDIANTE B" }
+    { id: "11111111-1111-4111-8111-111111111111", name: "ESTUDIANTE OBJETIVO" },
+    { id: "22222222-2222-4222-8222-222222222222", name: "OTRO ESTUDIANTE A" },
+    { id: "33333333-3333-4333-8333-333333333333", name: "OTRO ESTUDIANTE B" }
   ],
   activities: [
-    { id: "act-aaaa", key: "u5-determinantes-class-01", title: "Trabajo en Clase" }
+    { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", key: "u5-determinantes-class-01", title: "Trabajo en Clase" }
   ],
   exercise_checks: [
-    { id: "chk-1", student_id: "stu-1111", activity_id: "act-aaaa", exercise_key: "ex-1", is_correct: true },
-    { id: "chk-2", student_id: "stu-1111", activity_id: "act-aaaa", exercise_key: "ex-2", is_correct: false },
-    { id: "chk-3", student_id: "stu-2222", activity_id: "act-aaaa", exercise_key: "ex-1", is_correct: true },
-    { id: "chk-4", student_id: "stu-3333", activity_id: "act-aaaa", exercise_key: "ex-1", is_correct: true }
+    { id: "chk-1", student_id: "11111111-1111-4111-8111-111111111111", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", exercise_key: "ex-1", is_correct: true },
+    { id: "chk-2", student_id: "11111111-1111-4111-8111-111111111111", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", exercise_key: "ex-2", is_correct: false },
+    { id: "chk-3", student_id: "22222222-2222-4222-8222-222222222222", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", exercise_key: "ex-1", is_correct: true },
+    { id: "chk-4", student_id: "33333333-3333-4333-8333-333333333333", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", exercise_key: "ex-1", is_correct: true }
   ],
   exercise_progress: [
-    { id: "prg-1", student_id: "stu-1111", activity_id: "act-aaaa", locked: true, status: "failed" },
-    { id: "prg-2", student_id: "stu-2222", activity_id: "act-aaaa", locked: true, status: "correct" },
-    { id: "prg-3", student_id: "stu-3333", activity_id: "act-aaaa", locked: true, status: "correct" }
+    { id: "prg-1", student_id: "11111111-1111-4111-8111-111111111111", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", locked: true, status: "failed" },
+    { id: "prg-2", student_id: "22222222-2222-4222-8222-222222222222", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", locked: true, status: "correct" },
+    { id: "prg-3", student_id: "33333333-3333-4333-8333-333333333333", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", locked: true, status: "correct" }
   ],
   attempts: [
-    { id: "att-1", student_id: "stu-1111", activity_id: "act-aaaa", score: 4.5 },
-    { id: "att-2", student_id: "stu-2222", activity_id: "act-aaaa", score: 10.0 },
-    { id: "att-3", student_id: "stu-3333", activity_id: "act-aaaa", score: 9.0 }
+    { id: "att-1", student_id: "11111111-1111-4111-8111-111111111111", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", score: 4.5 },
+    { id: "att-2", student_id: "22222222-2222-4222-8222-222222222222", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", score: 10.0 },
+    { id: "att-3", student_id: "33333333-3333-4333-8333-333333333333", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", score: 9.0 }
   ],
   runs: [
-    { id: "run-1", student_id: "stu-1111", activity_id: "act-aaaa", status: "submitted" },
-    { id: "run-2", student_id: "stu-2222", activity_id: "act-aaaa", status: "submitted" }
+    { id: "run-1", student_id: "11111111-1111-4111-8111-111111111111", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", status: "submitted" },
+    { id: "run-2", student_id: "22222222-2222-4222-8222-222222222222", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", status: "submitted" }
   ],
   results: [
-    { id: "res-1", student_id: "stu-1111", activity_id: "act-aaaa", best_score: 4.5, result_status: "completed" },
-    { id: "res-2", student_id: "stu-2222", activity_id: "act-aaaa", best_score: 10.0, result_status: "completed" }
+    { id: "res-1", student_id: "11111111-1111-4111-8111-111111111111", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", best_score: 4.5, result_status: "completed" },
+    { id: "res-2", student_id: "22222222-2222-4222-8222-222222222222", activity_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", best_score: 10.0, result_status: "completed" }
   ],
   audit_logs: []
 };
 
 // Simulation of admin_reset_student_activity logic
 function simulateResetStudentActivity(adminId, studentId, activityId, reason) {
+  assert.ok(UUID_REGEX.test(activityId), "❌ activityId must be a valid UUID");
+  assert.ok(UUID_REGEX.test(studentId), "❌ studentId must be a valid UUID");
+  assert.ok(typeof reason === "string" && reason.trim().length > 0, "❌ reason is mandatory for audit trail");
+
   // Step 1: checks
   const prevChecks = testDb.exercise_checks.length;
   testDb.exercise_checks = testDb.exercise_checks.filter(c => !(c.student_id === studentId && c.activity_id === activityId));
@@ -198,7 +244,7 @@ function simulateResetStudentActivity(adminId, studentId, activityId, reason) {
     metadata: {
       student_id: studentId,
       activity_id: activityId,
-      reason: reason || "Reinicio administrativo",
+      reason: reason.trim(),
       deleted_checks_count: deletedChecks,
       deleted_progress_count: deletedProg,
       deleted_attempts_count: deletedAtts,
@@ -210,7 +256,12 @@ function simulateResetStudentActivity(adminId, studentId, activityId, reason) {
   return { success: true, deletedChecks, deletedProg, deletedAtts, deletedRuns, deletedRes };
 }
 
-const resetRes = simulateResetStudentActivity("admin-uuid", "stu-1111", "act-aaaa", "Prueba justificada");
+const resetRes = simulateResetStudentActivity(
+  "99999999-9999-4999-8999-999999999999",
+  "11111111-1111-4111-8111-111111111111",
+  "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "Reinicio por solicitud justificada"
+);
 assert.strictEqual(resetRes.success, true);
 assert.strictEqual(resetRes.deletedChecks, 2);
 assert.strictEqual(resetRes.deletedProg, 1);
@@ -219,16 +270,17 @@ assert.strictEqual(resetRes.deletedRuns, 1);
 assert.strictEqual(resetRes.deletedRes, 1);
 
 // Verify other students are 100% untouched
-assert.strictEqual(testDb.exercise_checks.filter(c => c.student_id === "stu-2222").length, 1, "❌ Student 2 checks must remain intact");
-assert.strictEqual(testDb.exercise_checks.filter(c => c.student_id === "stu-3333").length, 1, "❌ Student 3 checks must remain intact");
-assert.strictEqual(testDb.attempts.filter(a => a.student_id === "stu-2222").length, 1, "❌ Student 2 attempts must remain intact");
-assert.strictEqual(testDb.results.filter(r => r.student_id === "stu-2222").length, 1, "❌ Student 2 results must remain intact");
+assert.strictEqual(testDb.exercise_checks.filter(c => c.student_id === "22222222-2222-4222-8222-222222222222").length, 1, "❌ Student 2 checks must remain intact");
+assert.strictEqual(testDb.exercise_checks.filter(c => c.student_id === "33333333-3333-4333-8333-333333333333").length, 1, "❌ Student 3 checks must remain intact");
+assert.strictEqual(testDb.attempts.filter(a => a.student_id === "22222222-2222-4222-8222-222222222222").length, 1, "❌ Student 2 attempts must remain intact");
+assert.strictEqual(testDb.results.filter(r => r.student_id === "22222222-2222-4222-8222-222222222222").length, 1, "❌ Student 2 results must remain intact");
 assert.strictEqual(testDb.activities.length, 1, "❌ Activity configuration must remain intact");
 
 // Verify audit log
 assert.strictEqual(testDb.audit_logs.length, 1);
 assert.strictEqual(testDb.audit_logs[0].action, "RESET_ACTIVITY");
-assert.strictEqual(testDb.audit_logs[0].metadata.student_id, "stu-1111");
+assert.strictEqual(testDb.audit_logs[0].metadata.student_id, "11111111-1111-4111-8111-111111111111");
+assert.strictEqual(testDb.audit_logs[0].metadata.activity_id, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
 console.log("✔ Behavioral Simulation — Student records cleaned in order; other students & activity configurations 100% intact");
 

@@ -146,7 +146,14 @@ async function loadAndRenderGradesMatrix() {
   const container = document.getElementById("grades-matrix-container");
 
   try {
-    currentMatrixData = await fetchStudentGradesMatrix(selectedUnitNumber);
+    const [matrixData, adminActivities] = await Promise.all([
+      fetchStudentGradesMatrix(selectedUnitNumber),
+      Array.isArray(currentActivities) && currentActivities.length > 0 ? Promise.resolve(currentActivities) : fetchActivitiesAdminList()
+    ]);
+    if (Array.isArray(adminActivities) && adminActivities.length > 0) {
+      currentActivities = adminActivities;
+    }
+    currentMatrixData = matrixData;
     filterAndRenderLocalGrades();
   } catch (err) {
     if (container) {
@@ -294,12 +301,41 @@ function filterAndRenderLocalGrades() {
   });
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function resolveActivityUuid(act, gradeInfo) {
+  if (act?.id && UUID_REGEX.test(act.id)) return act.id;
+  if (act?.activity_id && UUID_REGEX.test(act.activity_id)) return act.activity_id;
+  if (gradeInfo?.activity_id && UUID_REGEX.test(gradeInfo.activity_id)) return gradeInfo.activity_id;
+  
+  const key = act?.activity_key || gradeInfo?.activity_key;
+  if (key && Array.isArray(currentActivities) && currentActivities.length > 0) {
+    const found = currentActivities.find(ca => ca.activity_key === key);
+    if (found?.id && UUID_REGEX.test(found.id)) return found.id;
+  }
+  return "";
+}
+
+function resolveStudentUuid(student, gradeInfo) {
+  if (student?.id && UUID_REGEX.test(student.id)) return student.id;
+  if (student?.student_id && UUID_REGEX.test(student.student_id)) return student.student_id;
+  if (gradeInfo?.student_id && UUID_REGEX.test(gradeInfo.student_id)) return gradeInfo.student_id;
+  return "";
+}
+
 /**
  * Modal con el desglose académico detallado del estudiante.
  */
-function openStudentGradeDetailModal(student, unitNumber, matrixData) {
+async function openStudentGradeDetailModal(student, unitNumber, matrixData) {
   const container = document.getElementById("modal-container");
   if (!container) return;
+
+  // Asegurar que el catálogo de actividades con UUIDs esté en memoria
+  if (!Array.isArray(currentActivities) || currentActivities.length === 0) {
+    try {
+      currentActivities = await fetchActivitiesAdminList();
+    } catch (_) {}
+  }
 
   const { activities = [] } = matrixData;
 
@@ -347,7 +383,8 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
       }
 
       const dueDateDisplay = formatDate(act.due_at);
-      const actId = act.id || act.activity_id || gradeInfo?.activity_id || "";
+      const actId = resolveActivityUuid(act, gradeInfo);
+      const studentId = resolveStudentUuid(student, gradeInfo);
 
       return `
         <tr class="border-b border-neutral-100 text-xs">
@@ -360,10 +397,10 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
           <td class="px-5 py-4 text-neutral-500 font-mono text-[11px]">${dueDateDisplay}</td>
           <td class="px-5 py-4 text-right">
             <div class="flex items-center justify-end gap-1.5">
-              <button data-activity-id="${escapeHTML(actId)}" data-activity-title="${escapeHTML(act.title)}" class="btn-reopen-student-act px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reabrir actividad para este estudiante">
+              <button data-activity-id="${escapeHTML(actId)}" data-activity-key="${escapeHTML(act.activity_key || '')}" data-activity-title="${escapeHTML(act.title)}" data-student-id="${escapeHTML(studentId)}" class="btn-reopen-student-act px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reabrir actividad para este estudiante">
                 <span>🔓</span> Reabrir
               </button>
-              <button data-activity-id="${escapeHTML(actId)}" data-activity-title="${escapeHTML(act.title)}" class="btn-reset-student-act px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reiniciar completamente actividad para este estudiante">
+              <button data-activity-id="${escapeHTML(actId)}" data-activity-key="${escapeHTML(act.activity_key || '')}" data-activity-title="${escapeHTML(act.title)}" data-student-id="${escapeHTML(studentId)}" class="btn-reset-student-act px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reiniciar completamente actividad para este estudiante">
                 <span>🔄</span> Reiniciar
               </button>
             </div>
@@ -439,25 +476,61 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
   container.querySelector("#btn-close-detail-modal")?.addEventListener("click", closeModalFn);
   container.querySelector("#btn-close-detail-modal-bottom")?.addEventListener("click", closeModalFn);
 
+  // Helper para asegurar obtención del UUID de actividad antes de invocar
+  const getVerifiedActivityId = async (btn) => {
+    let actId = btn.getAttribute("data-activity-id");
+    if (actId && UUID_REGEX.test(actId)) return actId;
+
+    const actKey = btn.getAttribute("data-activity-key");
+    if (actKey) {
+      try {
+        if (!currentActivities || currentActivities.length === 0) {
+          currentActivities = await fetchActivitiesAdminList();
+        }
+        const found = currentActivities.find(ca => ca.activity_key === actKey);
+        if (found?.id && UUID_REGEX.test(found.id)) return found.id;
+      } catch (_) {}
+    }
+    return null;
+  };
+
+  // Helper para asegurar obtención del UUID del estudiante
+  const getVerifiedStudentId = (btn) => {
+    let sId = btn.getAttribute("data-student-id") || student.id || student.student_id;
+    if (sId && UUID_REGEX.test(sId)) return sId;
+    return null;
+  };
+
   // Bind Reabrir Actividad
   container.querySelectorAll(".btn-reopen-student-act").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      const actId = btn.getAttribute("data-activity-id");
       const actTitle = btn.getAttribute("data-activity-title");
+      const actId = await getVerifiedActivityId(btn);
+      const studentId = getVerifiedStudentId(btn);
+
       if (!actId) {
-        alert("ID de actividad no disponible.");
+        alert(`Error: No se pudo obtener el identificador UUID de la actividad "${actTitle}".`);
         return;
       }
+      if (!studentId) {
+        alert(`Error: No se pudo obtener el identificador UUID del estudiante "${student.official_full_name}".`);
+        return;
+      }
+
       const confirmMsg = `Esta acción afecta solamente a este estudiante.\n\n¿Estás seguro de reabrir la actividad "${actTitle}" para ${student.official_full_name}?\n\nSe retirará el bloqueo de ejercicios para permitir una nueva entrega sin eliminar su historial.`;
       if (!confirm(confirmMsg)) return;
 
-      const reason = prompt("Motivo de la reapertura:", "Reapertura de plazo especial por el docente");
+      const reason = prompt("Motivo de la reapertura (obligatorio para auditoría):", "Reapertura de plazo especial por el docente");
       if (reason === null) return;
+      if (!reason.trim()) {
+        alert("El motivo es obligatorio para el registro de auditoría.");
+        return;
+      }
 
       try {
         btn.disabled = true;
         btn.textContent = "⏳ Reabriendo...";
-        await adminReopenStudentActivity(student.id || student.student_id, actId, reason);
+        await adminReopenStudentActivity(studentId, actId, reason.trim());
         alert(`✓ Actividad "${actTitle}" reabierta exitosamente para ${student.official_full_name}.`);
         closeModalFn();
         await loadAndRenderGradesMatrix();
@@ -472,22 +545,33 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
   // Bind Reiniciar Actividad
   container.querySelectorAll(".btn-reset-student-act").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      const actId = btn.getAttribute("data-activity-id");
       const actTitle = btn.getAttribute("data-activity-title");
+      const actId = await getVerifiedActivityId(btn);
+      const studentId = getVerifiedStudentId(btn);
+
       if (!actId) {
-        alert("ID de actividad no disponible.");
+        alert(`Error: No se pudo obtener el identificador UUID de la actividad "${actTitle}".`);
         return;
       }
+      if (!studentId) {
+        alert(`Error: No se pudo obtener el identificador UUID del estudiante "${student.official_full_name}".`);
+        return;
+      }
+
       const confirmMsg = `Esta acción afecta solamente a este estudiante.\n\n¿Estás seguro de reiniciar completamente la actividad "${actTitle}" para ${student.official_full_name}?\n\n⚠️ ADVERTENCIA: Se eliminarán todos los registros de intentos y comprobaciones de este estudiante en esta actividad para permitirle comenzar desde cero.`;
       if (!confirm(confirmMsg)) return;
 
-      const reason = prompt("Motivo del reinicio:", "Reinicio administrativo por solicitud justificada");
+      const reason = prompt("Motivo del reinicio (obligatorio para auditoría):", "Reinicio administrativo por solicitud justificada");
       if (reason === null) return;
+      if (!reason.trim()) {
+        alert("El motivo es obligatorio para el registro de auditoría.");
+        return;
+      }
 
       try {
         btn.disabled = true;
         btn.textContent = "⏳ Reiniciando...";
-        await adminResetStudentActivity(student.id || student.student_id, actId, reason);
+        await adminResetStudentActivity(studentId, actId, reason.trim());
         alert(`✓ Actividad "${actTitle}" reiniciada exitosamente para ${student.official_full_name}.`);
         closeModalFn();
         await loadAndRenderGradesMatrix();
