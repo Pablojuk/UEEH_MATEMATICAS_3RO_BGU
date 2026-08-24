@@ -623,6 +623,74 @@ serve(async (req) => {
       });
     }
 
+    // --- ACCIÓN: RESET STUDENT ACTIVITY (Reinicio individual de actividad) ---
+    if (action === "reset_student_activity" || action === "admin_reset_student_activity") {
+      const { student_id, activity_id, reason } = payload || {};
+      if (!student_id || !UUID_REGEX.test(student_id)) {
+        return new Response(JSON.stringify({ success: false, error: "ID de estudiante no válido" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      if (!activity_id || !UUID_REGEX.test(activity_id)) {
+        return new Response(JSON.stringify({ success: false, error: "ID de actividad no válido" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const { data: rpcRes, error: rpcErr } = await serviceClient.rpc("admin_reset_student_activity", {
+        p_admin_user_id: user.id,
+        p_student_id: student_id,
+        p_activity_id: activity_id,
+        p_reason: reason || "Reinicio administrativo de actividad"
+      });
+
+      if (rpcErr || !rpcRes) {
+        console.error("Error RPC admin_reset_student_activity:", rpcErr);
+        throw new Error("ADMIN_OPERATION_FAILED");
+      }
+
+      return new Response(JSON.stringify({ success: true, data: rpcRes }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // --- ACCIÓN: REOPEN STUDENT ACTIVITY (Reapertura individual de actividad) ---
+    if (action === "reopen_student_activity" || action === "admin_reopen_student_activity") {
+      const { student_id, activity_id, reason } = payload || {};
+      if (!student_id || !UUID_REGEX.test(student_id)) {
+        return new Response(JSON.stringify({ success: false, error: "ID de estudiante no válido" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      if (!activity_id || !UUID_REGEX.test(activity_id)) {
+        return new Response(JSON.stringify({ success: false, error: "ID de actividad no válido" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const { data: rpcRes, error: rpcErr } = await serviceClient.rpc("admin_reopen_student_activity", {
+        p_admin_user_id: user.id,
+        p_student_id: student_id,
+        p_activity_id: activity_id,
+        p_reason: reason || "Reapertura administrativa de actividad"
+      });
+
+      if (rpcErr || !rpcRes) {
+        console.error("Error RPC admin_reopen_student_activity:", rpcErr);
+        throw new Error("ADMIN_OPERATION_FAILED");
+      }
+
+      return new Response(JSON.stringify({ success: true, data: rpcRes }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     // --- ACCIÓN: GRADEBOOK DATA ---
     if (action === "gradebook_data" || action === "admin_get_gradebook_data") {
       const { data: rpcRes, error: rpcErr } = await serviceClient.rpc("admin_get_gradebook_data", {
@@ -805,8 +873,10 @@ serve(async (req) => {
         }
       }
 
-      // 4. Construir matriz sanitizada (NUNCA exponer UUIDs ni datos sensibles)
+      // 4. Construir matriz sanitizada
       const sanitizedActivities = actList.map(a => ({
+        id: a.id,
+        activity_id: a.id,
         activity_key: a.activity_key,
         title: a.title,
         activity_type: a.activity_type,
@@ -836,6 +906,8 @@ serve(async (req) => {
 
           if (res) {
             grades[act.activity_key] = {
+              activity_id: act.id,
+              student_id: s.id,
               result_status: res.result_status,
               best_score: Number(res.best_score),
               attempt_count: res.attempt_count,
@@ -850,6 +922,8 @@ serve(async (req) => {
         }
 
         return {
+          id: s.id,
+          student_id: s.id,
           student_code: s.student_code,
           official_full_name: s.official_full_name,
           grades

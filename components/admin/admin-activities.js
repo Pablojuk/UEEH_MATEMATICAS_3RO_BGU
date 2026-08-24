@@ -10,7 +10,9 @@ import {
   reopenActivity,
   fetchAcademicYears,
   fetchClassSections,
-  fetchStudentGradesMatrix
+  fetchStudentGradesMatrix,
+  adminResetStudentActivity,
+  adminReopenStudentActivity
 } from "../../core/admin-service.js";
 
 let currentSubView = "grades"; // "grades" (DEFAULT) | "manage"
@@ -345,6 +347,7 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
       }
 
       const dueDateDisplay = formatDate(act.due_at);
+      const actId = act.id || act.activity_id || gradeInfo?.activity_id || "";
 
       return `
         <tr class="border-b border-neutral-100 text-xs">
@@ -355,6 +358,16 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
           <td class="px-5 py-4 font-extrabold text-purple-950">${finalNote}</td>
           <td class="px-5 py-4 text-neutral-500 font-mono text-[11px]">${regDateDisplay}</td>
           <td class="px-5 py-4 text-neutral-500 font-mono text-[11px]">${dueDateDisplay}</td>
+          <td class="px-5 py-4 text-right">
+            <div class="flex items-center justify-end gap-1.5">
+              <button data-activity-id="${escapeHTML(actId)}" data-activity-title="${escapeHTML(act.title)}" class="btn-reopen-student-act px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reabrir actividad para este estudiante">
+                <span>🔓</span> Reabrir
+              </button>
+              <button data-activity-id="${escapeHTML(actId)}" data-activity-title="${escapeHTML(act.title)}" class="btn-reset-student-act px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reiniciar completamente actividad para este estudiante">
+                <span>🔄</span> Reiniciar
+              </button>
+            </div>
+          </td>
         </tr>
       `;
     })
@@ -362,7 +375,7 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
 
   container.innerHTML = `
     <div class="fixed inset-0 z-50 bg-neutral-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-      <div class="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden my-8 border border-neutral-200">
+      <div class="bg-white rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden my-8 border border-neutral-200">
         <div class="p-6 bg-purple-800 text-white flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl">📋</div>
@@ -398,11 +411,12 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
                 <tr class="bg-neutral-50 border-b border-neutral-200 text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
                   <th class="px-5 py-3.5">Actividad</th>
                   <th class="px-5 py-3.5">Estado</th>
-                  <th class="px-5 py-3.5">Nota</th>
-                  <th class="px-5 py-3.5 text-center">Intentos</th>
-                  <th class="px-5 py-3.5">Mejor Nota</th>
+                  <th class="px-5 py-3.5">Nota Inicial</th>
+                  <th class="px-5 py-3.5">Recuperación</th>
+                  <th class="px-5 py-3.5">Nota Final</th>
                   <th class="px-5 py-3.5">Fecha Registro</th>
                   <th class="px-5 py-3.5">Fecha Límite</th>
+                  <th class="px-5 py-3.5 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -424,6 +438,66 @@ function openStudentGradeDetailModal(student, unitNumber, matrixData) {
   const closeModalFn = () => { container.innerHTML = ""; };
   container.querySelector("#btn-close-detail-modal")?.addEventListener("click", closeModalFn);
   container.querySelector("#btn-close-detail-modal-bottom")?.addEventListener("click", closeModalFn);
+
+  // Bind Reabrir Actividad
+  container.querySelectorAll(".btn-reopen-student-act").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const actId = btn.getAttribute("data-activity-id");
+      const actTitle = btn.getAttribute("data-activity-title");
+      if (!actId) {
+        alert("ID de actividad no disponible.");
+        return;
+      }
+      const confirmMsg = `Esta acción afecta solamente a este estudiante.\n\n¿Estás seguro de reabrir la actividad "${actTitle}" para ${student.official_full_name}?\n\nSe retirará el bloqueo de ejercicios para permitir una nueva entrega sin eliminar su historial.`;
+      if (!confirm(confirmMsg)) return;
+
+      const reason = prompt("Motivo de la reapertura:", "Reapertura de plazo especial por el docente");
+      if (reason === null) return;
+
+      try {
+        btn.disabled = true;
+        btn.textContent = "⏳ Reabriendo...";
+        await adminReopenStudentActivity(student.id || student.student_id, actId, reason);
+        alert(`✓ Actividad "${actTitle}" reabierta exitosamente para ${student.official_full_name}.`);
+        closeModalFn();
+        await loadAndRenderGradesMatrix();
+      } catch (err) {
+        alert("Error al reabrir actividad: " + err.message);
+        btn.disabled = false;
+        btn.innerHTML = `<span>🔓</span> Reabrir`;
+      }
+    });
+  });
+
+  // Bind Reiniciar Actividad
+  container.querySelectorAll(".btn-reset-student-act").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const actId = btn.getAttribute("data-activity-id");
+      const actTitle = btn.getAttribute("data-activity-title");
+      if (!actId) {
+        alert("ID de actividad no disponible.");
+        return;
+      }
+      const confirmMsg = `Esta acción afecta solamente a este estudiante.\n\n¿Estás seguro de reiniciar completamente la actividad "${actTitle}" para ${student.official_full_name}?\n\n⚠️ ADVERTENCIA: Se eliminarán todos los registros de intentos y comprobaciones de este estudiante en esta actividad para permitirle comenzar desde cero.`;
+      if (!confirm(confirmMsg)) return;
+
+      const reason = prompt("Motivo del reinicio:", "Reinicio administrativo por solicitud justificada");
+      if (reason === null) return;
+
+      try {
+        btn.disabled = true;
+        btn.textContent = "⏳ Reiniciando...";
+        await adminResetStudentActivity(student.id || student.student_id, actId, reason);
+        alert(`✓ Actividad "${actTitle}" reiniciada exitosamente para ${student.official_full_name}.`);
+        closeModalFn();
+        await loadAndRenderGradesMatrix();
+      } catch (err) {
+        alert("Error al reiniciar actividad: " + err.message);
+        btn.disabled = false;
+        btn.innerHTML = `<span>🔄</span> Reiniciar`;
+      }
+    });
+  });
 }
 
 /* ==========================================================================

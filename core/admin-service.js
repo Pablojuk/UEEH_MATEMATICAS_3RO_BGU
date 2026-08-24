@@ -239,3 +239,20 @@ export async function fetchStudentGradesMatrix(unitNumber = 5) {
     throw err;
   }
 }
+
+export async function adminResetStudentActivity(studentId, activityId, reason) {
+  return await invokeAdminApi("admin_reset_student_activity", {
+    student_id: studentId,
+    activity_id: activityId,
+    reason: reason || "Reinicio administrativo de actividad"
+  });
+}
+
+export async function adminReopenStudentActivity(studentId, activityId, reason) {
+  return await invokeAdminApi("admin_reopen_student_activity", {
+    student_id: studentId,
+    activity_id: activityId,
+    reason: reason || "Reapertura administrativa de actividad"
+  });
+}
+
