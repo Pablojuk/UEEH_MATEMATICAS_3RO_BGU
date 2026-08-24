@@ -317,9 +317,24 @@ function resolveActivityUuid(act, gradeInfo) {
 }
 
 function resolveStudentUuid(student, gradeInfo) {
+  // 1. student.id (UUID directo del objeto de la matriz)
   if (student?.id && UUID_REGEX.test(student.id)) return student.id;
+  // 2. student.student_id (alias UUID)
   if (student?.student_id && UUID_REGEX.test(student.student_id)) return student.student_id;
+  // 3. gradeInfo.student_id (UUID del registro de calificación)
   if (gradeInfo?.student_id && UUID_REGEX.test(gradeInfo.student_id)) return gradeInfo.student_id;
+  // 4. Búsqueda por código institucional en la matriz vigente
+  if (student?.student_code && currentMatrixData?.students) {
+    const byCode = currentMatrixData.students.find(s => s.student_code === student.student_code);
+    if (byCode?.id && UUID_REGEX.test(byCode.id)) return byCode.id;
+    if (byCode?.student_id && UUID_REGEX.test(byCode.student_id)) return byCode.student_id;
+  }
+  // 5. Búsqueda por nombre completo como último fallback
+  if (student?.official_full_name && currentMatrixData?.students) {
+    const byName = currentMatrixData.students.find(s => s.official_full_name === student.official_full_name);
+    if (byName?.id && UUID_REGEX.test(byName.id)) return byName.id;
+    if (byName?.student_id && UUID_REGEX.test(byName.student_id)) return byName.student_id;
+  }
   return "";
 }
 
@@ -397,10 +412,10 @@ async function openStudentGradeDetailModal(student, unitNumber, matrixData) {
           <td class="px-5 py-4 text-neutral-500 font-mono text-[11px]">${dueDateDisplay}</td>
           <td class="px-5 py-4 text-right">
             <div class="flex items-center justify-end gap-1.5">
-              <button data-activity-id="${escapeHTML(actId)}" data-activity-key="${escapeHTML(act.activity_key || '')}" data-activity-title="${escapeHTML(act.title)}" data-student-id="${escapeHTML(studentId)}" class="btn-reopen-student-act px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reabrir actividad para este estudiante">
+              <button data-activity-id="${escapeHTML(actId)}" data-activity-key="${escapeHTML(act.activity_key || '')}" data-activity-title="${escapeHTML(act.title)}" data-student-id="${escapeHTML(studentId)}" data-student-code="${escapeHTML(student.student_code || '')}" class="btn-reopen-student-act px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reabrir actividad para este estudiante">
                 <span>🔓</span> Reabrir
               </button>
-              <button data-activity-id="${escapeHTML(actId)}" data-activity-key="${escapeHTML(act.activity_key || '')}" data-activity-title="${escapeHTML(act.title)}" data-student-id="${escapeHTML(studentId)}" class="btn-reset-student-act px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reiniciar completamente actividad para este estudiante">
+              <button data-activity-id="${escapeHTML(actId)}" data-activity-key="${escapeHTML(act.activity_key || '')}" data-activity-title="${escapeHTML(act.title)}" data-student-id="${escapeHTML(studentId)}" data-student-code="${escapeHTML(student.student_code || '')}" class="btn-reset-student-act px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm" title="Reiniciar completamente actividad para este estudiante">
                 <span>🔄</span> Reiniciar
               </button>
             </div>
@@ -494,10 +509,33 @@ async function openStudentGradeDetailModal(student, unitNumber, matrixData) {
     return null;
   };
 
-  // Helper para asegurar obtención del UUID del estudiante
+  // Helper para asegurar obtención del UUID del estudiante (5 niveles de fallback)
   const getVerifiedStudentId = (btn) => {
-    let sId = btn.getAttribute("data-student-id") || student.id || student.student_id;
-    if (sId && UUID_REGEX.test(sId)) return sId;
+    // 1. data-student-id directo del atributo HTML
+    const attrId = btn.getAttribute("data-student-id");
+    if (attrId && UUID_REGEX.test(attrId)) return attrId;
+
+    // 2. student.id del objeto closure
+    if (student?.id && UUID_REGEX.test(student.id)) return student.id;
+
+    // 3. student.student_id del objeto closure
+    if (student?.student_id && UUID_REGEX.test(student.student_id)) return student.student_id;
+
+    // 4. Búsqueda por código institucional en la matriz vigente
+    const stCode = btn.getAttribute("data-student-code") || student?.student_code;
+    if (stCode && currentMatrixData?.students) {
+      const byCode = currentMatrixData.students.find(s => s.student_code === stCode);
+      if (byCode?.id && UUID_REGEX.test(byCode.id)) return byCode.id;
+      if (byCode?.student_id && UUID_REGEX.test(byCode.student_id)) return byCode.student_id;
+    }
+
+    // 5. Búsqueda por nombre completo como último fallback
+    if (student?.official_full_name && currentMatrixData?.students) {
+      const byName = currentMatrixData.students.find(s => s.official_full_name === student.official_full_name);
+      if (byName?.id && UUID_REGEX.test(byName.id)) return byName.id;
+      if (byName?.student_id && UUID_REGEX.test(byName.student_id)) return byName.student_id;
+    }
+
     return null;
   };
 
