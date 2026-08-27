@@ -868,7 +868,7 @@
 
     async function getAuthSessionToken() {
       try {
-        const authModule = await import('../../core/supabase-client.js?v=1.4.3');
+        const authModule = await import('../../core/supabase-client.js?v=1.4.4');
         const { data: { session } } = await authModule.supabase.auth.getSession();
         return session ? session.access_token : null;
       } catch (err) {
@@ -993,6 +993,10 @@
         return;
       }
 
+      if (res.run_id || res.activity_run_id) {
+        currentRunId = res.run_id || res.activity_run_id;
+      }
+
       /* ---- Apply server-authoritative values to the TARGET exercise ---- */
       targetEx.attempts = res.attempt_number;
       targetEx.score = res.question_score;
@@ -1092,7 +1096,7 @@
 
       // Transmitir entrega oficial a Supabase server-side grading
       try {
-        const actModule = await import('../../core/activity-service.js?v=1.4.3');
+        const actModule = await import('../../core/activity-service.js?v=1.4.4');
         const submitPayload = {
           activityKey: "u5-determinantes-class-01",
           runId: currentRunId,

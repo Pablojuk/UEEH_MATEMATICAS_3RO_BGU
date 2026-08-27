@@ -487,9 +487,9 @@
     </div>
 
     <script type="module">
-        import { supabase } from '../../core/supabase-client.js?v=1.4.3';
-        import { submitActivityResult } from '../../core/activity-service.js?v=1.4.3';
-        import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.3';
+        import { supabase } from '../../core/supabase-client.js?v=1.4.4';
+        import { submitActivityResult } from '../../core/activity-service.js?v=1.4.4';
+        import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.4';
 
         // ========================================================
         // 1. CONFIGURACIÓN Y CONSTANTES (UEEH)
@@ -1039,6 +1039,10 @@
                     fb.className = 'feedback-box incorrect';
                     fb.innerHTML = result?.error || "⚠️ No se pudo confirmar tu respuesta con el servidor. Tu progreso está a salvo. Pulsa Comprobar para reintentar.";
                     return;
+                }
+
+                if (result.run_id || result.activity_run_id) {
+                    currentGameRunId = result.run_id || result.activity_run_id;
                 }
 
                 // Éxito: limpiar check_id pendiente

@@ -7,8 +7,8 @@
  * Al incrementar esta constante en un release, todos los navegadores
  * invalidan de forma automática e inmediata el caché de módulos JS.
  */
-export const APP_VERSION = "1.4.3";
-export const BUILD_TIMESTAMP = "2026-08-27-v1.4.3";
+export const APP_VERSION = "1.4.4";
+export const BUILD_TIMESTAMP = "2026-08-27-v1.4.4";
 
 /**
  * Anexa o actualiza el parámetro de versionado ?v=APP_VERSION a una URL o ruta de módulo,

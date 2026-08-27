@@ -1,9 +1,9 @@
 import {
   checkForRelease,
   installReleaseRechecks
-} from "../../core/release-check.js?v=1.4.3";
+} from "../../core/release-check.js?v=1.4.4";
 
-const APP_MODULE_URL = "../../core/app.js?v=1.4.3";
+const APP_MODULE_URL = "../../core/app.js?v=1.4.4";
 
 function waitForDom() {
   if (document.readyState !== "loading") return Promise.resolve();

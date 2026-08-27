@@ -4,10 +4,17 @@ import fs from "node:fs";
 const migrationPath = "supabase/migrations/20260827133502_fix_activity_run_summary_canonical_progress.sql";
 const edgePath = "supabase/functions/submit-activity-result/index.ts";
 const servicePath = "core/activity-service.js";
+const activityPages = [
+  "topics/unit5-determinantes/gamificacion.html",
+  "topics/unit5-determinantes/deber.html",
+  "topics/unit6-sucesiones/gamificacion.html",
+  "topics/unit6-sucesiones/deber.html"
+];
 
 const migrationSql = fs.readFileSync(migrationPath, "utf8");
 const edgeSource = fs.readFileSync(edgePath, "utf8");
 const serviceSource = fs.readFileSync(servicePath, "utf8");
+const pageSources = activityPages.map((file) => [file, fs.readFileSync(file, "utf8")]);
 
 function canonicalSummary({ canonicalProgress = [], legacyAttempts = [] }) {
   if (canonicalProgress.length > 0) {
@@ -66,7 +73,7 @@ assert.equal(canSubmitGamification(gamificationSummary), true);
 const classworkSummary = canonicalSummary({
   canonicalProgress: Array.from({ length: 14 }, (_, index) => ({
     exercise_key: `question-${index + 1}`,
-    exercise_score: index < 12 ? 10 : 1,
+    exercise_score: index < 12 ? 10 : 9,
     attempt_count: index < 12 ? 1 : 4,
     status: index < 12 ? "correct" : "failed",
     locked: true
@@ -74,6 +81,7 @@ const classworkSummary = canonicalSummary({
 });
 assert.equal(classworkSummary.length, 14);
 assert.equal(canSubmitClasswork(classworkSummary), true);
+assert.equal(Number((classworkSummary.reduce((sum, row) => sum + row.terminal_score, 0) / 14).toFixed(2)), 9.86);
 
 // TEST C — Historical run: legacy rows remain the fallback when canonical rows are absent.
 const historicalSummary = canonicalSummary({
@@ -123,6 +131,9 @@ const serviceModule = await import(`data:text/javascript;base64,${Buffer.from(in
 
 // TEST D — A complete HTTP 400 response is confirmed and must not leave PENDING_RETRY state.
 storage.clear();
+const warnings = [];
+const originalWarn = console.warn;
+console.warn = (...args) => warnings.push(args);
 globalThis.fetch = async () => new Response(
   JSON.stringify({ error: "Actividad incompleta", code: "ACTIVITY_INCOMPLETE" }),
   { status: 400, headers: { "Content-Type": "application/json" } }
@@ -139,6 +150,12 @@ assert.equal(http400Result.success, false);
 assert.equal(http400Result.state, "error");
 assert.equal(http400Result.httpStatus, 400);
 assert.equal(serviceModule.getPendingSubmission("u5-determinantes-class-01"), null);
+assert.deepEqual(warnings.at(-1)?.[1], {
+  httpStatus: 400,
+  code: "ACTIVITY_INCOMPLETE",
+  error: "Actividad incompleta"
+});
+console.warn = originalWarn;
 
 // A late response must not clear a newer submission stored for the same activity.
 storage.clear();
@@ -173,7 +190,6 @@ globalThis.fetch = async () => { throw new TypeError("network disconnected"); };
 const networkSubmissionId = crypto.randomUUID();
 const networkRunId = crypto.randomUUID();
 const networkInitialRunId = crypto.randomUUID();
-const originalWarn = console.warn;
 console.warn = () => {};
 const networkResult = await serviceModule.submitActivityResult({
   activityKey: "u5-determinantes-class-01",
@@ -234,11 +250,81 @@ assert.match(edgeSource, /\.eq\("activity_id", activityId\)/);
 assert.match(edgeSource, /\.eq\("status", "in_progress"\)/);
 assert.match(edgeSource, /AMBIGUOUS_ACTIVE_RUN/);
 
-// TEST F — The same submission_id is checked before a new attempt is recorded.
+// TEST F — A stale client UUID resolves only to the unique canonical active run
+// scoped to the authenticated student and activity.
+function resolveRunFixture({ providedRunId, ownedRunIds, activeRunIds }) {
+  if (ownedRunIds.includes(providedRunId)) return { ok: true, runId: providedRunId, source: "provided" };
+  if (activeRunIds.length === 1) return { ok: true, runId: activeRunIds[0], source: "canonical_fallback" };
+  if (activeRunIds.length > 1) return { ok: false, code: "AMBIGUOUS_ACTIVE_RUN" };
+  return { ok: false, code: "RUN_NOT_OWNED" };
+}
+
+for (const fixture of [
+  { student: "UEEH-STU-000003", activity: "gamification", canonicalRunId: "af080bdf-80de-460a-a55b-5229b73566ea" },
+  { student: "UEEH-STU-000003", activity: "classwork", canonicalRunId: "de6c7477-5da1-4cdb-9c11-af0b7fe6195a" },
+  { student: "UEEH-STU-000006", activity: "gamification", canonicalRunId: "9ba1878d-9e22-41c0-8d49-33f4f7f2a78f" }
+]) {
+  const result = resolveRunFixture({
+    providedRunId: crypto.randomUUID(),
+    ownedRunIds: [],
+    activeRunIds: [fixture.canonicalRunId]
+  });
+  assert.deepEqual(result, { ok: true, runId: fixture.canonicalRunId, source: "canonical_fallback" });
+}
+assert.match(edgeSource, /source: providedRunState \? "canonical_fallback" : "canonical_active"/);
+assert.match(edgeSource, /\[submit-activity-result\]/);
+assert.match(edgeSource, /student_code: diagnostic\.studentCode/);
+assert.doesNotMatch(edgeSource.match(/function badRequest[\s\S]*?\n\}/)?.[0] || "", /access_token|authorization|answer_data/i);
+
+// Every U5/U6 activity adopts the canonical run returned by check-activity-answer.
+for (const [file, source] of pageSources) {
+  assert.match(source, /(?:currentGameRunId|currentRunId)\s*=\s*(?:res|result)\.run_id\s*\|\|\s*(?:res|result)\.activity_run_id/, `${file} must adopt the canonical run id`);
+}
+
+// TEST G — Capture the real frontend payload and enforce the final-submit contract.
+storage.clear();
+let capturedBody;
+globalThis.fetch = async (_url, options) => {
+  capturedBody = JSON.parse(options.body);
+  return new Response(JSON.stringify({ success: true, score: 10 }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" }
+  });
+};
+const canonicalRunId = "af080bdf-80de-460a-a55b-5229b73566ea";
+const exactSubmissionId = crypto.randomUUID();
+const exactPayloadResult = await serviceModule.submitActivityResult({
+  activityKey: "u5-determinantes-gam-01",
+  submissionId: exactSubmissionId,
+  runId: canonicalRunId,
+  phase: "gamification",
+  submission: { run_id: canonicalRunId, completed_at: "2026-08-27T15:30:00.000Z" }
+});
+assert.equal(exactPayloadResult.success, true);
+assert.deepEqual(Object.keys(capturedBody).sort(), ["activity_key", "phase", "run_id", "submission", "submission_id"].sort());
+assert.equal(Object.hasOwn(capturedBody, "initial_run_id"), false, "initial_run_id is omitted outside recovery");
+assert.equal(capturedBody.run_id, canonicalRunId);
+assert.equal(capturedBody.submission_id, exactSubmissionId);
+for (const forbidden of ["student_id", "score", "officialScore", "attempt_number", "best_score", "is_correct"]) {
+  assert.equal(Object.hasOwn(capturedBody, forbidden), false, `${forbidden} must not exist at payload root`);
+}
+
+// TEST H — due_at is an absolute UTC boundary; timezone conversion cannot close it early.
+const dueAt = new Date("2026-08-28T04:59:59.000Z");
+assert.equal(new Date("2026-08-27T15:27:48.116Z") <= dueAt, true);
+assert.equal(new Date("2026-08-28T05:00:00.000Z") <= dueAt, false);
+
+// TEST I — Invalid legacy submission ids are discarded and regenerated as UUIDs.
+storage.clear();
+sessionStorage.setItem("ueeh_pending_sub_invalid-fixture", JSON.stringify({ submissionId: "not-a-uuid" }));
+assert.match(serviceModule.getOrCreateSubmissionId("invalid-fixture"), /^[0-9a-f-]{36}$/i);
+assert.equal(sessionStorage.getItem("ueeh_pending_sub_invalid-fixture"), null);
+
+// TEST J — The same submission_id is checked before a new attempt is recorded.
 assert.ok(
   edgeSource.indexOf('.eq("submission_id", submission_id)') <
     edgeSource.indexOf('serviceClient.rpc("record_activity_attempt"'),
   "Idempotency lookup must precede official attempt creation"
 );
 
-console.log("✅ Activity progress/submission regression tests A-F passed.");
+console.log("✅ Activity progress/submission regression tests A-J passed.");

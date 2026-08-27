@@ -2,9 +2,10 @@
 // Frontend Activity Service — UEEH Matemáticas 3ro BGU (Unidad 5+)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { supabase } from "./supabase-client.js?v=1.4.3";
+import { supabase } from "./supabase-client.js?v=1.4.4";
 
 const SUBMIT_FUNCTION_URL = "https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/submit-activity-result";
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Obtiene o crea un submission_id único para una entrega específica de una actividad en sessionStorage.
@@ -15,9 +16,11 @@ export function getOrCreateSubmissionId(activityKey) {
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (parsed && (parsed.submissionId || parsed.submission_id)) {
-        return parsed.submissionId || parsed.submission_id;
+      const storedId = parsed?.submissionId || parsed?.submission_id;
+      if (typeof storedId === "string" && UUID_REGEX.test(storedId)) {
+        return storedId;
       }
+      sessionStorage.removeItem(key);
     } catch (_) {
       sessionStorage.removeItem(key);
     }
@@ -180,6 +183,12 @@ export async function submitActivityResult({ activityKey, submission, submission
       data: body
     };
   }
+
+  console.warn("[submit-activity-result]", {
+    httpStatus: res.status,
+    code: body.code || null,
+    error: body.error || "Respuesta de error sin detalle"
+  });
 
   return {
     success: false,
