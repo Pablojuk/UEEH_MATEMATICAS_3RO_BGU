@@ -2,7 +2,7 @@
 // Frontend Activity Service — UEEH Matemáticas 3ro BGU (Unidad 5+)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { supabase } from "./supabase-client.js?v=1.4.1";
+import { supabase } from "./supabase-client.js?v=1.4.2";
 
 const SUBMIT_FUNCTION_URL = "https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/submit-activity-result";
 
@@ -15,8 +15,8 @@ export function getOrCreateSubmissionId(activityKey) {
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (parsed && parsed.submissionId) {
-        return parsed.submissionId;
+      if (parsed && (parsed.submissionId || parsed.submission_id)) {
+        return parsed.submissionId || parsed.submission_id;
       }
     } catch (_) {
       sessionStorage.removeItem(key);
@@ -29,12 +29,17 @@ export function getOrCreateSubmissionId(activityKey) {
 /**
  * Guarda temporalmente un borrador de entrega pendiente de confirmación en sessionStorage.
  */
-export function savePendingSubmission(activityKey, submissionId, submission) {
+export function savePendingSubmission(activityKey, submissionId, submission, options = {}) {
   const key = `ueeh_pending_sub_${activityKey}`;
+  const { runId, phase, initialRunId } = options;
   sessionStorage.setItem(key, JSON.stringify({
     submissionId,
     activityKey,
-    submission,
+    submission: submission ?? null,
+    runId: runId || submission?.run_id || null,
+    phase: phase || submission?.phase || "initial",
+    initialRunId: initialRunId || submission?.initial_run_id || null,
+    state: "awaiting_response",
     savedAt: new Date().toISOString()
   }));
 }
@@ -42,9 +47,15 @@ export function savePendingSubmission(activityKey, submissionId, submission) {
 /**
  * Elimina la entrega pendiente de sessionStorage una vez confirmada por Supabase.
  */
-export function clearPendingSubmission(activityKey) {
+export function clearPendingSubmission(activityKey, submissionId = null) {
   const key = `ueeh_pending_sub_${activityKey}`;
+  if (submissionId) {
+    const current = getPendingSubmission(activityKey);
+    const currentId = current?.submissionId || current?.submission_id;
+    if (currentId !== submissionId) return false;
+  }
   sessionStorage.removeItem(key);
+  return true;
 }
 
 /**
@@ -68,29 +79,52 @@ export async function submitActivityResult({ activityKey, submission, submission
   let subId = submissionId;
   const pending = getPendingSubmission(activityKey);
 
-  if (isRetry && pending && pending.submissionId) {
-    subId = pending.submissionId;
-    submission = submission || pending.submission;
-  } else if (!subId) {
-    subId = getOrCreateSubmissionId(activityKey);
-    savePendingSubmission(activityKey, subId, submission);
+  if (isRetry && pending) {
+    subId = pending.submissionId || pending.submission_id || subId;
+    submission = submission || pending.submission || pending.answers;
+    runId = runId || pending.runId || pending.run_id;
+    phase = phase || pending.phase;
+    initialRunId = initialRunId || pending.initialRunId || pending.initial_run_id;
   }
 
+  if (!subId) {
+    subId = getOrCreateSubmissionId(activityKey);
+  }
+
+  let session;
   try {
-    const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-    if (sessionErr || !session) {
+    const { data: { session: currentSession }, error: sessionErr } = await supabase.auth.getSession();
+    if (sessionErr || !currentSession) {
       return {
         success: false,
         state: "error",
         error: "Sesión no válida. Inicia sesión con tu cuenta institucional."
       };
     }
+    // Keep the token in memory only; it is never included in the pending envelope.
+    session = currentSession;
+  } catch (authErr) {
+    console.warn("No se pudo comprobar la sesión antes del envío:", authErr);
+    return {
+      success: false,
+      state: "error",
+      error: "No se pudo validar la sesión. Intenta nuevamente."
+    };
+  }
 
-    const payloadRunId = runId || submission?.run_id;
-    const payloadPhase = phase || submission?.phase || "initial";
-    const payloadInitialRunId = initialRunId || submission?.initial_run_id;
+  const payloadRunId = runId || submission?.run_id;
+  const payloadPhase = phase || submission?.phase || "initial";
+  const payloadInitialRunId = initialRunId || submission?.initial_run_id;
 
-    const res = await fetch(SUBMIT_FUNCTION_URL, {
+  savePendingSubmission(activityKey, subId, submission, {
+    runId: payloadRunId,
+    phase: payloadPhase,
+    initialRunId: payloadInitialRunId
+  });
+
+  let res;
+  try {
+    res = await fetch(SUBMIT_FUNCTION_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -105,23 +139,6 @@ export async function submitActivityResult({ activityKey, submission, submission
         submission: submission
       })
     });
-
-    const body = await res.json();
-
-    if (res.ok && body.success) {
-      clearPendingSubmission(activityKey);
-      return {
-        success: true,
-        state: "confirmed",
-        data: body
-      };
-    } else {
-      return {
-        success: false,
-        state: "error",
-        error: body.error || "No se pudo registrar la actividad."
-      };
-    }
   } catch (netErr) {
     console.warn("Fallo de conexión en envío de actividad (se conserva pending para retry):", netErr);
     return {
@@ -130,6 +147,47 @@ export async function submitActivityResult({ activityKey, submission, submission
       error: "Sin respuesta del servidor. Tu entrega ha sido conservada en este navegador y puedes presionar 'Reintentar envío' sin generar un intento duplicado."
     };
   }
+
+  let responseText;
+  try {
+    responseText = await res.text();
+  } catch (bodyErr) {
+    console.warn("La respuesta se interrumpió antes de recibirse completa; se conserva pending:", bodyErr);
+    return {
+      success: false,
+      state: "pending_confirmation",
+      error: "La respuesta del servidor se interrumpió. Tu entrega permanece guardada para un reintento seguro."
+    };
+  }
+
+  // A complete HTTP response is a confirmed outcome, including 4xx/5xx.
+  // Remove only the envelope that belongs to this exact submission.
+  clearPendingSubmission(activityKey, subId);
+
+  let body = {};
+  if (responseText) {
+    try {
+      body = JSON.parse(responseText);
+    } catch (_) {
+      body = {};
+    }
+  }
+
+  if (res.ok && body.success) {
+    return {
+      success: true,
+      state: "confirmed",
+      data: body
+    };
+  }
+
+  return {
+    success: false,
+    state: "error",
+    httpStatus: res.status,
+    code: body.code,
+    error: body.error || "No se pudo finalizar el registro. Tu progreso permanece guardado en Supabase; intenta nuevamente."
+  };
 }
 
 /**
@@ -192,15 +250,21 @@ export async function fetchStudentActivitySummary(unitNumber = null) {
       if (res.result_status === "completed") {
         displayState = "CONFIRMED";
         statusText = "✅ Enviado y registrado";
-        // Si Supabase confirmó, limpiar cualquier borrador local antiguo
-        if (pendingLocal) clearPendingSubmission(act.activity_key);
+        // Clear only a pending envelope that predates the confirmed server result.
+        if (pendingLocal && res.last_completed_at && pendingLocal.savedAt &&
+            new Date(res.last_completed_at) >= new Date(pendingLocal.savedAt)) {
+          clearPendingSubmission(
+            act.activity_key,
+            pendingLocal.submissionId || pendingLocal.submission_id || null
+          );
+        }
       } else if (res.result_status === "not_submitted") {
         displayState = "OVERDUE";
         statusText = "🔴 No entregado — plazo vencido";
       }
     } else if (pendingLocal) {
       displayState = "PENDING_RETRY";
-      statusText = "🟡 Pendiente de confirmar (Fallo de conexión previa)";
+      statusText = "🟡 Pendiente de confirmar (respuesta de red incierta)";
     } else if (activeRunsSet.has(act.id)) {
       displayState = "IN_PROGRESS";
       statusText = "📝 En progreso";

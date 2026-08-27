@@ -2,7 +2,7 @@
 // Student Activity Summary Component — UEEH Matemáticas 3ro BGU
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { fetchStudentActivitySummary, submitActivityResult } from "../core/activity-service.js?v=1.4.1";
+import { fetchStudentActivitySummary, submitActivityResult } from "../core/activity-service.js?v=1.4.2";
 
 /**
  * Renderiza el Resumen de Actividades del Estudiante consultando Supabase como única fuente oficial.
@@ -152,7 +152,7 @@ function renderActivityCard(item) {
       statusBadge = `<span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-xs">🟡 Pendiente de confirmar</span>`;
       detailsHtml = `
         <div class="mt-4 pt-4 border-t border-neutral-100 space-y-2 text-xs">
-          <p class="text-amber-800">Se detectó una entrega guardada en este navegador no confirmada por problemas de conexión previa.</p>
+          <p class="text-amber-800">No se recibió una respuesta completa del servidor durante el último envío. La entrega quedó guardada para reintentar con el mismo identificador, sin duplicar intentos.</p>
           <button id="btn-retry-${activity.activity_key}" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-all shadow-sm">
             🔄 Reintentar envío
           </button>

@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.4";
 
 const ALLOWED_ORIGINS = [
   "http://localhost:5500",
@@ -18,6 +18,96 @@ function corsHeaders(req: Request) {
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type RunResolution =
+  | { ok: true; runId: string; canonical: boolean }
+  | { ok: false; error: string; code: string };
+
+async function resolveActivityRun({
+  serviceClient,
+  activityId,
+  studentId,
+  providedRunId,
+  phase,
+  allowHistoricalFallback = false
+}: {
+  serviceClient: any;
+  activityId: string;
+  studentId: string;
+  providedRunId?: unknown;
+  phase: string;
+  allowHistoricalFallback?: boolean;
+}): Promise<RunResolution> {
+  if (providedRunId !== undefined && providedRunId !== null && providedRunId !== "") {
+    if (typeof providedRunId !== "string" || !UUID_REGEX.test(providedRunId)) {
+      return { ok: false, code: "INVALID_RUN_ID", error: "run_id debe ser un UUID válido" };
+    }
+
+    const { data: ownedRuns, error: ownedRunError } = await serviceClient
+      .from("activity_runs")
+      .select("id, status")
+      .eq("id", providedRunId)
+      .eq("activity_id", activityId)
+      .eq("student_id", studentId)
+      .limit(1);
+
+    if (ownedRunError) {
+      return { ok: false, code: "RUN_LOOKUP_FAILED", error: "No se pudo validar la sesión de actividad" };
+    }
+
+    if (Array.isArray(ownedRuns) && ownedRuns.length === 1) {
+      if (ownedRuns[0].status !== "in_progress") {
+        return { ok: false, code: "RUN_NOT_ACTIVE", error: "La sesión indicada ya no está en progreso" };
+      }
+      return { ok: true, runId: ownedRuns[0].id, canonical: true };
+    }
+
+    if (allowHistoricalFallback) {
+      const { data: historicalSummary, error: historicalError } = await serviceClient
+        .rpc("get_activity_run_summary", {
+          p_activity_id: activityId,
+          p_student_id: studentId,
+          p_run_id: providedRunId,
+          p_phase: phase
+        });
+
+      if (!historicalError && Array.isArray(historicalSummary) && historicalSummary.length > 0) {
+        return { ok: true, runId: providedRunId, canonical: false };
+      }
+    }
+
+    return {
+      ok: false,
+      code: "RUN_NOT_OWNED",
+      error: "La sesión indicada no pertenece al estudiante autenticado y a esta actividad"
+    };
+  }
+
+  const { data: activeRuns, error: activeRunError } = await serviceClient
+    .from("activity_runs")
+    .select("id, status")
+    .eq("activity_id", activityId)
+    .eq("student_id", studentId)
+    .eq("status", "in_progress")
+    .order("created_at", { ascending: false })
+    .limit(2);
+
+  if (activeRunError) {
+    return { ok: false, code: "RUN_LOOKUP_FAILED", error: "No se pudo resolver la sesión de actividad" };
+  }
+  if (!Array.isArray(activeRuns) || activeRuns.length === 0) {
+    return { ok: false, code: "RUN_NOT_FOUND", error: "No se encontró una sesión en progreso para esta actividad" };
+  }
+  if (activeRuns.length !== 1) {
+    return {
+      ok: false,
+      code: "AMBIGUOUS_ACTIVE_RUN",
+      error: "Se encontraron varias sesiones en progreso. Solicita asistencia antes de reintentar."
+    };
+  }
+
+  return { ok: true, runId: activeRuns[0].id, canonical: true };
+}
 
 serve(async (req: Request) => {
   const cors = corsHeaders(req);
@@ -230,23 +320,22 @@ serve(async (req: Request) => {
     let activeRunId: string | null = null;
 
     if (graderType === "exercise_set") {
-      // 1. Obtener run activo oficial
-      const { data: activeRun, error: runErr } = await serviceClient
-        .from("activity_runs")
-        .select("id, status")
-        .eq("activity_id", activity.id)
-        .eq("student_id", student.id)
-        .eq("status", "in_progress")
-        .maybeSingle();
+      const runResolution = await resolveActivityRun({
+        serviceClient,
+        activityId: activity.id,
+        studentId: student.id,
+        providedRunId: run_id,
+        phase: currentPhase
+      });
 
-      if (runErr || !activeRun) {
+      if (!runResolution.ok) {
         return new Response(
-          JSON.stringify({ error: "No se encontró una sesión en progreso para esta actividad" }),
+          JSON.stringify({ error: runResolution.error, code: runResolution.code }),
           { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
         );
       }
 
-      activeRunId = activeRun.id;
+      activeRunId = runResolution.runId;
 
       // 2. Obtener lista de ejercicios requeridos desde la pauta privada
       const targetExercises = (currentPhase === "recovery" && gradingConfigData.config.recoveryExercises)
@@ -266,7 +355,9 @@ serve(async (req: Request) => {
       const { data: progressList, error: progErr } = await serviceClient
         .from("activity_exercise_progress")
         .select("exercise_key, status, locked, exercise_score")
-        .eq("activity_run_id", activeRun.id);
+        .eq("activity_run_id", activeRunId)
+        .eq("activity_id", activity.id)
+        .eq("student_id", student.id);
 
       if (progErr || !progressList) {
         return new Response(
@@ -321,15 +412,27 @@ serve(async (req: Request) => {
         computedScore = Math.max(initialScore, computedScore);
       }
 
-      submissionDetails.activity_run_id = activeRun.id;
+      submissionDetails.activity_run_id = activeRunId;
       submissionDetails.total_exercises = totalRequired;
       submissionDetails.raw_score = computedScore;
 
     } else if (graderType === "determinants_gamification_v1") {
-      const payloadRunId = run_id;
-      if (!payloadRunId || typeof payloadRunId !== "string" || !UUID_REGEX.test(payloadRunId)) {
-        return new Response(JSON.stringify({ error: "run_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      const runResolution = await resolveActivityRun({
+        serviceClient,
+        activityId: activity.id,
+        studentId: student.id,
+        providedRunId: run_id,
+        phase: "gamification",
+        allowHistoricalFallback: true
+      });
+      if (!runResolution.ok) {
+        return new Response(
+          JSON.stringify({ error: runResolution.error, code: runResolution.code }),
+          { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+        );
       }
+      const payloadRunId = runResolution.runId;
+      activeRunId = runResolution.canonical ? payloadRunId : null;
 
       const { data: runSummaryData, error: summaryErr } = await serviceClient
         .rpc("get_activity_run_summary", {
@@ -357,10 +460,22 @@ serve(async (req: Request) => {
       submissionDetails.planets_completed = runSummaryData.length;
 
     } else if (graderType === "determinants_classwork_v1") {
-      const payloadRunId = run_id;
-      if (!payloadRunId || typeof payloadRunId !== "string" || !UUID_REGEX.test(payloadRunId)) {
-        return new Response(JSON.stringify({ error: "run_id debe ser un UUID válido" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      const runResolution = await resolveActivityRun({
+        serviceClient,
+        activityId: activity.id,
+        studentId: student.id,
+        providedRunId: run_id,
+        phase: currentPhase,
+        allowHistoricalFallback: true
+      });
+      if (!runResolution.ok) {
+        return new Response(
+          JSON.stringify({ error: runResolution.error, code: runResolution.code }),
+          { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+        );
       }
+      const payloadRunId = runResolution.runId;
+      activeRunId = runResolution.canonical ? payloadRunId : null;
 
       if (currentPhase === "initial") {
         const { data: runSummaryData, error: summaryErr } = await serviceClient

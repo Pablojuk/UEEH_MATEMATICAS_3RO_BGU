@@ -80,6 +80,14 @@ Tema de Unidad (ej. Determinantes)
 - **Fuente de Verdad**: Consulta directa mediante RPC/REST a las tablas `activities`, `activity_attempts` y `activity_results` en Supabase.
 - **Independencia de Caché**: No depende ni reconstruye notas desde `localStorage` o variables del navegador. Refleja el estado inmutable registrado en el backend.
 
+### 3.5. Fuente canónica y compatibilidad histórica
+
+- Las respuestas actuales se registran en `activity_runs`, `activity_exercise_checks` y `activity_exercise_progress`; esta es la única arquitectura canónica para runs nuevos.
+- `get_activity_run_summary` resume `activity_exercise_progress` y conserva el contrato `question_id`, `terminal_score`, `attempt_count`, `is_correct` y `locked` consumido por `submit-activity-result`.
+- Si un run no tiene ninguna fila de progreso canónico, la función permite un fallback completo a `private.activity_question_attempts` para entregas históricas.
+- Nunca se mezclan ambas generaciones dentro del mismo run y `check-activity-answer` no realiza dual-write artificial.
+- Un pending de `sessionStorage` representa únicamente un resultado de red incierto. Toda respuesta HTTP completa, incluso 4xx/5xx, elimina solo el envelope del mismo `submission_id` y muestra el error confirmado del servidor.
+
 ---
 
 ## 4. Convenciones de Base de Datos y Aprovisionamiento

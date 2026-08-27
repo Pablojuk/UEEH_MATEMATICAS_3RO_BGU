@@ -99,7 +99,7 @@ La capa `core/` proporciona los módulos reutilizables para toda la aplicación:
 
 ### 4.2. Esquema `private` (Aislado de Acceso Directo)
 - **`activity_grading_configs`**: Pautas privadas de evaluación, respuestas correctas, opciones válidas y configuraciones de calificadores (`grader_type`).
-- **`activity_question_attempts`**: Registro detallado de cada intento por pregunta individual, con bloqueo server-side e idempotencia por `question_submission_id`.
+- **`activity_question_attempts`**: Ledger histórico de la primera generación de evaluación. Se conserva únicamente para compatibilidad con runs antiguos; las actividades actuales no realizan dual-write sobre esta tabla.
 - **`audit_logs`**: Registro inmutable de acciones administrativas (creación de estudiantes, cambios de matrícula, reapertura de actividades, exportaciones).
 - **`student_claim_codes`**: Códigos de activación de un solo uso asignados a estudiantes no vinculados.
 
@@ -112,13 +112,17 @@ Todas las Edge Functions están construidas en TypeScript para el runtime Deno y
 | Edge Function | Propósito | Seguridad |
 |---|---|---|
 | `claim-student-code` | Vincula un usuario autenticado con su registro oficial de estudiante mediante código de activación. | Valida sesión JWT del usuario y usa cliente service_role para la mutación. |
-| `check-activity-answer` | Evalúa respuestas individuales a nivel de pregunta en tiempo real. | Consulta `private.activity_grading_configs`, aplica reglas de reintentos (máx. 4 en clase, ilimitado en gamificación) y registra en `private.activity_question_attempts`. |
-| `submit-activity-result` | Recibe la entrega final de una actividad completa, calcula la nota oficial y actualiza `activity_attempts` y `activity_results`. | Valida plazos (`opens_at`, `due_at`), verifica idempotencia mediante `submission_id` y garantiza calificación mínima institucional. |
+| `check-activity-answer` | Evalúa respuestas individuales a nivel de pregunta en tiempo real. | Consulta `private.activity_grading_configs` y registra atómicamente el ledger `activity_exercise_checks` y el consolidado `activity_exercise_progress` dentro del `activity_run` autenticado. |
+| `submit-activity-result` | Recibe la entrega final de una actividad completa, calcula la nota oficial y actualiza `activity_attempts` y `activity_results`. | Resuelve o valida el run por estudiante autenticado + actividad, verifica idempotencia mediante `submission_id` y garantiza calificación mínima institucional. |
 | `admin-api` | Proporciona endpoints para todas las operaciones del panel administrativo. | Verifica que el usuario tenga rol `admin` en `public.profiles` antes de ejecutar cualquier acción. |
 
 ---
 
 ## 6. Mecanismos de Calificación e Inmutabilidad
+
+### 6.1. Fuente canónica por run
+
+`activity_runs` + `activity_exercise_checks` + `activity_exercise_progress` constituyen la arquitectura vigente. `get_activity_run_summary` usa exclusivamente `activity_exercise_progress` cuando el run tiene progreso canónico; no agrega ni mezcla filas del ledger histórico. Solo si el run no contiene progreso nuevo permite el fallback a `private.activity_question_attempts`. Esta regla preserva entregas antiguas sin mantener dos fuentes oficiales independientes ni introducir dual-write.
 
 1. **Escala Oficial sobre 10.00**: Todas las actividades se califican sobre una escala de **1.00 a 10.00 puntos**.
 2. **Calificación Mínima Institucional**: Cualquier entrega procesada o actividad no entregada tras el vencimiento de la fecha límite recibe la calificación mínima garantizada de **1.00 / 10.00**.

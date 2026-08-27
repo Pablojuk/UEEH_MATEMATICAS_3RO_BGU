@@ -2,8 +2,8 @@
 // Frontend Exercise Progress Service — UEEH Matemáticas 3ro BGU (Unidad 5+)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { supabase } from "./supabase-client.js?v=1.4.1";
-import { submitActivityResult } from "./activity-service.js?v=1.4.1";
+import { supabase } from "./supabase-client.js?v=1.4.2";
+import { submitActivityResult } from "./activity-service.js?v=1.4.2";
 
 const CHECK_FUNCTION_URL = "https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/check-activity-answer";
 
