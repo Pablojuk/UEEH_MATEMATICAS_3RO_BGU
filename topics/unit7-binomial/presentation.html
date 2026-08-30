@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#b8f2e6" />
+  <title>Distribución Binomial o de Bernoulli (n, p) · Tercero de BGU</title>
+
+  <!-- MathJax v3 para renderizado matemático formal -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      /* Paleta suave de tonos pastel / colores de helado */
+      --celeste: #cfefff;
+      --turquesa: #b8f2e6;
+      --menta: #d9f7d8;
+      --rosa: #ffdce8;
+      --durazno: #ffe1c6;
+      --crema: #fff4bf;
+      --lila: #e8dcff;
+      --arena: #f7ead7;
+      --blanco: #fffdf8;
+      --tinta: #273142;
+      --texto-suave: #596275;
+      --azul-titulo: #204b6e;
+      --verde-ok: #1e6454;
+      --rojo-alerta: #942b3b;
+      --sombra: 0 18px 42px rgba(44, 62, 80, 0.12);
+      --sombra-suave: 0 8px 22px rgba(44, 62, 80, 0.08);
+      --radio-pantalla: 30px;
+      --radio-tarjeta: 20px;
+      --borde: rgba(55, 90, 127, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      color: var(--tinta);
+      background:
+        radial-gradient(circle at 8% 10%, rgba(255, 220, 232, 0.7), transparent 26%),
+        radial-gradient(circle at 92% 6%, rgba(184, 242, 230, 0.75), transparent 28%),
+        radial-gradient(circle at 15% 90%, rgba(232, 220, 255, 0.7), transparent 28%),
+        radial-gradient(circle at 85% 92%, rgba(255, 244, 191, 0.65), transparent 25%),
+        linear-gradient(135deg, #fbfdfe 0%, #eafaf7 45%, #fff5e8 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(55, 90, 127, 0.038) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(55, 90, 127, 0.038) 1px, transparent 1px);
+      background-size: 34px 34px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    button, input {
+      font-family: inherit;
+    }
+
+    .app {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    /* Barra Superior */
+    .topbar {
+      width: min(1180px, calc(100% - 22px));
+      margin: 12px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--tinta);
+      background: rgba(255, 253, 248, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      box-shadow: var(--sombra-suave);
+      border-radius: 22px;
+      padding: 10px 14px;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      background: linear-gradient(135deg, var(--turquesa), var(--lila));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+      font-size: 1.35rem;
+      flex: 0 0 auto;
+    }
+
+    .brand-title {
+      font-weight: 900;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: min(50vw, 560px);
+      font-size: 1rem;
+      color: var(--azul-titulo);
+    }
+
+    .brand small {
+      display: block;
+      color: var(--texto-suave);
+      font-weight: 700;
+      font-size: 0.8rem;
+      margin-top: 2px;
+    }
+
+    .progress-wrap {
+      flex: 1;
+      max-width: 380px;
+      min-width: 140px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: rgba(235, 242, 248, 0.85);
+      border: 1px solid rgba(55, 90, 127, 0.12);
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.74rem;
+      font-weight: 850;
+      color: var(--texto-suave);
+      margin-bottom: 3px;
+    }
+
+    .progress-track {
+      height: 10px;
+      background: rgba(55, 90, 127, 0.12);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #ffdce8, #b8f2e6, #cfefff, #fff4bf);
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Contenedor del Deck */
+    .deck {
+      width: min(1180px, calc(100% - 22px));
+      flex: 1;
+      margin: 14px auto;
+      position: relative;
+    }
+
+    .slide {
+      min-height: calc(100dvh - 170px);
+      display: none;
+      align-items: stretch;
+      justify-content: center;
+      animation: fadeSlide 0.32s ease both;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px) scale(0.995); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .screen {
+      width: 100%;
+      min-height: 590px;
+      border-radius: var(--radio-pantalla);
+      padding: clamp(18px, 3.8vw, 40px);
+      background:
+        linear-gradient(145deg, rgba(255, 253, 248, 0.97), rgba(255, 255, 255, 0.90)),
+        radial-gradient(circle at 12% 14%, rgba(255, 220, 232, 0.32), transparent 25%),
+        radial-gradient(circle at 88% 16%, rgba(184, 242, 230, 0.35), transparent 28%);
+      box-shadow: var(--sombra);
+      border: 1px solid rgba(255, 255, 255, 0.88);
+      position: relative;
+    }
+
+    .screen::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: 22px;
+      border: 2px dashed rgba(55, 90, 127, 0.11);
+      pointer-events: none;
+    }
+
+    .screen-content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Tipografía */
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      font-size: clamp(2rem, 5.2vw, 3.5rem);
+      line-height: 1.08;
+      color: var(--azul-titulo);
+      margin-bottom: 12px;
+      letter-spacing: -1px;
+      font-weight: 900;
+    }
+
+    h2 {
+      font-size: clamp(1.55rem, 3.4vw, 2.35rem);
+      line-height: 1.15;
+      color: var(--azul-titulo);
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+      font-weight: 850;
+    }
+
+    h3 {
+      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+      color: var(--azul-titulo);
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    p, li {
+      font-size: clamp(0.95rem, 1.3vw, 1.08rem);
+      line-height: 1.54;
+    }
+
+    .lead {
+      font-size: clamp(1rem, 1.5vw, 1.22rem);
+      font-weight: 650;
+      color: #3d4a5d;
+      max-width: 960px;
+      margin-bottom: 12px;
+    }
+
+    .muted { color: var(--texto-suave); }
+    .center { text-align: center; }
+
+    /* Layouts Grids */
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: clamp(16px, 3.2vw, 34px);
+      align-items: center;
+      min-height: 480px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: stretch;
+      margin: 8px 0;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      align-items: stretch;
+      margin: 8px 0;
+    }
+
+    .four-col {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+      margin: 8px 0;
+    }
+
+    /* DUA y Píldoras */
+    .pill-row, .dua-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 4px 0 12px;
+    }
+
+    .pill, .dua {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 850;
+      font-size: 0.82rem;
+      line-height: 1.1;
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: inset 0 0 0 1px rgba(55, 90, 127, 0.12);
+    }
+
+    .dua.compromiso { background: rgba(217, 247, 216, 0.9); color: #1e6454; }
+    .dua.representacion { background: rgba(232, 220, 255, 0.9); color: #523f82; }
+    .dua.accion { background: rgba(207, 239, 255, 0.92); color: #235478; }
+
+    /* Tarjetas */
+    .card {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio-tarjeta);
+      padding: clamp(14px, 1.8vw, 20px);
+      box-shadow: var(--sombra-suave);
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .card.soft-celeste { background: linear-gradient(145deg, rgba(207, 239, 255, 0.88), rgba(255, 255, 255, 0.8)); }
+    .card.soft-menta { background: linear-gradient(145deg, rgba(217, 247, 216, 0.88), rgba(255, 255, 255, 0.8)); }
+    .card.soft-rosa { background: linear-gradient(145deg, rgba(255, 220, 232, 0.88), rgba(255, 255, 255, 0.8)); }
+    .card.soft-crema { background: linear-gradient(145deg, rgba(255, 244, 191, 0.92), rgba(255, 255, 255, 0.8)); }
+    .card.soft-lila { background: linear-gradient(145deg, rgba(232, 220, 255, 0.88), rgba(255, 255, 255, 0.8)); }
+    .card.soft-durazno { background: linear-gradient(145deg, rgba(255, 225, 198, 0.88), rgba(255, 255, 255, 0.8)); }
+
+    .icon-big {
+      font-size: 1.8rem;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .mini-tag {
+      display: inline-block;
+      font-size: 0.74rem;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--texto-suave);
+      margin-bottom: 4px;
+    }
+
+    /* Math Box */
+    .math-box {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: rgba(255, 250, 238, 0.95);
+      border: 1.5px solid rgba(245, 197, 86, 0.35);
+      margin: 8px 0;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    }
+
+    .math-box.center-math {
+      text-align: center;
+    }
+
+    .math-box::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .math-box::-webkit-scrollbar-thumb {
+      background: rgba(55, 90, 127, 0.25);
+      border-radius: 999px;
+    }
+
+    /* Listas de Pasos */
+    .step-list {
+      display: grid;
+      gap: 9px;
+      margin: 8px 0;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 13px;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--borde);
+    }
+
+    .step-number {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--crema), var(--durazno));
+      font-weight: 900;
+      color: #634527;
+      font-size: 1rem;
+    }
+
+    /* Callouts */
+    .callout {
+      border-radius: 16px;
+      padding: 11px 15px;
+      margin: 8px 0;
+      border: 1px solid var(--borde);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--sombra-suave);
+      font-size: 0.94rem;
+      line-height: 1.48;
+    }
+
+    .callout.remember { background: rgba(217, 247, 216, 0.85); border-color: rgba(45, 143, 115, 0.25); }
+    .callout.error { background: rgba(255, 220, 232, 0.88); border-color: rgba(198, 83, 97, 0.25); }
+    .callout.teacher { background: rgba(232, 220, 255, 0.85); border-color: rgba(89, 69, 138, 0.25); }
+
+    /* Tablas */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 16px;
+      border: 1px solid var(--borde);
+      background: rgba(255, 255, 255, 0.85);
+      margin: 8px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 580px;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 13px;
+      border-bottom: 1px solid rgba(55, 90, 127, 0.10);
+      font-size: 0.92rem;
+    }
+
+    th {
+      background: rgba(207, 239, 255, 0.88);
+      color: #1e4568;
+      font-weight: 900;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    /* Botones */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 15px;
+      padding: 11px 17px;
+      min-height: 48px;
+      font-weight: 850;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      font-size: 0.96rem;
+      color: var(--tinta);
+      touch-action: manipulation;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(44, 62, 80, 0.12);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary { background: linear-gradient(135deg, var(--turquesa), var(--celeste)); }
+    .btn-secondary { background: linear-gradient(135deg, var(--crema), var(--durazno)); }
+    .btn-ghost { background: rgba(255, 255, 255, 0.88); box-shadow: inset 0 0 0 2px rgba(55, 90, 127, 0.14); }
+    .btn-alert { background: linear-gradient(135deg, var(--rosa), var(--durazno)); }
+
+    /* Controles de Navegación */
+    .nav-controls {
+      width: min(1180px, calc(100% - 22px));
+      margin: 0 auto 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 3;
+    }
+
+    .slide-counter {
+      font-weight: 900;
+      padding: 9px 16px;
+      border-radius: 999px;
+      background: rgba(255, 253, 248, 0.92);
+      box-shadow: var(--sombra-suave);
+      font-size: 0.93rem;
+      white-space: nowrap;
+      border: 1px solid rgba(55, 90, 127, 0.1);
+    }
+
+    /* Opciones Interactivas */
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 11px;
+      margin: 12px 0;
+    }
+
+    .option {
+      text-align: left;
+      padding: 13px 16px;
+      border: 2px solid rgba(55, 90, 127, 0.14);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+      min-height: 58px;
+      font-weight: 800;
+      transition: 0.15s ease;
+      color: var(--tinta);
+      font-size: 0.95rem;
+      line-height: 1.45;
+      display: block;
+      width: 100%;
+    }
+
+    .option:hover, .option:focus {
+      outline: none;
+      border-color: rgba(45, 143, 115, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .option.correct { background: rgba(217, 247, 216, 0.95); border-color: var(--verde-ok); color: #104e41; }
+    .option.wrong { background: rgba(255, 220, 232, 0.95); border-color: var(--rojo-alerta); color: #781e2b; }
+
+    .feedback {
+      display: none;
+      margin-top: 10px;
+      padding: 11px 15px;
+      border-radius: 15px;
+      font-weight: 850;
+      font-size: 0.94rem;
+    }
+
+    .feedback.show { display: block; animation: fadeSlide 0.2s ease both; }
+    .feedback.ok { background: rgba(217, 247, 216, 0.92); color: var(--verde-ok); }
+    .feedback.bad { background: rgba(255, 220, 232, 0.92); color: var(--rojo-alerta); }
+
+    /* Revelados y Acordeones */
+    .reveal {
+      display: none;
+      margin-top: 10px;
+      animation: fadeSlide 0.2s ease both;
+    }
+    .reveal.show { display: block; }
+
+    .accordion { display: grid; gap: 9px; margin-top: 10px; }
+    .acc-item { border-radius: 16px; overflow: hidden; border: 1px solid var(--borde); background: rgba(255, 255, 255, 0.85); }
+    .acc-head {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      padding: 12px 16px;
+      min-height: 48px;
+      cursor: pointer;
+      font-weight: 850;
+      color: var(--azul-titulo);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.95rem;
+    }
+    .acc-body { display: none; padding: 0 16px 13px; font-size: 0.92rem; }
+    .acc-item.open .acc-body { display: block; }
+
+    /* Hero Art & Gráfica SVG */
+    .hero-art {
+      min-height: 380px;
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.8), transparent 15%),
+        radial-gradient(circle at 75% 20%, rgba(255, 244, 191, 0.9), transparent 22%),
+        linear-gradient(145deg, var(--celeste), var(--turquesa) 50%, var(--durazno));
+      box-shadow: var(--sombra-suave);
+      position: relative;
+      overflow: hidden;
+      border: 4px solid rgba(255, 255, 255, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .hero-art .chart-preview-box {
+      width: 95%;
+      max-width: 380px;
+      background: rgba(255, 253, 248, 0.95);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 12px 30px rgba(44, 62, 80, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      text-align: center;
+    }
+
+    .chart-container-svg {
+      width: 100%;
+      height: 220px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 4px;
+      padding: 10px 6px 0;
+      border-bottom: 2px solid #204b6e;
+      position: relative;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+    }
+
+    .bar-visual {
+      width: 100%;
+      border-radius: 6px 6px 0 0;
+      background: #739bbd;
+      transition: height 0.4s ease, background-color 0.2s ease;
+    }
+
+    .bar-col.highlight .bar-visual {
+      background: #e67e22;
+      box-shadow: 0 0 10px rgba(230, 126, 34, 0.5);
+    }
+
+    .bar-tag {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #334155;
+      margin-top: 4px;
+    }
+
+    .floating {
+      position: absolute;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      filter: drop-shadow(0 6px 6px rgba(44, 62, 80, 0.12));
+      animation: float 3.4s ease-in-out infinite;
+      user-select: none;
+    }
+    .float-a { left: 6%; top: 6%; animation-delay: 0s; }
+    .float-b { right: 6%; top: 8%; animation-delay: 0.6s; }
+    .float-c { right: 8%; bottom: 6%; animation-delay: 1.2s; }
+    .float-d { left: 8%; bottom: 8%; animation-delay: 1.8s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+
+    .footer-author {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: var(--texto-suave);
+      font-weight: 750;
+    }
+
+    /* Adaptación Responsiva */
+    @media (max-width: 920px) {
+      .split, .two-col, .three-col, .four-col {
+        grid-template-columns: 1fr;
+      }
+      .hero-art { min-height: 270px; }
+      .screen { min-height: auto; padding: 20px 16px; }
+      .option-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .brand-title { max-width: 100%; white-space: normal; }
+      .progress-wrap { max-width: none; }
+      .slide { min-height: auto; }
+      .screen { border-radius: 20px; padding: 14px; }
+      .screen::after { inset: 6px; border-radius: 14px; }
+      .nav-controls { flex-wrap: wrap; }
+      .nav-controls .btn { flex: 1 1 120px; }
+      .slide-counter { order: -1; width: 100%; text-align: center; }
+      .btn-row .btn { flex: 1 1 100%; }
+      .step { grid-template-columns: 32px 1fr; gap: 10px; }
+      .step-number { width: 32px; height: 32px; font-size: 0.9rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Barra Superior Docente -->
+    <header class="topbar" aria-label="Barra superior de presentación">
+      <div class="brand">
+        <div class="brand-badge">🎲</div>
+        <div>
+          <div class="brand-title" id="brandTitle">Matemáticas · Distribución Binomial o de Bernoulli (n, p)</div>
+          <small id="brandSubtitle">Tercero de BGU · 90 minutos</small>
+        </div>
+      </div>
+      <div class="progress-wrap" aria-label="Progreso de la sesión">
+        <div class="progress-label">
+          <span>Avance de la clase</span>
+          <span id="globalProgressText">1/24</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="globalProgress"></div></div>
+      </div>
+    </header>
+
+    <!-- Deck de Diapositivas con IDs Estables -->
+    <main class="deck" id="deck">
+
+      <!-- SLIDE 1: Portada -->
+      <section class="slide active" id="slide-01" data-slide-title="Portada">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar">
+                <span class="dua compromiso">DUA · Compromiso</span>
+                <span class="dua representacion">DUA · Representación</span>
+              </div>
+              <h1>Distribución Binomial o de Bernoulli \((n, p)\)</h1>
+              <p class="lead">Modelado probabilístico de ensayos repetidos, función de masa de probabilidad, esperanza, varianza y aplicaciones a situaciones cotidianas.</p>
+              <div class="pill-row">
+                <span class="pill">📘 Matemáticas</span>
+                <span class="pill">🎓 Tercero de BGU</span>
+                <span class="pill">⏱️ 90 minutos</span>
+                <span class="pill">📌 Nivel Intermedio</span>
+              </div>
+              <div class="callout remember">
+                <strong>Idea Clave:</strong> Si un experimento aleatorio de 2 resultados posibles se repite \(n\) veces de forma independiente con probabilidad de éxito \(p\) constante, el número de éxitos \(X\) sigue una distribución \(B(n, p)\).
+              </div>
+              <div class="footer-author">Módulo de aprendizaje · Autor: Econ. Pablo Hernan Juca Farfan</div>
+            </div>
+            <div class="hero-art" aria-label="Gráfica de campana de la distribución binomial">
+              <div class="floating float-a">🎯</div>
+              <div class="floating float-b">📊</div>
+              <div class="floating float-c">🪙</div>
+              <div class="floating float-d">💡</div>
+              <div class="chart-preview-box">
+                <div class="mini-tag">Histograma de Probabilidad \(B(10, 0.5)\)</div>
+                <div class="chart-container-svg">
+                  <div class="bar-col"><div class="bar-visual" style="height: 4%;"></div><span class="bar-tag">0</span></div>
+                  <div class="bar-col"><div class="bar-visual" style="height: 10%;"></div><span class="bar-tag">1</span></div>
+                  <div class="bar-col"><div class="bar-visual" style="height: 25%;"></div><span class="bar-tag">2</span></div>
+                  <div class="bar-col"><div class="bar-visual" style="height: 48%;"></div><span class="bar-tag">3</span></div>
+                  <div class="bar-col"><div class="bar-visual" style="height: 82%;"></div><span class="bar-tag">4</span></div>
+                  <div class="bar-col highlight"><div class="bar-visual" style="height: 100%;"></div><span class="bar-tag">5</span></div>
+                  <div class="bar-col"><div class="bar-visual" style="height: 82%;"></div><span class="bar-tag">6</span></div>
+                  <div class="bar-col"><div class="bar-visual" style="height: 48%;"></div><span class="bar-tag">7</span></div>
+                  <div class="bar-col"><div class="bar-visual" style="height: 25%;"></div><span class="bar-tag">8</span></div>
+                  <div class="bar-col"><div class="bar-visual" style="height: 10%;"></div><span class="bar-tag">9</span></div>
+                  <div class="bar-col"><div class="bar-visual" style="height: 4%;"></div><span class="bar-tag">10</span></div>
+                </div>
+                <small class="muted">Simetría perfecta respecto a la media \(E(X) = np = 5\)</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 2: Propósito y Marco Curricular -->
+      <section class="slide" id="slide-02" data-slide-title="Propósito y Marco Curricular">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua compromiso">DUA · Compromiso</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Propósito y Marco Curricular Institucional</h2>
+            <p class="lead">Fundamentación pedagógica y curricular para la comprensión formal y aplicada del modelo binomial en 90 minutos de clase activa.</p>
+            <div class="three-col">
+              <div class="card soft-celeste">
+                <span class="icon-big">🎯</span>
+                <h3>Objetivo (O.M.5.5)</h3>
+                <p>Valorar con pensamiento crítico, reflexivo y lógico la vinculación de la matemática con otras disciplinas para solucionar problemas de la realidad y contribuir al entorno.</p>
+              </div>
+              <div class="card soft-menta">
+                <span class="icon-big">🧩</span>
+                <h3>Destreza (M.5.3.20)</h3>
+                <p>Calcular probabilidades binomiales con la fórmula (o con apoyo de las TIC), la media, la varianza de distribuciones binomiales, y graficar.</p>
+              </div>
+              <div class="card soft-lila">
+                <span class="icon-big">✅</span>
+                <h3>Indicador (I.M.5.10.2)</h3>
+                <p>Identifica variables aleatorias discretas, halla media, varianza y desviación típica; reconoce experimentos de Bernoulli y calcula probabilidades en problemas cotidianos.</p>
+              </div>
+            </div>
+            <div class="callout teacher">
+              <strong>Meta docente:</strong> Asegurar que los estudiantes reconozcan cuándo una situación real cumple las 4 condiciones binomiales, dominen la combinatoria \(\binom{n}{k}\) y apliquen el complemento con soltura.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 3: Ruta de Aprendizaje -->
+      <section class="slide" id="slide-03" data-slide-title="Ruta de aprendizaje">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Ruta Didáctica de la Clase (90 Minutos)</h2>
+            <div class="three-col">
+              <div class="card soft-durazno">
+                <span class="mini-tag">Momento 1 · 20 min</span>
+                <h3>1. Anticipación</h3>
+                <p>Activación diagnóstica: de ensayos dicotómicos (Bernoulli) a secuencias de repetición independiente.</p>
+                <span class="pill">🗣️ Reto previo conceptual</span>
+              </div>
+              <div class="card soft-celeste">
+                <span class="mini-tag">Momento 2 · 50 min</span>
+                <h3>2. Construcción</h3>
+                <p>Fórmula de probabilidad, coeficientes binomiales, esperanza \(np\), varianza \(npq\), gráficos y 8 ejemplos guiados.</p>
+                <span class="pill">🧮 Modelado paso a paso</span>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Momento 3 · 20 min</span>
+                <h3>3. Consolidación</h3>
+                <p>Resolución de rangos, análisis de errores de signos y muestreo sin reemplazo, síntesis y práctica activa.</p>
+                <span class="pill">✍️ Consolidación interactiva</span>
+              </div>
+            </div>
+            <div class="callout remember">
+              <strong>Principios DUA:</strong> Visualización simultánea de fórmulas con MathJax, tarjetas con código de color y verificación inmediata de cada procedimiento sin saltar pasos.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 4: Activación de Saberes Previos (Respuesta correcta en la 4.ª posición) -->
+      <section class="slide" id="slide-04" data-slide-title="Activación diagnóstica">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua compromiso">DUA · Compromiso</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Activación de Saberes: ¿Qué caracteriza a un experimento de Bernoulli?</h2>
+            <p class="lead">Analiza las siguientes cuatro afirmaciones cotidianas y selecciona la que describe de forma exacta y rigurosa un <strong>experimento de Bernoulli</strong>:</p>
+            <div class="option-grid" data-question="q_saberes">
+              <button class="option" data-correct="false" onclick="checkOption(this)">Es un experimento que siempre requiere realizarse sin reemplazo en poblaciones pequeñas.</button>
+              <button class="option" data-correct="false" onclick="checkOption(this)">Tiene múltiples resultados posibles y la probabilidad varía constantemente en cada intento realizado.</button>
+              <button class="option" data-correct="false" onclick="checkOption(this)">Solo es aplicable cuando el resultado obtenido es necesariamente algo positivo o beneficioso.</button>
+              <button class="option" data-correct="true" onclick="checkOption(this)">Tiene únicamente dos resultados posibles (éxito y fracaso) y su probabilidad de éxito no cambia al repetirse.</button>
+            </div>
+            <div class="feedback ok" id="q_saberes-ok">
+              ✅ ¡Exacto! Un ensayo de Bernoulli tiene exactamente dos resultados posibles (éxito y fracaso) y la probabilidad de éxito \(p\) se mantiene constante en cada intento.
+            </div>
+            <div class="feedback bad" id="q_saberes-bad">
+              💡 Revisa con atención: Un experimento de Bernoulli exige únicamente dos resultados excluyentes y probabilidad fija (\(0 \le p \le 1\)), donde \(q = 1 - p\).
+            </div>
+            <div class="callout teacher">
+              <strong>Reflexión guiada:</strong> Lanzar un dado buscando el número 6 es un ensayo de Bernoulli si agrupamos los resultados en: "Obtener 6" (éxito, \(p=1/6\)) y "No obtener 6" (fracaso, \(q=5/6\)).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 5: Conceptos Fundamentales: Experimento de Bernoulli -->
+      <section class="slide" id="slide-05" data-slide-title="Experimento de Bernoulli">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>01. Conceptos Fundamentales: El Ensayo de Bernoulli</h2>
+            <p class="lead">Un <strong>experimento de Bernoulli</strong> es una prueba aleatoria elemental que cumple dos condiciones indispensables:</p>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Estructura Dicotómica</span>
+                <h3>Dos Resultados Posibles</h3>
+                <p>Posee únicamente dos sucesos mutuamente excluyentes, denominados convencionalmente <strong>éxito</strong> y <strong>fracaso</strong>.</p>
+                <div class="math-box center-math">
+                  \[
+                  P(\text{éxito}) = p \qquad P(\text{fracaso}) = q = 1 - p
+                  \]
+                  \[
+                  0 \le p \le 1 \quad \implies \quad p + q = 1
+                  \]
+                </div>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Ejemplos Clásicos</span>
+                <h3>Aplicaciones Directas</h3>
+                <ul>
+                  <li><strong>Moneda:</strong> Cara (\(p=0.5\)) / Sello (\(q=0.5\)).</li>
+                  <li><strong>Control de calidad:</strong> Pieza defectuosa / Pieza no defectuosa.</li>
+                  <li><strong>Medicina:</strong> Paciente responde al fármaco / No responde.</li>
+                  <li><strong>Encuestas:</strong> Vota "SÍ" a la propuesta / Vota "NO".</li>
+                </ul>
+              </div>
+            </div>
+            <div class="callout remember">
+              <strong>OBSERVA:</strong> El término "éxito" no implica algo moralmente positivo; es simplemente el suceso cuyo conteo nos interesa. Si investigamos tornillos defectuosos, el "éxito" estadístico es encontrar un tornillo defectuoso.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 6: La Variable Aleatoria Binomial -->
+      <section class="slide" id="slide-06" data-slide-title="Variable Aleatoria Binomial">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>La Variable Aleatoria Binomial \(X \sim B(n, p)\)</h2>
+            <p class="lead">Cuando un ensayo de Bernoulli se repite \(n\) veces de manera idéntica e independiente, y definimos \(X\) como el <strong>número total de éxitos</strong> obtenidos, \(X\) es una variable aleatoria binomial.</p>
+            <div class="split">
+              <div class="card soft-lila">
+                <span class="mini-tag">Notación Formal</span>
+                <div class="math-box center-math">
+                  \[
+                  X \sim B(n, p)
+                  \]
+                </div>
+                <p class="center">Se lee: <em>"X sigue una distribución binomial con parámetros \(n\) y \(p\)"</em>.</p>
+                <div class="callout teacher">
+                  <strong>Rango de valores posibles de \(X\):</strong><br>
+                  \(X \in \{0, 1, 2, 3, \dots, n\}\). La variable es <strong>discreta</strong> y finita.
+                </div>
+              </div>
+              <div class="step-list">
+                <div class="step">
+                  <div class="step-number">\(n\)</div>
+                  <div><strong>Número de ensayos:</strong> Cuántas veces fijas se repite la prueba (\(n \in \mathbb{N}\)).</div>
+                </div>
+                <div class="step">
+                  <div class="step-number">\(p\)</div>
+                  <div><strong>Probabilidad de éxito:</strong> Probabilidad constante de que ocurra el suceso en cada ensayo.</div>
+                </div>
+                <div class="step">
+                  <div class="step-number">\(q\)</div>
+                  <div><strong>Probabilidad de fracaso:</strong> Calculada inmediatamente como \(q = 1 - p\).</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 7: Las Cuatro Condiciones del Modelo Binomial -->
+      <section class="slide" id="slide-07" data-slide-title="Condiciones Binomiales">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Los Cuatro Requisitos del Modelo Binomial</h2>
+            <p class="lead">Para que una situación real pueda modelarse rigurosamente mediante una distribución binomial, deben cumplirse <strong>simultáneamente</strong> estas cuatro condiciones:</p>
+            <div class="four-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Requisito 1</span>
+                <h3>Número Fijo \(n\)</h3>
+                <p>El experimento consta de un número determinado y prefijado de ensayos repetidos.</p>
+              </div>
+              <div class="card soft-durazno">
+                <span class="mini-tag">Requisito 2</span>
+                <h3>Dos Resultados</h3>
+                <p>Cada intento solo admite dos resultados categóricos: éxito o fracaso.</p>
+              </div>
+              <div class="card soft-crema">
+                <span class="mini-tag">Requisito 3</span>
+                <h3>Probabilidad Fija \(p\)</h3>
+                <p>La probabilidad de éxito \(p\) permanece idéntica en cada una de las repeticiones.</p>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Requisito 4</span>
+                <h3>Independencia</h3>
+                <p>El resultado obtenido en un ensayo no influye ni altera el resultado de los demás.</p>
+              </div>
+            </div>
+            <div class="callout error">
+              <strong>⚠️ ERROR FRECUENTE:</strong> Aplicar la binomial a extracciones <strong>sin reemplazo</strong> en poblaciones pequeñas (como extraer cartas de una baraja sin devolverlas). Allí \(p\) cambia tras cada extracción y se pierde la independencia (requiere distribución hipergeométrica).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 8: Ejemplo 1 - Identificar Parámetros -->
+      <section class="slide" id="slide-08" data-slide-title="Ejemplo 1 (Parámetros)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 1 · Identificar Parámetros de una Binomial</h2>
+            <p class="lead"><strong>Situación:</strong> Se lanza una moneda equilibrada 8 veces. Sea \(X\) el número de caras obtenidas. Identifica los parámetros \(n\), \(p\), \(q\) y escribe la notación formal de la variable.</p>
+            <div class="split">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Procedimiento Paso a Paso</span>
+                <div class="step-list">
+                  <div class="step">
+                    <div class="step-number">1</div>
+                    <div><strong>Número de ensayos:</strong> La moneda se lanza 8 veces \(\implies n = 8\).</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">2</div>
+                    <div><strong>Probabilidad de éxito:</strong> Moneda equilibrada \(\implies P(\text{cara}) = p = 0.5\).</div>
+                  </div>
+                  <div class="step">
+                    <div class="step-number">3</div>
+                    <div><strong>Probabilidad de fracaso:</strong> \(q = 1 - p = 1 - 0.5 = 0.5\).</div>
+                  </div>
+                </div>
+                <div class="callout remember">
+                  <strong>Notación final:</strong> \(\mathbf{X \sim B(8, 0.5)}\) con \(n=8\), \(p=0.5\), \(q=0.5\).
+                </div>
+              </div>
+              <div class="card soft-crema">
+                <h3>Verificación de Condiciones</h3>
+                <ul>
+                  <li>✔️ Ensayos fijados: \(n = 8\).</li>
+                  <li>✔️ Dos sucesos: Cara / Sello.</li>
+                  <li>✔️ \(p = 0.5\) no varía entre lanzamientos.</li>
+                  <li>✔️ Los lanzamientos son físicamente independientes.</li>
+                </ul>
+                <div class="callout teacher">
+                  Conocer \(n\) y \(p\) es suficiente para describir por completo toda la distribución de probabilidades.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 9: El Coeficiente Binomial -->
+      <section class="slide" id="slide-09" data-slide-title="Coeficiente Binomial">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>El Coeficiente Binomial: Contando Combinaciones</h2>
+            <p class="lead">Para calcular la probabilidad de obtener exactamente \(k\) éxitos en \(n\) ensayos, debemos determinar de cuántas formas distintas pueden ubicarse esos \(k\) éxitos entre las \(n\) posiciones:</p>
+            <div class="split">
+              <div class="card soft-rosa">
+                <span class="mini-tag">Fórmula Combinatoria</span>
+                <div class="math-box center-math">
+                  \[
+                  \binom{n}{k} = \frac{n!}{k!(n-k)!}
+                  \]
+                </div>
+                <p>Representa el número de combinaciones de \(n\) elementos tomados de \(k\) en \(k\) sin importar el orden.</p>
+              </div>
+              <div class="card soft-durazno">
+                <h3>Propiedades Simétricas Útiles</h3>
+                <div class="math-box center-math">
+                  \[
+                  \binom{n}{0} = 1 \qquad \binom{n}{n} = 1 \qquad \binom{n}{1} = n
+                  \]
+                  \[
+                  \binom{n}{k} = \binom{n}{n-k}
+                  \]
+                </div>
+                <div class="callout teacher">
+                  <strong>Consejo de Calculadora:</strong> Puedes emplear la tecla <code>nCr</code> de tu calculadora científica para agilizar cálculos con factoriales grandes.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 10: Deducción y Función de Masa de Probabilidad -->
+      <section class="slide" id="slide-10" data-slide-title="Fórmula Binomial">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>02. Desarrollo Matemático: Función de Probabilidad Binomial</h2>
+            <p class="lead">Una secuencia específica de \(k\) éxitos y \(n-k\) fracasos tiene probabilidad \(p^k q^{n-k}\) por independencia. Al existir \(\binom{n}{k}\) secuencias mutuamente excluyentes, multiplicamos ambos factores:</p>
+            <div class="card soft-celeste">
+              <div class="math-box center-math">
+                \[
+                P(X = k) = \binom{n}{k} p^k q^{n-k} = \frac{n!}{k!(n-k)!} \, p^k (1-p)^{n-k} \qquad \text{para } k = 0, 1, 2, \dots, n
+                \]
+              </div>
+            </div>
+            <div class="three-col">
+              <div class="card soft-menta">
+                <span class="mini-tag">Factor Combinatorio</span>
+                <h3>\(\binom{n}{k}\)</h3>
+                <p>Número total de maneras de repartir \(k\) éxitos en los \(n\) intentos.</p>
+              </div>
+              <div class="card soft-crema">
+                <span class="mini-tag">Factor de Éxitos</span>
+                <h3>\(p^k\)</h3>
+                <p>Probabilidad acumulada de que ocurran los \(k\) éxitos requeridos.</p>
+              </div>
+              <div class="card soft-durazno">
+                <span class="mini-tag">Factor de Fracasos</span>
+                <h3>\(q^{n-k}\)</h3>
+                <p>Probabilidad de que en los restantes \(n-k\) ensayos ocurran fracasos.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 11: Propiedad Fundamental: Suma Total de Probabilidades -->
+      <section class="slide" id="slide-11" data-slide-title="Suma de Probabilidades">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Propiedad Fundamental: Suma Total de Probabilidades</h2>
+            <p class="lead">Por el Teorema del Binomio de Newton, la suma de las probabilidades para todos los valores posibles de \(k\) desde \(0\) hasta \(n\) es exactamente igual a \(1\):</p>
+            <div class="two-col">
+              <div class="card soft-menta">
+                <span class="mini-tag">Demostración Formal</span>
+                <div class="math-box center-math">
+                  \[
+                  \sum_{k=0}^{n} P(X = k) = \sum_{k=0}^{n} \binom{n}{k} p^k q^{n-k} = (p + q)^n
+                  \]
+                  \[
+                  (p + q)^n = (1)^n = \mathbf{1}
+                  \]
+                </div>
+              </div>
+              <div class="card soft-lila">
+                <h3>Criterio de Validación Docente</h3>
+                <p>Esta propiedad es la prueba de fuego para verificar cualquier distribución binomial calculada en el aula:</p>
+                <div class="callout remember">
+                  Si sumas \(P(X=0) + P(X=1) + \dots + P(X=n)\) y el total difiere de 1, existe un error de redondeo o de cálculo en algún término.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 12: Esperanza, Varianza y Desviación Estándar -->
+      <section class="slide" id="slide-12" data-slide-title="Parámetros Estadísticos">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Media, Varianza y Desviación Estándar de \(X \sim B(n, p)\)</h2>
+            <p class="lead">Estas tres medidas describen el centro y la dispersión de la distribución de forma directa sin necesidad de calcular término a término:</p>
+            <div class="three-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Valor Esperado / Media</span>
+                <h3>\(\mu = E(X)\)</h3>
+                <div class="math-box center-math">
+                  \[
+                  E(X) = n \cdot p
+                  \]
+                </div>
+                <p>Promedio de éxitos esperados si el experimento se repitiese indefinidamente.</p>
+              </div>
+              <div class="card soft-durazno">
+                <span class="mini-tag">Varianza</span>
+                <h3>\(\sigma^2 = \text{Var}(X)\)</h3>
+                <div class="math-box center-math">
+                  \[
+                  \text{Var}(X) = n \cdot p \cdot q
+                  \]
+                </div>
+                <p>Dispersión cuadrática de los resultados alrededor de la media esperada.</p>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Desviación Típica</span>
+                <h3>\(\sigma\)</h3>
+                <div class="math-box center-math">
+                  \[
+                  \sigma = \sqrt{n \cdot p \cdot q}
+                  \]
+                </div>
+                <p>Dispersión en las mismas unidades de la variable original \(X\).</p>
+              </div>
+            </div>
+            <div class="callout teacher">
+              <strong>Atajo fundamental:</strong> Dado \(X \sim B(40, 0.85)\), calculamos directamente: \(E(X) = 40 \times 0.85 = 34\) y \(\sigma = \sqrt{40 \times 0.85 \times 0.15} = \sqrt{5.1} \approx 2.258\).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 13: Forma y Gráfica de la Distribución -->
+      <section class="slide" id="slide-13" data-slide-title="Forma de la Distribución">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>La Forma de la Distribución Binomial y Simetría</h2>
+            <p class="lead">El comportamiento gráfico de \(P(X=k)\) depende estrictamente del valor de \(p\) y del tamaño \(n\):</p>
+            <div class="three-col">
+              <div class="card soft-celeste">
+                <h3>Simétrica (\(p = 0.5\))</h3>
+                <p>La gráfica tiene perfecta forma de campana centrada en \(E(X) = np\). Las colas a la izquierda y derecha son idénticas.</p>
+                <div class="pill">Campana perfecta</div>
+              </div>
+              <div class="card soft-durazno">
+                <h3>Sesgo Positivo (\(p < 0.5\))</h3>
+                <p>Las mayores probabilidades se concentran en valores bajos de \(k\). La cola se extiende hacia la derecha.</p>
+                <div class="pill">Sesgo a la derecha</div>
+              </div>
+              <div class="card soft-rosa">
+                <h3>Sesgo Negativo (\(p > 0.5\))</h3>
+                <p>Las mayores probabilidades se concentran en valores altos de \(k\). La cola se extiende hacia la izquierda.</p>
+                <div class="pill">Sesgo a la izquierda</div>
+              </div>
+            </div>
+            <div class="callout remember">
+              <strong>Aproximación a la Normal:</strong> Cuando \(n\) es grande y \(np \ge 5\) junto a \(nq \ge 5\), la distribución binomial se aproxima estrechamente a una distribución normal \(\mathcal{N}(\mu=np, \sigma=\sqrt{npq})\).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 14: Probabilidades Acumuladas y Regla del Complemento -->
+      <section class="slide" id="slide-14" data-slide-title="Probabilidades Acumuladas">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Probabilidades Acumuladas y Uso Estratégico del Complemento</h2>
+            <p class="lead">En los problemas reales con frecuencia se solicitan rangos de éxitos ("a lo sumo", "al menos", "entre"):</p>
+            <div class="two-col">
+              <div class="card soft-crema">
+                <span class="mini-tag">Expresiones Acumuladas Típicas</span>
+                <div class="math-box">
+                  \[
+                  P(X \le k) = \sum_{i=0}^{k} P(X = i) \quad \text{("a lo sumo } k\text{")}
+                  \]
+                  \[
+                  P(a \le X \le b) = \sum_{i=a}^{b} P(X = i) \quad \text{("entre } a \text{ y } b\text{")}
+                  \]
+                </div>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Estrategia del Complemento</span>
+                <div class="math-box">
+                  \[
+                  P(X \ge k) = 1 - P(X \le k - 1)
+                  \]
+                  \[
+                  \mathbf{P(X \ge 1) = 1 - P(X = 0)}
+                  \]
+                </div>
+                <div class="callout teacher">
+                  <strong>Regla de oro docente:</strong> Para "al menos un éxito" (\(X \ge 1\)), siempre calcula \(1 - P(X=0)\) en lugar de sumar \(n\) términos individuales.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 15: Ejemplo 2 - Probabilidad Puntual P(X=k) -->
+      <section class="slide" id="slide-15" data-slide-title="Ejemplo 2 (Probabilidad Puntual)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 2 · Probabilidad Puntual \(P(X = k)\)</h2>
+            <p class="lead"><strong>Situación:</strong> En una fábrica, el 20% de los tornillos producidos resultan defectuosos. Se toma una muestra aleatoria de 6 tornillos. Calcular la probabilidad de que exactamente 2 sean defectuosos.</p>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">1. Parámetros y Planteamiento</span>
+                <ul>
+                  <li>\(n = 6\) (tornillos inspeccionados)</li>
+                  <li>\(p = 0.2\) (probabilidad de defecto)</li>
+                  <li>\(q = 1 - 0.2 = 0.8\)</li>
+                  <li>\(k = 2\) (éxitos buscados)</li>
+                </ul>
+                <div class="math-box center-math">
+                  \[
+                  P(X = 2) = \binom{6}{2} (0.2)^2 (0.8)^{6-2}
+                  \]
+                </div>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">2. Cálculo Detallado de Factores</span>
+                <div class="math-box center-math">
+                  \[
+                  \binom{6}{2} = \frac{6!}{2!4!} = \frac{30}{2} = 15
+                  \]
+                  \[
+                  (0.2)^2 = 0.04 \qquad (0.8)^4 = 0.4096
+                  \]
+                  \[
+                  P(X = 2) = 15 \times 0.04 \times 0.4096 = \mathbf{0.24576}
+                  \]
+                  \[
+                  \mathbf{P(X = 2) \approx 0.2458 \quad (24.58\%)}
+                  \]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 16: Ejemplo 3 - "Al menos uno" con Complemento -->
+      <section class="slide" id="slide-16" data-slide-title="Ejemplo 3 (Complemento)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 3 · "Al menos uno" usando el Complemento</h2>
+            <p class="lead"><strong>Situación:</strong> La probabilidad de germinación de cierta semilla es del 90% (\(p=0.9\)). Si se siembran 5 semillas, ¿cuál es la probabilidad de que al menos una germine?</p>
+            <div class="two-col">
+              <div class="card soft-durazno">
+                <span class="mini-tag">1. Parámetros y Estrategia</span>
+                <ul>
+                  <li>\(n = 5\) semillas</li>
+                  <li>\(p = 0.9 \implies q = 0.1\)</li>
+                  <li>Evento pedido: \(X \ge 1\)</li>
+                </ul>
+                <div class="callout remember">
+                  Complemento de "al menos una germina" = "ninguna semilla germina" (\(X = 0\)).<br>
+                  \(\mathbf{P(X \ge 1) = 1 - P(X = 0)}\).
+                </div>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">2. Cálculo y Resultado</span>
+                <div class="math-box center-math">
+                  \[
+                  P(X = 0) = \binom{5}{0} (0.9)^0 (0.1)^5 = 1 \times 1 \times 0.00001 = 0.00001
+                  \]
+                  \[
+                  P(X \ge 1) = 1 - 0.00001 = \mathbf{0.99999}
+                  \]
+                  \[
+                  \mathbf{P(X \ge 1) \approx 99.999\%}
+                  \]
+                </div>
+                <div class="callout teacher">
+                  ¡Casi un 100% de certeza! Calcular 1 solo término mediante el complemento ahorró calcular \(P(1)+P(2)+P(3)+P(4)+P(5)\).
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 17: Ejemplo 4 - Probabilidad Acumulada "A lo sumo" -->
+      <section class="slide" id="slide-17" data-slide-title="Ejemplo 4 (A lo sumo)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 4 · Probabilidad Acumulada "A lo sumo"</h2>
+            <p class="lead"><strong>Situación:</strong> Un estudiante responde al azar un examen de 4 preguntas de verdadero o falso (adivina cada respuesta, con \(p=0.5\) de acertar). Calcular la probabilidad de acertar a lo sumo 1 pregunta.</p>
+            <div class="two-col">
+              <div class="card soft-rosa">
+                <span class="mini-tag">Planteamiento de la Suma Acumulada</span>
+                <p>"A lo sumo 1" significa \(X \le 1\), es decir, \(X = 0\) o \(X = 1\):</p>
+                <div class="math-box center-math">
+                  \[
+                  P(X \le 1) = P(X = 0) + P(X = 1)
+                  \]
+                </div>
+                <ul>
+                  <li>\(n = 4\) preguntas</li>
+                  <li>\(p = 0.5, \; q = 0.5\)</li>
+                </ul>
+              </div>
+              <div class="card soft-crema">
+                <span class="mini-tag">Cálculo Término a Término</span>
+                <div class="math-box center-math">
+                  \[
+                  P(X = 0) = \binom{4}{0}(0.5)^0(0.5)^4 = 1 \times 1 \times 0.0625 = 0.0625
+                  \]
+                  \[
+                  P(X = 1) = \binom{4}{1}(0.5)^1(0.5)^3 = 4 \times 0.5 \times 0.125 = 0.2500
+                  \]
+                  \[
+                  P(X \le 1) = 0.0625 + 0.2500 = \mathbf{0.3125}
+                  \]
+                  \[
+                  \mathbf{P(X \le 1) = 0.3125 \quad (31.25\%)}
+                  \]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 18: Ejemplo 5 - Valor Esperado y Desviación Estándar -->
+      <section class="slide" id="slide-18" data-slide-title="Ejemplo 5 (Esperanza y Desviación)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 5 · Valor Esperado y Desviación Estándar</h2>
+            <p class="lead"><strong>Situación:</strong> En una línea de producción, la probabilidad de que un artículo pase el control de calidad es \(p = 0.85\). Se inspeccionan \(n = 40\) artículos. Calcular el número esperado de artículos que pasan y la desviación estándar.</p>
+            <div class="three-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">1. Valor Esperado</span>
+                <div class="math-box center-math">
+                  \[
+                  E(X) = n \cdot p
+                  \]
+                  \[
+                  E(X) = 40(0.85) = \mathbf{34}
+                  \]
+                </div>
+                <p>Se espera que en promedio <strong>34 artículos</strong> pasen el control de calidad.</p>
+              </div>
+              <div class="card soft-durazno">
+                <span class="mini-tag">2. Varianza</span>
+                <div class="math-box center-math">
+                  \[
+                  \text{Var}(X) = n \cdot p \cdot q
+                  \]
+                  \[
+                  \text{Var}(X) = 40(0.85)(0.15) = \mathbf{5.1}
+                  \]
+                </div>
+                <p>Donde \(q = 1 - 0.85 = 0.15\).</p>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">3. Desviación Estándar</span>
+                <div class="math-box center-math">
+                  \[
+                  \sigma = \sqrt{\text{Var}(X)} = \sqrt{5.1}
+                  \]
+                  \[
+                  \mathbf{\sigma \approx 2.258 \text{ artículos}}
+                  \]
+                </div>
+                <p>Mide la variabilidad típica alrededor del promedio.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 19: Ejemplo 6 - Construir y Verificar Distribución Completa -->
+      <section class="slide" id="slide-19" data-slide-title="Ejemplo 6 (Distribución Completa)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 6 · Construir y Verificar una Distribución Completa</h2>
+            <p class="lead"><strong>Situación:</strong> Sea \(X \sim B(3, 0.4)\). Construir la tabla de distribución completa para todos los valores de \(k \in \{0, 1, 2, 3\}\) y verificar que la suma sea igual a 1.</p>
+            <div class="split">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Cálculo de cada \(P(X=k)\) con \(n=3, p=0.4, q=0.6\)</span>
+                <div class="math-box">
+                  \[
+                  P(X=0) = \binom{3}{0}(0.4)^0(0.6)^3 = 1 \times 1 \times 0.216 = \mathbf{0.216}
+                  \]
+                  \[
+                  P(X=1) = \binom{3}{1}(0.4)^1(0.6)^2 = 3 \times 0.4 \times 0.36 = \mathbf{0.432}
+                  \]
+                  \[
+                  P(X=2) = \binom{3}{2}(0.4)^2(0.6)^1 = 3 \times 0.16 \times 0.6 = \mathbf{0.288}
+                  \]
+                  \[
+                  P(X=3) = \binom{3}{3}(0.4)^3(0.6)^0 = 1 \times 0.064 \times 1 = \mathbf{0.064}
+                  \]
+                </div>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Verificación de la Suma Total</span>
+                <div class="math-box center-math">
+                  \[
+                  \sum_{k=0}^{3} P(X = k) = 0.216 + 0.432 + 0.288 + 0.064
+                  \]
+                  \[
+                  = \mathbf{1.000}
+                  \]
+                </div>
+                <div class="callout remember">
+                  ✔️ <strong>Distribución Verificada:</strong> La suma es exactamente 1, cumpliendo la ley fundamental de las funciones de probabilidad.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 20: Ejemplo 7 - Aplicación a Encuesta de Opinión -->
+      <section class="slide" id="slide-20" data-slide-title="Ejemplo 7 (Encuesta)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 7 · Aplicación a una Encuesta de Opinión</h2>
+            <p class="lead"><strong>Situación:</strong> Una encuestadora estima que el 65% (\(p=0.65\)) de los votantes apoya cierta propuesta. Se seleccionan al azar 10 votantes (\(n=10\)). Calcular la probabilidad de que exactamente 7 apoyen la propuesta (\(k=7\)).</p>
+            <div class="two-col">
+              <div class="card soft-durazno">
+                <span class="mini-tag">1. Identificación y Fórmula</span>
+                <ul>
+                  <li>\(n = 10\) votantes</li>
+                  <li>\(p = 0.65 \implies q = 0.35\)</li>
+                  <li>\(k = 7\) éxitos requeridos</li>
+                </ul>
+                <div class="math-box center-math">
+                  \[
+                  P(X = 7) = \binom{10}{7} (0.65)^7 (0.35)^3
+                  \]
+                </div>
+              </div>
+              <div class="card soft-lila">
+                <span class="mini-tag">2. Factores y Multiplicación</span>
+                <div class="math-box center-math">
+                  \[
+                  \binom{10}{7} = \frac{10!}{7!3!} = 120
+                  \]
+                  \[
+                  (0.65)^7 \approx 0.04902 \qquad (0.35)^3 \approx 0.042875
+                  \]
+                  \[
+                  P(X = 7) \approx 120 \times 0.04902 \times 0.042875 \approx \mathbf{0.2522}
+                  \]
+                  \[
+                  \mathbf{P(X = 7) \approx 25.22\%}
+                  \]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 21: Ejemplo 8 - Probabilidad de un Rango P(a <= X <= b) -->
+      <section class="slide" id="slide-21" data-slide-title="Ejemplo 8 (Rango)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua representacion">DUA · Representación</span>
+            </div>
+            <h2>Ejemplo 8 · Probabilidad de un Rango \(P(a \le X \le b)\)</h2>
+            <p class="lead"><strong>Situación:</strong> Sea \(X \sim B(6, 0.3)\). Calcular la probabilidad de que el número de éxitos esté comprendido entre 2 y 4 inclusive: \(P(2 \le X \le 4)\).</p>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">1. Planteamiento de la Suma</span>
+                <div class="math-box center-math">
+                  \[
+                  P(2 \le X \le 4) = P(X = 2) + P(X = 3) + P(X = 4)
+                  \]
+                </div>
+                <p>Parámetros: \(n = 6, \; p = 0.3, \; q = 0.7\).</p>
+                <div class="math-box">
+                  \[
+                  P(X=2) = \binom{6}{2}(0.3)^2(0.7)^4 \approx 15 \times 0.09 \times 0.2401 \approx \mathbf{0.3241}
+                  \]
+                </div>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">2. Resto de Términos y Suma Final</span>
+                <div class="math-box">
+                  \[
+                  P(X=3) = \binom{6}{3}(0.3)^3(0.7)^3 \approx 20 \times 0.027 \times 0.343 \approx \mathbf{0.1852}
+                  \]
+                  \[
+                  P(X=4) = \binom{6}{4}(0.3)^4(0.7)^2 \approx 15 \times 0.0081 \times 0.49 \approx \mathbf{0.0595}
+                  \]
+                  \[
+                  P(2 \le X \le 4) \approx 0.3241 + 0.1852 + 0.0595 = \mathbf{0.5689}
+                  \]
+                  \[
+                  \mathbf{P(2 \le X \le 4) \approx 56.89\%}
+                  \]
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 22: Errores Frecuentes y Alertas Pedagógicas -->
+      <section class="slide" id="slide-22" data-slide-title="Errores Frecuentes">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua representacion">DUA · Representación</span>
+              <span class="dua accion">DUA · Acción y expresión</span>
+            </div>
+            <h2>Errores Frecuentes y Alertas Pedagógicas</h2>
+            <p class="lead">Haz clic en cada tarjeta interactiva para desplegar el análisis didáctico del error:</p>
+            <div class="accordion">
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  1. Confundir probabilidad puntual \(P(X=k)\) con acumulada \(P(X \le k)\) <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> \(P(X=k)\) es la probabilidad de exactamente \(k\) éxitos. \(P(X \le k)\) es la suma acumulada desde \(0\) hasta \(k\) ("a lo sumo \(k\)").</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  2. Aplicar la binomial a extracciones sin reemplazo en grupos pequeños <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> Sin reemplazo, la probabilidad \(p\) cambia tras cada extracción y los ensayos no son independientes (se requiere distribución hipergeométrica).</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  3. Olvidar el coeficiente binomial \(\binom{n}{k}\) en la fórmula <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> Multiplicar solo \(p^k q^{n-k}\) da la probabilidad de una sola secuencia específica. Siempre debe multiplicarse por \(\binom{n}{k}\) para abarcar todos los órdenes posibles.</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button class="acc-head" onclick="toggleAccordion(this)">
+                  4. Confundir la probabilidad de éxito \(p\) con la de fracaso \(q\) <span>＋</span>
+                </button>
+                <div class="acc-body">
+                  <p><strong>Corrección:</strong> Verifica siempre que \(p + q = 1\). Asigna a \(p\) la probabilidad del evento que defines como "éxito", sin importar si socialmente es positivo o negativo.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 23: Síntesis Conceptual de la Clase -->
+      <section class="slide" id="slide-23" data-slide-title="Síntesis Final">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Síntesis Conceptual: Distribución Binomial \(B(n, p)\)</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Concepto / Elemento</th>
+                    <th>Fórmula o Expresión Clave</th>
+                    <th>Propósito / Aspecto Crítico</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Función de Probabilidad</strong></td>
+                    <td>\(P(X=k) = \binom{n}{k} p^k q^{n-k}\)</td>
+                    <td>Calcula la probabilidad de exactamente \(k\) éxitos en \(n\) intentos.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Coeficiente Binomial</strong></td>
+                    <td>\(\binom{n}{k} = \frac{n!}{k!(n-k)!}\)</td>
+                    <td>Número de ordenaciones posibles de los \(k\) éxitos.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Suma Total</strong></td>
+                    <td>\(\sum_{k=0}^n P(X=k) = 1\)</td>
+                    <td>Comprobación fundamental de la distribución completa.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Valor Esperado (Media)</strong></td>
+                    <td>\(\mu = E(X) = n \cdot p\)</td>
+                    <td>Promedio teórico de éxitos a largo plazo.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Varianza y Desv. Típica</strong></td>
+                    <td>\(\text{Var}(X) = npq, \quad \sigma = \sqrt{npq}\)</td>
+                    <td>Mide el grado de dispersión respecto a la media.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Estrategia Complemento</strong></td>
+                    <td>\(P(X \ge 1) = 1 - P(X = 0)\)</td>
+                    <td>Atajo óptimo para calcular "al menos un éxito".</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout remember">
+              <strong>Regla de oro:</strong> Identifica siempre con claridad \(n\), \(p\), \(q = 1-p\) y el valor o rango de \(k\) solicitado antes de operar.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 24: Evaluación Formativa y Cierre -->
+      <section class="slide" id="slide-24" data-slide-title="Evaluación y Cierre">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar">
+              <span class="dua accion">DUA · Acción y expresión</span>
+              <span class="dua compromiso">DUA · Compromiso</span>
+            </div>
+            <h2>Consolidación Formativa y Cierre</h2>
+            <p class="lead">Comprueba tus aprendizajes con este reto rápido de cálculo directo:</p>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Reto de Clase</span>
+                <p>Se lanza una moneda 4 veces (\(n=4, p=0.5\)). ¿Cuál es la probabilidad de obtener exactamente 2 caras?</p>
+                <div class="math-box center-math">
+                  \[
+                  P(X = 2) = \binom{4}{2}(0.5)^2(0.5)^2
+                  \]
+                </div>
+                <button class="btn btn-primary" onclick="toggleReveal('solucionCierre')">Revelar Procedimiento</button>
+                <div class="reveal" id="solucionCierre">
+                  <div class="callout remember">
+                    \(\binom{4}{2} = 6\), \((0.5)^4 = 0.0625\).<br>
+                    \(P(X=2) = 6 \times 0.0625 = \mathbf{0.375} \quad (37.5\%)\).
+                  </div>
+                </div>
+              </div>
+              <div class="card soft-lila">
+                <span class="mini-tag">Reflexión Final</span>
+                <h3>La potencia del modelado binomial</h3>
+                <p>La distribución binomial conecta la probabilidad con la genética, la ingeniería industrial, el control de epidemias y la ciencia de datos moderna.</p>
+                <div class="callout teacher">
+                  <strong>Para la próxima clase:</strong> Practicar el uso de GeoGebra o calculadoras TIC para graficar distribuciones binomiales con \(n \ge 50\).
+                </div>
+              </div>
+            </div>
+            <div class="footer-author center">
+              ¡Excelente sesión de clase! · Tercero de Bachillerato General Unificado · Matemáticas
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Controles de Navegación Inferior -->
+    <nav class="nav-controls" aria-label="Controles de navegación">
+      <button class="btn btn-ghost" id="prevBtn" onclick="prevSlide()">← Anterior</button>
+      <div class="slide-counter" id="slideCounter">1 / 24</div>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextSlide()">Siguiente →</button>
+    </nav>
+  </div>
+
+  <script>
+    // Variables editables para configuración docente
+    const PRESENTATION_TITLE = "Distribución Binomial o de Bernoulli (n, p)";
+    const SUBJECT = "Matemáticas";
+    const COURSE = "Tercero de BGU";
+    const CLASS_DURATION = "90 minutos";
+    const TEACHER_MODE = true;
+    const TOPIC = "Distribución Binomial o de Bernoulli (n, p)";
+
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const progressFill = document.getElementById('globalProgress');
+    const progressText = document.getElementById('globalProgressText');
+    const slideCounter = document.getElementById('slideCounter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const brandTitle = document.getElementById('brandTitle');
+    const brandSubtitle = document.getElementById('brandSubtitle');
+    let currentSlide = 0;
+
+    // Inicializar títulos en la barra superior
+    brandTitle.textContent = `${SUBJECT} · ${PRESENTATION_TITLE}`;
+    brandSubtitle.textContent = `${COURSE} · ${CLASS_DURATION}`;
+
+    function updateSlide() {
+      slides.forEach((slide, index) => {
+        slide.classList.toggle('active', index === currentSlide);
+      });
+      const total = slides.length;
+      const humanIndex = currentSlide + 1;
+      slideCounter.textContent = `${humanIndex} / ${total}`;
+      progressText.textContent = `${humanIndex}/${total}`;
+      progressFill.style.width = `${(humanIndex / total) * 100}%`;
+      prevBtn.disabled = currentSlide === 0;
+      nextBtn.disabled = currentSlide === total - 1;
+
+      const activeTitle = slides[currentSlide].dataset.slideTitle || PRESENTATION_TITLE;
+      document.title = `${humanIndex}. ${activeTitle} · ${PRESENTATION_TITLE}`;
+
+      // Renderizado dinámico MathJax
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([slides[currentSlide]]).catch(err => {
+          console.warn("MathJax:", err);
+        });
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToSlide(index) {
+      currentSlide = Math.max(0, Math.min(index, slides.length - 1));
+      updateSlide();
+    }
+
+    function nextSlide() { goToSlide(currentSlide + 1); }
+    function prevSlide() { goToSlide(currentSlide - 1); }
+
+    function toggleReveal(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('show');
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([el]).catch(err => {
+          console.warn("MathJax:", err);
+        });
+      }
+    }
+
+    function checkOption(button) {
+      const grid = button.closest('.option-grid');
+      if (!grid) return;
+      const questionId = grid.dataset.question;
+      grid.querySelectorAll('.option').forEach(opt => {
+        opt.classList.remove('correct', 'wrong');
+      });
+      document.querySelectorAll(`#${questionId}-ok, #${questionId}-bad`).forEach(f => f.classList.remove('show'));
+
+      const isCorrect = button.dataset.correct === 'true';
+      button.classList.add(isCorrect ? 'correct' : 'wrong');
+
+      const feedback = document.getElementById(`${questionId}-${isCorrect ? 'ok' : 'bad'}`);
+      if (feedback) feedback.classList.add('show');
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([grid, feedback]).catch(err => {
+          console.warn("MathJax:", err);
+        });
+      }
+    }
+
+    function toggleAccordion(button) {
+      const item = button.closest('.acc-item');
+      if (!item) return;
+      item.classList.toggle('open');
+      const symbol = button.querySelector('span');
+      if (symbol) symbol.textContent = item.classList.contains('open') ? '−' : '＋';
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([item]).catch(err => {
+          console.warn("MathJax:", err);
+        });
+      }
+    }
+
+    // Navegación por teclado
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+        if (event.target.tagName !== 'BUTTON') nextSlide();
+      }
+      if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        if (event.target.tagName !== 'BUTTON') prevSlide();
+      }
+      if (event.key === 'Home') goToSlide(0);
+      if (event.key === 'End') goToSlide(slides.length - 1);
+    });
+
+    // Soporte táctil optimizado para celulares Android e iPhone
+    let touchStartX = 0;
+    let touchStartY = 0;
+    document.addEventListener('touchstart', (event) => {
+      if (!event.changedTouches || event.changedTouches.length === 0) return;
+      touchStartX = event.changedTouches[0].screenX;
+      touchStartY = event.changedTouches[0].screenY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (event) => {
+      if (!event.changedTouches || event.changedTouches.length === 0) return;
+      const dx = event.changedTouches[0].screenX - touchStartX;
+      const dy = event.changedTouches[0].screenY - touchStartY;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        if (dx < 0) nextSlide(); else prevSlide();
+      }
+    }, { passive: true });
+
+    // Inicializar al cargar
+    document.addEventListener('DOMContentLoaded', () => {
+      updateSlide();
+    });
+    updateSlide();
+  </script>
+</body>
+</html>

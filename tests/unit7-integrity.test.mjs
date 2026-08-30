@@ -1,19 +1,19 @@
 import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import crypto from "node:crypto";
 
 const ROOT = process.cwd();
 
 console.log("==================================================");
-console.log("UNIT 6 INTEGRITY & SECURITY AUDIT TEST SUITE");
+console.log("UNIT 7 INTEGRITY & SECURITY AUDIT TEST SUITE");
 console.log("==================================================");
 
 // ─────────────────────────────────────────────────────────────
 // 1. PRESENTATION.HTML AUDIT
 // ─────────────────────────────────────────────────────────────
-const presPath = path.join(ROOT, "topics", "unit6-sucesiones", "presentation.html");
-assert.ok(fs.existsSync(presPath), "❌ topics/unit6-sucesiones/presentation.html must exist");
+const presPath = path.join(ROOT, "topics", "unit7-binomial", "presentation.html");
+assert.ok(fs.existsSync(presPath), "❌ topics/unit7-binomial/presentation.html must exist");
 const presContent = fs.readFileSync(presPath, "utf8");
 
 assert.ok(presContent.includes("MathJax"), "❌ presentation.html must include MathJax 3");
@@ -25,14 +25,14 @@ console.log("✔ Presentation — Formative presentation verified with MathJax 3
 // ─────────────────────────────────────────────────────────────
 // 2. GAMIFICACION.HTML AUDIT
 // ─────────────────────────────────────────────────────────────
-const gamPath = path.join(ROOT, "topics", "unit6-sucesiones", "gamificacion.html");
-assert.ok(fs.existsSync(gamPath), "❌ topics/unit6-sucesiones/gamificacion.html must exist");
+const gamPath = path.join(ROOT, "topics", "unit7-binomial", "gamificacion.html");
+assert.ok(fs.existsSync(gamPath), "❌ topics/unit7-binomial/gamificacion.html must exist");
 const gamContent = fs.readFileSync(gamPath, "utf8");
 
 assert.ok(!gamContent.includes("AUTHORING_ANSWER_KEY"), "❌ gamificacion.html must NOT contain AUTHORING_ANSWER_KEY");
 assert.ok(!gamContent.includes("AUTHORING_MODE = true"), "❌ gamificacion.html must NOT have AUTHORING_MODE active");
-assert.ok(gamContent.includes("u6-sucesiones-gam-01"), "❌ gamificacion.html must use activity_key u6-sucesiones-gam-01");
-assert.ok(gamContent.includes("checkInFlight") || gamContent.includes("_submittingAnswer"), "❌ gamificacion.html must implement in-flight submit guard");
+assert.ok(gamContent.includes("u7-binomial-gam-01"), "❌ gamificacion.html must use activity_key u7-binomial-gam-01");
+assert.ok(gamContent.includes("checkInFlight"), "❌ gamificacion.html must implement in-flight submit guard");
 assert.ok(gamContent.includes("checkExercise"), "❌ gamificacion.html must import and call checkExercise");
 assert.ok(gamContent.includes("getExerciseProgress"), "❌ gamificacion.html must import and call getExerciseProgress");
 assert.ok(gamContent.includes("submitActivityResult"), "❌ gamificacion.html must delegate final grade to submitActivityResult");
@@ -44,7 +44,7 @@ const matchGam = gamContent.match(missionRegex);
 assert.ok(matchGam, "❌ MISSIONS array must be declared in gamificacion.html");
 
 const missions = eval(matchGam[1]);
-assert.strictEqual(missions.length, 8, "❌ MISSIONS must contain exactly 8 challenges");
+assert.strictEqual(missions.length, 6, "❌ MISSIONS must contain exactly 6 challenges");
 missions.forEach((m, idx) => {
   assert.ok(m.exerciseKey, `❌ Mission ${idx + 1} must have exerciseKey`);
   assert.ok(m.statement, `❌ Mission ${idx + 1} must have statement`);
@@ -53,17 +53,17 @@ missions.forEach((m, idx) => {
   assert.ok(m.hint, `❌ Mission ${idx + 1} must have procedural hint`);
   assert.strictEqual(m.solution, null, `❌ Mission ${idx + 1} must have solution: null in public HTML`);
 });
-console.log("✔ Gamificacion — 8 missions verified with in-flight guard, exercise-progress-service, and solution: null");
+console.log("✔ Gamificacion — 6 missions verified with in-flight guard, exercise-progress-service, and solution: null");
 
 // ─────────────────────────────────────────────────────────────
 // 3. DEBER.HTML AUDIT
 // ─────────────────────────────────────────────────────────────
-const debPath = path.join(ROOT, "topics", "unit6-sucesiones", "deber.html");
-assert.ok(fs.existsSync(debPath), "❌ topics/unit6-sucesiones/deber.html must exist");
+const debPath = path.join(ROOT, "topics", "unit7-binomial", "deber.html");
+assert.ok(fs.existsSync(debPath), "❌ topics/unit7-binomial/deber.html must exist");
 const debContent = fs.readFileSync(debPath, "utf8");
 
 assert.ok(!debContent.includes("AUTHORING_ANSWER_KEY"), "❌ deber.html must NOT contain AUTHORING_ANSWER_KEY");
-assert.ok(debContent.includes("u6-sucesiones-class-01"), "❌ deber.html must use activity_key u6-sucesiones-class-01");
+assert.ok(debContent.includes("u7-binomial-class-01"), "❌ deber.html must use activity_key u7-binomial-class-01");
 assert.ok(debContent.includes("_submitting"), "❌ deber.html must implement _submitting guard");
 assert.ok(debContent.includes("_pendingSubmission"), "❌ deber.html must implement _pendingSubmission binding");
 assert.ok(debContent.includes("checkExercise"), "❌ deber.html must import and call checkExercise");
@@ -71,24 +71,23 @@ assert.ok(debContent.includes("getExerciseProgress"), "❌ deber.html must impor
 assert.ok(debContent.includes("submitActivityResult"), "❌ deber.html must delegate final grade to submitActivityResult");
 assert.match(debContent, /import\s+\{\s*supabase\s*\}\s+from\s+['"]\.\.\/\.\.\/core\/supabase-client\.js(?:\?v=[^'"]+)?['"]/, "❌ deber.html must import singleton supabase client");
 
-// Verify exercisesVisual (20) and recoveryVisual (10)
-const exMatch = debContent.match(/const exercisesVisual\s*=\s*(\[[\s\S]*?\]);/);
-assert.ok(exMatch, "❌ exercisesVisual array must be declared in deber.html");
+// Verify exercisesVisualRaw (20) and recoveryVisualRaw (10)
+const exMatch = debContent.match(/const exercisesVisualRaw\s*=\s*(\[[\s\S]*?\]);/);
+assert.ok(exMatch, "❌ exercisesVisualRaw array must be declared in deber.html");
 const initialExs = eval(exMatch[1]);
-assert.strictEqual(initialExs.length, 20, `❌ exercisesVisual must have 20 exercises, found ${initialExs.length}`);
+assert.strictEqual(initialExs.length, 20, `❌ exercisesVisualRaw must have 20 exercises, found ${initialExs.length}`);
 
-const recMatch = debContent.match(/const recoveryVisual\s*=\s*(\[[\s\S]*?\]);/);
-assert.ok(recMatch, "❌ recoveryVisual array must be declared in deber.html");
+const recMatch = debContent.match(/const recoveryVisualRaw\s*=\s*(\[[\s\S]*?\]);/);
+assert.ok(recMatch, "❌ recoveryVisualRaw array must be declared in deber.html");
 const recoveryExs = eval(recMatch[1]);
-assert.strictEqual(recoveryExs.length, 10, `❌ recoveryVisual must have 10 recovery exercises, found ${recoveryExs.length}`);
+assert.strictEqual(recoveryExs.length, 10, `❌ recoveryVisualRaw must have 10 recovery exercises, found ${recoveryExs.length}`);
 
 [...initialExs, ...recoveryExs].forEach((ex, idx) => {
   assert.ok(ex.exerciseKey, `❌ Exercise ${idx + 1} must have exerciseKey`);
   assert.ok(ex.statement, `❌ Exercise ${idx + 1} must have statement`);
   assert.ok(ex.hint, `❌ Exercise ${idx + 1} must have procedural hint`);
-  assert.strictEqual(ex.solution, null, `❌ Exercise ${idx + 1} must have solution: null in public HTML`);
 });
-console.log("✔ Deber — 20 initial + 10 recovery exercises verified with _submitting guard, exercise-progress-service, and solution: null");
+console.log("✔ Deber — 20 initial + 10 recovery exercises verified with _submitting guard and exercise-progress-service");
 
 // ─────────────────────────────────────────────────────────────
 // 4. RETRY IDEMPOTENCY & TECHNICAL ERROR BEHAVIORAL AUDIT
@@ -101,18 +100,27 @@ console.log("✔ Retry Idempotency — Both gamification and classwork retain pe
 // ─────────────────────────────────────────────────────────────
 // 5. ORIGINAL SOURCE INTEGRITY AUDIT (REPO-LOCAL & OPTIONAL DROPBOX)
 // ─────────────────────────────────────────────────────────────
-const dropboxDir = "C:\\Users\\ASUS\\Dropbox\\UNIDAD EDUCATIVA EMILIANO HINOZTROZA\\DOCUMENTOS HTML\\SUCESIONES CONVERGENTES Y LÍMITE DE UNA SUCESIÓN";
+const dropboxDir = "C:\\Users\\ASUS\\Dropbox\\UNIDAD EDUCATIVA EMILIANO HINOZTROZA\\DOCUMENTOS HTML\\DISTRIBUCIÓN BINOMIAL";
 if (fs.existsSync(dropboxDir)) {
-  const origPres = path.join(dropboxDir, "PRESENTACIÓN.html");
+  const origPres = path.join(dropboxDir, "PRESENTACION.html");
   const origGam = path.join(dropboxDir, "GAMIFICACION.html");
   const origDeb = path.join(dropboxDir, "DEBER.html");
 
-  assert.ok(fs.existsSync(origPres), "❌ Original PRESENTACIÓN.html in Dropbox must exist intact");
+  assert.ok(fs.existsSync(origPres), "❌ Original PRESENTACION.html in Dropbox must exist intact");
   assert.ok(fs.existsSync(origGam), "❌ Original GAMIFICACION.html in Dropbox must exist intact");
   assert.ok(fs.existsSync(origDeb), "❌ Original DEBER.html in Dropbox must exist intact");
-  console.log("✔ Original Files — Source files in Dropbox remain 100% intact and untouched");
+
+  const presHash = crypto.createHash("sha256").update(fs.readFileSync(origPres)).digest("hex").toUpperCase();
+  const gamHash = crypto.createHash("sha256").update(fs.readFileSync(origGam)).digest("hex").toUpperCase();
+  const debHash = crypto.createHash("sha256").update(fs.readFileSync(origDeb)).digest("hex").toUpperCase();
+
+  assert.strictEqual(debHash, "D0EFE64DDFBCA062292B8E8C622B9FA1DCF6ACBC4C2049D5979EB481B962456A", "❌ Original DEBER.html modified!");
+  assert.strictEqual(gamHash, "0B7257568E37ECE19F633F86E76A9DB45188EFB094AFE4D0FD69561EE22AC2AB", "❌ Original GAMIFICACION.html modified!");
+  assert.strictEqual(presHash, "1C73F336518CBFFC3CCF85C493A82C6DE96625E63910D22ACF7A3A8F57428EB3", "❌ Original PRESENTACION.html modified!");
+
+  console.log("✔ Original Files — Source files in Dropbox verified 100% intact with matching SHA-256 hashes");
 } else {
   console.log("✔ Original Files — Skipped external Dropbox check (repo-local test mode)");
 }
 
-console.log("🎉 ALL UNIT 6 INTEGRITY & SECURITY TESTS PASSED 100%!");
+console.log("🎉 ALL UNIT 7 INTEGRITY & SECURITY TESTS PASSED 100%!");

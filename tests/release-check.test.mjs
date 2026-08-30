@@ -73,7 +73,7 @@ function quietOptions(overrides = {}) {
   const options = quietOptions({
     storage,
     locationObj,
-    fetchImpl: async () => releaseResponse("1.4.4"),
+    fetchImpl: async () => releaseResponse("1.4.6"),
     notify: () => { notices += 1; }
   });
 
@@ -84,7 +84,7 @@ function quietOptions(overrides = {}) {
   assert.equal(second.status, "already-attempted");
   assert.equal(reloads.length, 1, "Una versión remota sólo puede provocar una recarga por sesión");
   assert.equal(notices, 1);
-  assert.equal(storage.getItem(RELEASE_RELOAD_KEY), "1.4.4");
+  assert.equal(storage.getItem(RELEASE_RELOAD_KEY), "1.4.6");
   assert.equal(storage.getItem(pendingKey), pendingValue, "La entrega pendiente debe conservarse intacta");
   assert.equal(storage.getItem("ueeh_active_view"), "campus", "El estado de sesión ajeno debe conservarse");
 
@@ -92,7 +92,7 @@ function quietOptions(overrides = {}) {
   assert.equal(reloadUrl.pathname, "/UEEH/index.html");
   assert.equal(reloadUrl.searchParams.get("mode"), "class");
   assert.equal(reloadUrl.searchParams.get("route"), "unit6");
-  assert.equal(reloadUrl.searchParams.get("v"), "1.4.4");
+  assert.equal(reloadUrl.searchParams.get("v"), "1.4.6");
   assert.equal(reloadUrl.hash, "#exercise-4");
 }
 
@@ -114,12 +114,12 @@ function quietOptions(overrides = {}) {
 
 // 4. La versión objetivo ya fue intentada: no entra en bucle.
 {
-  const storage = createStorage({ [RELEASE_RELOAD_KEY]: "1.4.4" });
+  const storage = createStorage({ [RELEASE_RELOAD_KEY]: "1.4.6" });
   let reloads = 0;
   const result = await checkForRelease(quietOptions({
     storage,
-    locationObj: { href: "https://example.test/UEEH/?v=1.4.4", replace: () => { reloads += 1; } },
-    fetchImpl: async () => releaseResponse("1.4.4")
+    locationObj: { href: "https://example.test/UEEH/?v=1.4.6", replace: () => { reloads += 1; } },
+    fetchImpl: async () => releaseResponse("1.4.6")
   }));
 
   assert.equal(result.status, "already-attempted");

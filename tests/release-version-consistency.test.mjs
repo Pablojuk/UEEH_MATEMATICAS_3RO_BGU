@@ -10,7 +10,7 @@ const manifest = JSON.parse(read("version.json"));
 assert.deepEqual(Object.keys(manifest).sort(), ["build", "version"], "version.json sólo debe exponer version y build");
 assert.equal(manifest.version, APP_VERSION, "version.json y APP_VERSION deben coincidir");
 assert.equal(manifest.build, BUILD_TIMESTAMP, "version.json y BUILD_TIMESTAMP deben coincidir");
-assert.equal(BUILD_TIMESTAMP, `2026-08-27-v${APP_VERSION}`, "El build final debe corresponder al release actual");
+assert.equal(BUILD_TIMESTAMP, `2026-08-29-v${APP_VERSION}`, "El build final debe corresponder al release actual");
 
 const indexHtml = read("index.html");
 assert.match(indexHtml, new RegExp(`assets/css/styles\\.css\\?v=${APP_VERSION.replaceAll(".", "\\.")}`));
@@ -69,7 +69,9 @@ for (const file of [
   "topics/unit5-determinantes/deber.html",
   "topics/unit5-determinantes/gamificacion.html",
   "topics/unit6-sucesiones/deber.html",
-  "topics/unit6-sucesiones/gamificacion.html"
+  "topics/unit6-sucesiones/gamificacion.html",
+  "topics/unit7-binomial/deber.html",
+  "topics/unit7-binomial/gamificacion.html"
 ]) {
   assert.ok(read(file).includes(`?v=${APP_VERSION}`), `${file} debe importar servicios con la versión vigente`);
 }

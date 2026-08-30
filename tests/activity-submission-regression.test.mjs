@@ -8,7 +8,9 @@ const activityPages = [
   "topics/unit5-determinantes/gamificacion.html",
   "topics/unit5-determinantes/deber.html",
   "topics/unit6-sucesiones/gamificacion.html",
-  "topics/unit6-sucesiones/deber.html"
+  "topics/unit6-sucesiones/deber.html",
+  "topics/unit7-binomial/gamificacion.html",
+  "topics/unit7-binomial/deber.html"
 ];
 
 const migrationSql = fs.readFileSync(migrationPath, "utf8");

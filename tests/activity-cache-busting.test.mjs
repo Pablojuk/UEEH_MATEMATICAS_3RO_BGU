@@ -167,13 +167,20 @@ assert.ok(actServJs.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ activi
 console.log("✔ Module Audit — core/activity-service.js imports supabase-client.js?v=APP_VERSION");
 
 // ────────────────────────────────────────────────────────────
-// 5. STATIC AUDIT: Unit 5 & Unit 6 Activity Pages
+// 5. STATIC AUDIT: Unit 5, Unit 6 & Unit 7 Activity Pages
 // ────────────────────────────────────────────────────────────
 
+const u7Deber = fs.readFileSync("topics/unit7-binomial/deber.html", "utf-8");
+const u7Gam = fs.readFileSync("topics/unit7-binomial/gamificacion.html", "utf-8");
 const u6Deber = fs.readFileSync("topics/unit6-sucesiones/deber.html", "utf-8");
 const u6Gam = fs.readFileSync("topics/unit6-sucesiones/gamificacion.html", "utf-8");
 const u5Deber = fs.readFileSync("topics/unit5-determinantes/deber.html", "utf-8");
 const u5Gam = fs.readFileSync("topics/unit5-determinantes/gamificacion.html", "utf-8");
+
+assert.ok(u7Deber.includes('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"'), "❌ Unit 7 deber must contain no-cache meta");
+assert.ok(u7Deber.includes(`exercise-progress-service.js?v=${APP_VERSION}`), "❌ Unit 7 deber must import exercise-progress-service with ?v=APP_VERSION");
+assert.ok(u7Gam.includes('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"'), "❌ Unit 7 gamification must contain no-cache meta");
+assert.ok(u7Gam.includes(`exercise-progress-service.js?v=${APP_VERSION}`), "❌ Unit 7 gamification must import exercise-progress-service with ?v=APP_VERSION");
 
 assert.ok(u6Deber.includes('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"'), "❌ Unit 6 deber must contain no-cache meta");
 assert.ok(u6Deber.includes(`exercise-progress-service.js?v=${APP_VERSION}`), "❌ Unit 6 deber must import exercise-progress-service with ?v=APP_VERSION");
@@ -184,7 +191,7 @@ assert.ok(u5Deber.includes('<meta http-equiv="Cache-Control" content="no-cache, 
 assert.ok(u5Deber.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ Unit 5 deber must import supabase-client with ?v=APP_VERSION");
 assert.ok(u5Gam.includes('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"'), "❌ Unit 5 gamification must contain no-cache meta");
 assert.ok(u5Gam.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ Unit 5 gamification must import supabase-client with ?v=APP_VERSION");
-console.log("✔ Activity Audit — Unit 5 & Unit 6 activity pages configured with no-cache headers and versioned services");
+console.log("✔ Activity Audit — Unit 5, Unit 6 & Unit 7 activity pages configured with no-cache headers and versioned services");
 
 // ────────────────────────────────────────────────────────────
 // 6. BEHAVIORAL SIMULATION: Version Upgrade from 1.3.0 to 1.3.1

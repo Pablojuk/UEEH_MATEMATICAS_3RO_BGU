@@ -340,6 +340,63 @@ export const CURRICULUM_UNITS = [
         viewTitle: "Resultados · Unidad 6 Sucesiones"
       }
     }
+  },
+  {
+    unitNumber: 7,
+    slug: "unit7-binomial",
+    badge: "B(n,p)",
+    status: "ACTIVA",
+    title: "Distribución binomial",
+    description: "Experimentos de Bernoulli, función de probabilidad, parámetros (esperanza, varianza) y problemas aplicados.",
+    modalSubtitle: "Cada actividad completada se registra en Supabase como tu calificación oficial.",
+    cardButtonId: "btn-open-unit-binomial",
+    requiresStudentData: false,
+    routes: {
+      presentation: {
+        title: "Presentación de la Clase",
+        description: "Diapositivas interactivas con teoría, fórmulas, deducciones y ejemplos aplicados.",
+        icon: "📽️",
+        actionText: "Iniciar lectura →",
+        actionColor: "text-moodle-orange",
+        buttonId: "btn-unit-7-slides",
+        type: "html-lesson",
+        src: "./topics/unit7-binomial/presentation.html",
+        viewerTitle: "Distribución binomial - Presentación de la Clase",
+        viewTitle: "Distribución binomial"
+      },
+      gamification: {
+        title: "Gamificación",
+        description: "Frogger 1981: Cruza el pantano y resuelve los retos de probabilidad binomial.",
+        icon: "🐸",
+        actionText: "Empezar a jugar →",
+        actionColor: "text-violet-600",
+        buttonId: "btn-unit-7-game",
+        type: "html-lesson",
+        src: "./topics/unit7-binomial/gamificacion.html",
+        viewerTitle: "Frogger 1981: Distribución Binomial · Unidad 7",
+        viewTitle: "Gamificación · Frogger Binomial"
+      },
+      classwork: {
+        title: "Trabajo en Clase",
+        description: "Deber interactivo con 20 ejercicios iniciales + 10 de recuperación.",
+        icon: "📐",
+        actionText: "Ver actividades →",
+        actionColor: "text-blue-600",
+        buttonId: "btn-unit-7-homework",
+        type: "html-lesson",
+        src: "./topics/unit7-binomial/deber.html",
+        viewerTitle: "Deber Interactivo | Distribución Binomial · Unidad 7",
+        viewTitle: "Trabajo en Clase · Distribución Binomial"
+      },
+      results: {
+        title: "Resultados de las Actividades",
+        description: "Consulta tu desempeño en la plataforma oficial Supabase.",
+        icon: "📊",
+        buttonId: "btn-unit-7-results",
+        type: "supabase-summary",
+        viewTitle: "Resultados · Unidad 7 Distribución Binomial"
+      }
+    }
   }
 ];
 

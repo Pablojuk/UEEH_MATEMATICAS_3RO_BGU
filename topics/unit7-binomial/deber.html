@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>TRABAJO EN CLASE - Distribución Binomial | UEEH</title>
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      --bg1: #f0f7ff;
+      --bg2: #e6f0fa;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --navy: #0f2744;
+      --line: #d8e5f2;
+      --card: #ffffff;
+      --soft: #f8fafc;
+      --mint: #c6f7df;
+      --aqua: #9ce8f0;
+      --lilac: #dacbff;
+      --cream: #fff0b8;
+      --peach: #ffd1bd;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --green: #16a34a;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --shadow: 0 16px 40px rgba(15, 39, 68, 0.08);
+      --radius: 22px;
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    button, input { font: inherit; }
+    button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 14px;
+      padding: 0.85rem 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--navy);
+      background: linear-gradient(135deg, var(--cream), var(--peach));
+      box-shadow: 0 4px 14px rgba(15, 39, 68, 0.08);
+      transition: transform 0.15s ease, filter 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    button:active { transform: scale(0.98); }
+    button:hover:not(:disabled) { filter: brightness(1.03); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    
+    .btnBlue { background: linear-gradient(135deg, var(--blue), #38bdf8); color: white; }
+    .btnGhost { background: white; border: 2px solid var(--line); box-shadow: none; color: var(--navy); }
+    .btnGood { background: linear-gradient(135deg, #dcfce7, var(--mint)); color: #14532d; }
+    .btnControl { background: #e2e8f0; color: var(--navy); min-height: 36px; padding: 0.4rem 0.8rem; box-shadow: none; }
+    
+    .app {
+      width: min(1180px, 100%);
+      margin: auto;
+      padding: clamp(10px, 2vw, 20px);
+      min-height: 100dvh;
+      padding-bottom: calc(20px + var(--safe-bottom));
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.88);
+      padding: 12px 20px;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; color: var(--navy); }
+    .brandIcon {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: grid; place-items: center; font-size: 1.4rem;
+      background: linear-gradient(135deg, var(--aqua), var(--mint));
+      color: var(--navy);
+      box-shadow: 0 4px 10px rgba(15, 39, 68, 0.05);
+    }
+    .brand small { display: block; color: var(--muted); font-weight: 600; font-size: 0.85rem; margin-top: 2px; }
+
+    .deck {
+      min-height: calc(100dvh - 120px);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(255,255,255,0.9);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .screen { display: none; padding: clamp(16px, 3vw, 36px); }
+    .screen.active { display: block; animation: fadeIn 0.3s ease both; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+
+    h1 { font-size: clamp(1.6rem, 3.8vw, 2.5rem); line-height: 1.18; color: var(--navy); margin: 0 0 16px; font-weight: 800; }
+    h2 { font-size: clamp(1.15rem, 2vw, 1.45rem); color: var(--navy); margin: 0 0 14px; font-weight: 800; line-height: 1.35; }
+    h3 { margin: 0 0 10px; color: var(--blue-dark); font-size: 1.1rem; }
+    p { margin: 0 0 12px; line-height: 1.6; font-size: 1.05rem; }
+    .lead { font-size: 1.1rem; font-weight: 600; color: #334155; }
+
+    .duaRow, .tagRow, .btnRow { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 5px; border-radius: 999px;
+      padding: 0.5rem 0.85rem; font-weight: 800; font-size: 0.85rem;
+    }
+    .tag.green { background: #dcfce7; color: #15803d; }
+    .tag.purple { background: #f3e8ff; color: #7e22ce; }
+    .tag.blue { background: #e0f2fe; color: #0369a1; }
+    .tag.gray { background: #f1f5f9; color: var(--navy); border: 1px solid var(--line); }
+
+    .workLayout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
+    .sidebar { position: sticky; top: 20px; align-self: start; background: var(--soft); padding: 20px; border-radius: 20px; border: 1px solid var(--line); }
+    
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+    .stat { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 12px; text-align: center; }
+    .stat strong { display: block; font-size: 1.5rem; color: var(--navy); }
+    .stat span { font-size: 0.85rem; color: var(--muted); font-weight: 700; }
+
+    .barWrap { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 16px; }
+    .bar { height: 14px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .bar span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--blue), var(--mint)); transition: width 0.4s ease; }
+
+    .exerciseGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 16px 0; }
+    .exBtn { min-height: 46px; padding: 0; border-radius: 12px; background: white; border: 1px solid #cbd5e1; color: #475569; font-size: 1rem; }
+    .exBtn.active { border-color: var(--blue); background: #eff6ff; color: var(--blue); box-shadow: 0 0 0 2px var(--blue); font-weight: 800; }
+    .exBtn.done { background: #dcfce7; color: #166534; border-color: #bbf7d0; font-weight: 800; }
+    .exBtn.fail { background: #fee2e2; color: #991b1b; border-color: #fecaca; font-weight: 800; }
+    .exBtn.incorrect { background: #fef3c7; color: #92400e; border-color: #fde68a; font-weight: 800; }
+
+    .mainCard { background: white; border: 1px solid var(--line); border-radius: 20px; padding: clamp(20px, 3vw, 32px); box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+    
+    .mathBox {
+      width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      background: #f8fafc; border: 1px solid var(--line); border-radius: 16px;
+      padding: 16px 20px; margin: 18px 0; text-align: center; font-size: 1.25rem;
+    }
+
+    /* Input Directo */
+    .inputDirect {
+      width: 100%; border: 2px solid #cbd5e1; border-radius: 14px;
+      padding: 1rem 1.2rem; outline: none; background: white;
+      color: var(--ink); font-size: 1.15rem; font-weight: 700; transition: border-color 0.2s;
+    }
+    .inputDirect:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+    .inputDirect:disabled { background: #f1f5f9; color: #64748b; cursor: not-allowed; }
+
+    /* Opción Múltiple */
+    .choiceGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+    .choice {
+      text-align: center; background: white; border: 2px solid #cbd5e1; box-shadow: none;
+      border-radius: 14px; min-height: 60px; color: var(--ink); font-weight: 600; padding: 12px 16px;
+      transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+    }
+    .choice.selected { border-color: var(--blue); background: #eff6ff; color: var(--blue); font-weight: 700; }
+    .choice:disabled { cursor: not-allowed; opacity: 0.85; }
+
+    /* Ordenar Pasos */
+    .orderList { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+    .orderItem {
+      display: flex; align-items: center; justify-content: space-between;
+      background: white; border: 2px solid #cbd5e1; border-radius: 12px;
+      padding: 14px; font-size: 1.05rem; font-weight: 600; color: var(--ink); gap: 12px;
+    }
+    .orderItem.locked { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+    .orderControls { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* Espacios Vacíos (Fill) */
+    .fillGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 20px 0; }
+    .fillBox { background: var(--soft); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; }
+    .fillBox label { display: block; font-weight: 800; font-size: 0.95rem; margin-bottom: 8px; color: var(--navy); }
+    .fillInput {
+      width: 100%; border: 2px solid #cbd5e1; border-radius: 10px; padding: 0.8rem;
+      text-align: center; font-size: 1.1rem; font-weight: 700; outline: none; transition: border-color 0.2s; background: white;
+    }
+    .fillInput:focus { border-color: var(--blue); }
+    .fillInput:disabled { background: #e2e8f0; cursor: not-allowed; color: #475569; }
+
+    /* Retroalimentación */
+    .feedback { display: none; margin: 16px 0; padding: 16px; border-radius: 14px; font-weight: 700; font-size: 1rem; border-left: 5px solid transparent; }
+    .feedback.show { display: block; animation: fadeIn 0.3s ease; }
+    .feedback.ok { background: #dcfce7; color: #166534; border-left-color: #22c55e; }
+    .feedback.bad { background: #fee2e2; color: #991b1b; border-left-color: #ef4444; }
+    .feedback.warn { background: #fef3c7; color: #92400e; border-left-color: #f59e0b; }
+
+    .hintBox, .solutionBox {
+      display: none; margin-top: 16px; padding: 18px 20px; border-radius: 14px;
+      background: #f8fafc; border: 1px solid var(--line); font-size: 1.05rem; line-height: 1.6;
+    }
+    .hintBox.show, .solutionBox.show { display: block; animation: fadeIn 0.3s ease; }
+    .hintBox { border-left: 5px solid var(--aqua); }
+    .solutionBox { border-left: 5px solid var(--lilac); }
+
+    /* Resumen */
+    .summaryGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }
+    .summaryItem { background: white; border: 1px solid var(--line); border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+    .summaryItem strong { display: block; font-size: 2.2rem; color: var(--navy); font-weight: 800; margin-bottom: 4px; }
+    .summaryItem span { font-size: 0.95rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    @media (max-width: 900px) {
+      .workLayout { grid-template-columns: 1fr; }
+      .sidebar { position: static; margin-bottom: 20px; }
+    }
+    @media (max-width: 600px) {
+      .choiceGrid { grid-template-columns: 1fr; }
+      .exerciseGrid { grid-template-columns: repeat(5, 1fr); }
+      .btnRow button { flex: 1 1 100%; }
+      .orderItem { flex-direction: column; gap: 10px; align-items: stretch; text-align: center; }
+      .orderControls { justify-content: center; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brandIcon">\( B \)</div>
+        <div>
+          UEEH – Matemáticas – 3.º BGU
+          <small>Unidad Educativa "Emiliano Hinostroza"</small>
+        </div>
+      </div>
+      <div class="tagRow" style="margin: 0;">
+        <span class="tag gray" id="phaseIndicator">Paralelo A</span>
+        <span class="tag blue" id="phaseSubTag">Fase Inicial</span>
+      </div>
+    </header>
+
+    <main class="deck">
+      
+      <section class="screen active" id="introScreen">
+        <div class="duaRow">
+          <span class="tag green">DUA · Representación Múltiple</span>
+          <span class="tag purple">DUA · Acción y Expresión</span>
+          <span class="tag blue">Estadística y Probabilidad</span>
+        </div>
+        <h1>Distribución Binomial o de Bernoulli \((n, p)\)</h1>
+        <p class="lead">
+          Trabajo en Clase / Deber Interactivo Formativo<br>
+          En esta actividad aplicarás el modelo probabilístico binomial para calcular probabilidades exactas y acumuladas, valor esperado \(E(X)\), varianza \(Var(X)\), desviación estándar \(\sigma\), resolución de problemas de aplicación agronómica/industrial y análisis de propiedades conceptuales.
+        </p>
+        
+        <div style="background: var(--soft); border: 1px solid var(--line); padding: 20px; border-radius: 16px; margin: 24px 0;">
+          <h3>Instrucciones y Reglas de la Actividad</h3>
+          <ul style="line-height: 1.7; color: var(--ink); font-size: 1.05rem;">
+            <li>El deber consta de <strong>20 ejercicios principales</strong> generados aleatoriamente.</li>
+            <li>Encontrarás ejercicios de selección múltiple, ingreso numérico, ordenamiento de procedimientos y llenado de datos.</li>
+            <li>Para cada ejercicio dispones de hasta <strong>4 comprobaciones</strong>.</li>
+            <li><strong>Escala de calificación formativa:</strong> 1.º intento (10/10), 2.º (9/10), 3.º (8/10), 4.º (7/10). Cuatro fallos = 1/10.</li>
+            <li>Al validar, el botón <strong>Comprobar</strong> evalúa y guarda automáticamente tu progreso local.</li>
+            <li>Si tu promedio inicial es menor a 7.00/10, se habilitará una <strong>fase de recuperación de 10 ejercicios</strong> guiados.</li>
+          </ul>
+        </div>
+
+        <div class="btnRow">
+          <button class="btnBlue" onclick="startActivity()" style="font-size: 1.1rem; padding: 1rem 2rem;">
+            🚀 Iniciar Actividad
+          </button>
+        </div>
+      </section>
+
+      <section class="screen" id="workScreen">
+        <div class="workLayout">
+          <aside class="sidebar">
+            <h3 id="panelTitle">Progreso del Deber</h3>
+            <div class="stats">
+              <div class="stat"><strong id="doneCount">0/20</strong><span>Terminados</span></div>
+              <div class="stat"><strong id="avgNow">0.00</strong><span>Puntaje Visual</span></div>
+            </div>
+            <div class="barWrap">
+              <span style="font-weight: 700; font-size: 0.85rem; color: var(--navy); display: block; margin-bottom: 6px;">Avance general</span>
+              <div class="bar"><span id="progressBar"></span></div>
+            </div>
+            <div class="exerciseGrid" id="exerciseGrid"></div>
+            <div class="btnRow" style="margin-top: 24px;">
+              <button class="btnBlue" onclick="finalizeActivityAdapter()" id="finishBtn" disabled style="width: 100%;">
+                📤 Enviar Actividad
+              </button>
+            </div>
+          </aside>
+
+          <section class="mainCard">
+            <div id="exercisePanel"></div>
+            <div class="btnRow" style="justify-content: space-between; margin-top: 24px;">
+              <button class="btnGhost" onclick="prevExercise()">⬅ Anterior</button>
+              <button class="btnGhost" onclick="nextExercise()">Siguiente ➡</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen" id="summaryScreen">
+        <div class="duaRow">
+          <span class="tag blue">Resumen Pedagógico Local</span>
+        </div>
+        <h2>Vista Previa de Resultados de la Actividad</h2>
+        <p class="lead">
+          Has completado la actividad formativa. Esta vista previa refleja tu rendimiento en la sesión actual.
+        </p>
+
+        <div class="summaryGrid">
+          <div class="summaryItem"><strong id="sumInitial">0.00</strong><span>Nota Inicial</span></div>
+          <div class="summaryItem"><strong id="sumRecovery">N/A</strong><span>Recuperación</span></div>
+          <div class="summaryItem"><strong id="sumFinal">0.00</strong><span>Nota Final</span></div>
+          <div class="summaryItem"><strong id="sumLevel">Inicial</strong><span>Nivel Alcanzado</span></div>
+        </div>
+
+        <div id="recoveryNotice" class="feedback show warn" style="display: none;">
+          <strong>Refuerzo Pedagógico Requerido:</strong> Tu nota inicial fue menor a 7.00. Se ha habilitado la fase de recuperación con 10 ejercicios guiados para consolidar destrezas.
+        </div>
+
+        <div class="btnRow" style="margin-top: 24px;">
+          <button class="btnBlue" id="startRecoveryBtn" onclick="activateRecovery()" style="display: none;">
+            🔄 Iniciar Fase de Recuperación
+          </button>
+          <button class="btnGhost" onclick="showScreen('workScreen')">
+            🔍 Revisar Ejercicios Resueltos
+          </button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script type="module">
+    import { supabase } from '../../core/supabase-client.js?v=1.4.5';
+    import { submitActivityResult } from '../../core/activity-service.js?v=1.4.5';
+    import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.5';
+
+    // ========================================================
+    // CONFIGURACIÓN GLOBAL
+    // ========================================================
+    const ACTIVITY_KEY = "u7-binomial-class-01";
+    const UNIT_NUMBER = 7;
+    let currentRunId = crypto.randomUUID();
+
+    const ACTIVITY_TITLE = "Distribución Binomial o de Bernoulli (n, p)";
+    const TOPIC = "Distribución Binomial: Cálculo de Probabilidades, Parámetros y Aplicaciones";
+    const SUBJECT = "Matemáticas";
+    const COURSE = "Tercero de BGU";
+    const PARALLEL = "A";
+
+    const TOTAL_INITIAL_EXERCISES = 20;
+    const TOTAL_RECOVERY_EXERCISES = 10;
+    const MAX_CHECK_ATTEMPTS = 4;
+    const RECOVERY_THRESHOLD = 7.0;
+    const AUTHORING_MODE = false;
+
+    // ========================================================
+    // CONTENIDO VISUAL DE LOS EJERCICIOS (Pauta protegida en backend, solution: null)
+    // ========================================================
+    const exercisesVisualRaw = [
+      {
+        exerciseKey: "initial-q01",
+        mode: "mcq",
+        statement: "1. Dada la variable binomial, calcula la probabilidad indicada:",
+        eq: "\\( X \\sim B(5, 0.5) \\quad \\Longrightarrow \\quad P(X = 3) \\)",
+        options: ["0.3125 (ó 5/16)", "0.15625 (ó 5/32)", "0.5000 (ó 1/2)", "0.2500 (ó 1/4)"],
+        hint: "Aplica la fórmula: P(X=k) = (n sobre k) * p^k * q^(n-k) con n=5, k=3 y p=0.5."
+      },
+      {
+        exerciseKey: "initial-q02",
+        mode: "input",
+        statement: "2. Calcula la probabilidad de cero éxitos para la siguiente distribución:",
+        eq: "\\( X \\sim B(4, 0.25) \\quad \\Longrightarrow \\quad P(X = 0) \\)",
+        textQ: "Ingresa el valor decimal o la fracción exacta:",
+        hint: "Cuando k=0, la fórmula se reduce simplemente a q^n, donde q = 1 - p = 0.75."
+      },
+      {
+        exerciseKey: "initial-q03",
+        mode: "mcq",
+        statement: "3. Calcula la probabilidad exacta para el término central:",
+        eq: "\\( X \\sim B(10, 0.5) \\quad \\Longrightarrow \\quad P(X = 5) \\)",
+        options: ["0.2461 (ó 63/256)", "0.5000 (ó 1/2)", "0.1250 (ó 1/8)", "0.3281 (ó 84/256)"],
+        hint: "Calcula el coeficiente binomial (10 sobre 5) = 252 y multiplícalo por (0.5)^10."
+      },
+      {
+        exerciseKey: "initial-q04",
+        mode: "fill",
+        statement: "4. Determina los parámetros estadísticos fundamentales:",
+        eq: "\\( X \\sim B(6, 0.6) \\)",
+        blanks: [
+          { id: "b1", label: "Esperanza matemática E(X)" },
+          { id: "b2", label: "Varianza Var(X)" }
+        ],
+        hint: "Recuerda las fórmulas: E(X) = n * p y Var(X) = n * p * (1 - p)."
+      },
+      {
+        exerciseKey: "initial-q05",
+        mode: "order",
+        statement: "5. Ordena los pasos lógicos para calcular la probabilidad acumulada:",
+        eq: "\\( X \\sim B(8, 0.3) \\quad \\Longrightarrow \\quad P(X \\le 1) \\)",
+        steps: [
+          { id: "s1", text: "Plantear la probabilidad acumulada: \\( P(X \\le 1) = P(X=0) + P(X=1) \\)" },
+          { id: "s2", text: "Calcular \\( P(X=0) = \\binom{8}{0} (0.3)^0 (0.7)^8 \\approx 0.0576 \\)" },
+          { id: "s3", text: "Calcular \\( P(X=1) = \\binom{8}{1} (0.3)^1 (0.7)^7 \\approx 0.1977 \\)" },
+          { id: "s4", text: "Sumar ambas probabilidades: \\( 0.0576 + 0.1977 = 0.2553 \\)" }
+        ],
+        hint: "'A lo sumo 1' implica sumar las probabilidades puntuales para k = 0 y k = 1."
+      },
+      {
+        exerciseKey: "initial-q06",
+        mode: "mcq",
+        statement: "6. Calcula la probabilidad de obtener al menos 4 éxitos:",
+        eq: "\\( X \\sim B(5, 0.8) \\quad \\Longrightarrow \\quad P(X \\ge 4) \\)",
+        options: ["0.7373", "0.4096", "0.3277", "0.8192"],
+        hint: "'Al menos 4' equivale a calcular P(X=4) + P(X=5)."
+      },
+      {
+        exerciseKey: "initial-q07",
+        mode: "mcq",
+        statement: "7. Un examen de 5 preguntas tiene 4 alternativas cada una (solo una correcta). Si un estudiante responde al azar:",
+        eq: "\\( n = 5, \\quad p = \\frac{1}{4} = 0.25 \\quad \\Longrightarrow \\quad P(X = 2) \\)",
+        options: ["0.2637 (26.37%)", "0.3955 (39.55%)", "0.0879 (8.79%)", "0.5000 (50.00%)"],
+        hint: "Usa n=5, p=0.25 y q=0.75 para evaluar la probabilidad en k=2 aciertos."
+      },
+      {
+        exerciseKey: "initial-q08",
+        mode: "fill",
+        statement: "8. Deducción de parámetros: Si se conoce que:",
+        eq: "\\( X \\sim B(n, p), \\quad E(X) = 12, \\quad Var(X) = 4.8 \\)",
+        blanks: [
+          { id: "b1", label: "Número de ensayos (n)" },
+          { id: "b2", label: "Probabilidad de éxito (p)" }
+        ],
+        hint: "Divide Var(X)/E(X) para obtener q = 1 - p. Luego despeja n usando E(X) = n*p."
+      },
+      {
+        exerciseKey: "initial-q09",
+        mode: "input",
+        statement: "9. Suma de extremos simétricos para la siguiente variable:",
+        eq: "\\( X \\sim B(7, 0.5) \\quad \\Longrightarrow \\quad P(X = 0) + P(X = 7) \\)",
+        textQ: "Ingresa el valor numérico o la fracción irreducible:",
+        hint: "Como p=0.5, P(X=0) = (0.5)^7 y P(X=7) = (0.5)^7. Suma ambas cantidades."
+      },
+      {
+        exerciseKey: "initial-q10",
+        mode: "mcq",
+        statement: "10. Control de calidad: En un lote el 5% de los artículos son defectuosos. Se extraen 20 al azar (con reemplazo).",
+        eq: "\\( n = 20, \\quad p = 0.05 \\quad \\Longrightarrow \\quad P(X = 0) \\)",
+        options: ["0.3585 (35.85%)", "0.0500 (5.00%)", "0.6415 (64.15%)", "0.3774 (37.74%)"],
+        hint: "Ninguno defectuoso significa k=0 éxitos en defectuosos, es decir, (0.95)^20."
+      },
+      {
+        exerciseKey: "initial-q11",
+        mode: "mcq",
+        statement: "11. Calcula la probabilidad puntual para:",
+        eq: "\\( X \\sim B(9, 0.4) \\quad \\Longrightarrow \\quad P(X = 4) \\)",
+        options: ["0.2508", "0.1672", "0.3125", "0.0778"],
+        hint: "Calcula (9 sobre 4) = 126 y multiplica por (0.4)^4 * (0.6)^5."
+      },
+      {
+        exerciseKey: "initial-q12",
+        mode: "input",
+        statement: "12. Calcula la desviación estándar de la distribución:",
+        eq: "\\( X \\sim B(16, 0.25) \\quad \\Longrightarrow \\quad \\sigma = \\sqrt{Var(X)} \\)",
+        textQ: "Ingresa el valor exacto o redondeado a 3 decimales:",
+        hint: "Multiplica n*p*q = 16*0.25*0.75 y obtén la raíz cuadrada del resultado."
+      },
+      {
+        exerciseKey: "initial-q13",
+        mode: "mcq",
+        statement: "13. Análisis conceptual: En un experimento binomial, ¿el número de ensayos n puede variar durante el experimento?",
+        eq: "\\( n \\in \\mathbb{N} \\quad \\text{fijo vs variable} \\)",
+        options: [
+          "Falso (el número de ensayos n es fijo desde el inicio)",
+          "Verdadero (n puede cambiar dinámicamente según los resultados)"
+        ],
+        hint: "Revisa las condiciones básicas de un experimento binomial: n debe fijarse antes de iniciar."
+      },
+      {
+        exerciseKey: "initial-q14",
+        mode: "mcq",
+        statement: "14. Análisis conceptual: ¿Los ensayos de una distribución binomial deben ser independientes entre sí?",
+        eq: "\\( P(A \\cap B) = P(A) \\cdot P(B) \\)",
+        options: [
+          "Verdadero (el resultado de un ensayo no afecta a los demás)",
+          "Falso (el resultado previo cambia la probabilidad del siguiente)"
+        ],
+        hint: "Si un ensayo afectara al siguiente, la probabilidad p dejaría de ser constante."
+      },
+      {
+        exerciseKey: "initial-q15",
+        mode: "mcq",
+        statement: "15. Propiedad de cierre: ¿La suma de las probabilidades P(X=k) para k = 0, 1, ..., n es siempre igual a 1?",
+        eq: "\\( \\sum_{k=0}^{n} P(X = k) = \\ ? \\)",
+        options: [
+          "Verdadero (cubre la totalidad del espacio muestral)",
+          "Falso (depende de los valores de n y p)"
+        ],
+        hint: "La suma de probabilidades de todos los eventos mutuamente excluyentes siempre es 1 (100%)."
+      },
+      {
+        exerciseKey: "initial-q16",
+        mode: "mcq",
+        statement: "16. Análisis de parámetros: Si aumenta el número de ensayos n, ¿el valor de p cambia automáticamente?",
+        eq: "\\( n \\uparrow \\quad \\stackrel{?}{\\Longrightarrow} \\quad p \\text{ cambia} \\)",
+        options: [
+          "Falso (p es la probabilidad por ensayo y es constante e independiente de n)",
+          "Verdadero (al haber más ensayos, la probabilidad p se reduce)"
+        ],
+        hint: "Lanzar una moneda 100 veces en lugar de 10 no altera la probabilidad de sacar cara en cada tiro."
+      },
+      {
+        exerciseKey: "initial-q17",
+        mode: "mcq",
+        statement: "17. APLICACIÓN EXPORTACIÓN BANANO: El 8% de las cajas presenta algún defecto. Se extrae una muestra aleatoria de 15 cajas. Determina la probabilidad de que a lo sumo 2 cajas presenten defecto:",
+        eq: "\\( n = 15, \\quad p = 0.08 \\quad \\Longrightarrow \\quad P(X \\le 2) \\)",
+        options: ["0.8870 (88.70%)", "0.2863 (28.63%)", "0.6597 (65.97%)", "0.1130 (11.30%)"],
+        hint: "Calcula P(X<=2) sumando P(X=0) + P(X=1) + P(X=2) con n=15 y p=0.08."
+      },
+      {
+        exerciseKey: "initial-q18",
+        mode: "fill",
+        statement: "18. APLICACIÓN AGRÍCOLA SIERRA: Un agricultor siembra 25 semillas de maíz con probabilidad de germinación del 92% cada una:",
+        eq: "\\( n = 25, \\quad p = 0.92 \\)",
+        blanks: [
+          { id: "b1", label: "Número esperado de germinaciones E(X)" },
+          { id: "b2", label: "Probabilidad de que germinen todas P(X=25)" }
+        ],
+        hint: "Para el valor esperado calcula n*p. Para que germinen todas, calcula p^n."
+      },
+      {
+        exerciseKey: "initial-q19",
+        mode: "order",
+        statement: "19. RETO MATEMÁTICO: Ordena la verificación del valor esperado desde la definición fundamental:",
+        eq: "\\( E(X) = \\sum_{k=0}^{4} k \\cdot P(X=k) \\quad \\text{para } X \\sim B(4, 0.5) \\)",
+        steps: [
+          { id: "r1", text: "Definir la fórmula puntual: \\( P(X=k) = \\binom{4}{k} \\left(\\frac{1}{16}\\right) \\)" },
+          { id: "r2", text: "Calcular probabilidades para \\( k=0,1,2,3,4 \\): \\( \\frac{1}{16}, \\frac{4}{16}, \\frac{6}{16}, \\frac{4}{16}, \\frac{1}{16} \\)" },
+          { id: "r3", text: "Plantear sumatoria: \\( 0\\left(\\frac{1}{16}\\right) + 1\\left(\\frac{4}{16}\\right) + 2\\left(\\frac{6}{16}\\right) + 3\\left(\\frac{4}{16}\\right) + 4\\left(\\frac{1}{16}\\right) \\)" },
+          { id: "r4", text: "Sumar numeradores: \\( \\frac{0 + 4 + 12 + 12 + 4}{16} = \\frac{32}{16} = 2 \\quad (E(X)=np=2) \\)" }
+        ],
+        hint: "Primero calcula cada probabilidad, luego multiplica por su valor k y finalmente suma."
+      },
+      {
+        exerciseKey: "initial-q20",
+        mode: "input",
+        statement: "20. RETO RECURRENCIA: Usando la fórmula recursiva entre términos consecutivos:",
+        eq: "\\( \\frac{P(X=k+1)}{P(X=k)} = \\frac{n-k}{k+1} \\cdot \\frac{p}{q} \\quad \\text{para } X \\sim B(6, 0.4), \\ P(X=0) = 0.046656 \\)",
+        textQ: "Calcula P(X=1) aplicando directamente la recurrencia para k = 0:",
+        hint: "Evalúa k=0: P(X=1) = P(X=0) * (6/1) * (0.4/0.6) = P(X=0) * 4."
+      }
+    ];
+
+    const recoveryVisualRaw = [
+      {
+        exerciseKey: "recovery-r01",
+        mode: "fill",
+        statement: "R1. Identificación de parámetros: Al lanzar 12 veces una moneda equilibrada y contar las caras obtenidas:",
+        eq: "\\( X = \\text{número de caras} \\)",
+        blanks: [
+          { id: "rb1", label: "Número de repeticiones (n)" },
+          { id: "rb2", label: "Probabilidad de éxito (p)" }
+        ],
+        hint: "n es el total de lanzamientos y p es la probabilidad de sacar cara en un solo intento."
+      },
+      {
+        exerciseKey: "recovery-r02",
+        mode: "input",
+        statement: "R2. Complemento: Si la probabilidad de encestar un tiro libre es p = 0.75, calcula la probabilidad de fracaso q:",
+        eq: "\\( q = 1 - p \\)",
+        textQ: "Ingresa el valor de q:",
+        hint: "Resta 1 - 0.75."
+      },
+      {
+        exerciseKey: "recovery-r03",
+        mode: "input",
+        statement: "R3. Valor esperado directo: Para una variable binomial con n = 30 y p = 0.2:",
+        eq: "\\( X \\sim B(30, 0.2) \\quad \\Longrightarrow \\quad E(X) \\)",
+        textQ: "Calcula el valor de E(X):",
+        hint: "Multiplica n * p."
+      },
+      {
+        exerciseKey: "recovery-r04",
+        mode: "input",
+        statement: "R4. Varianza básica: Para una variable binomial con n = 20 y p = 0.5:",
+        eq: "\\( X \\sim B(20, 0.5) \\quad \\Longrightarrow \\quad Var(X) \\)",
+        textQ: "Calcula la varianza Var(X):",
+        hint: "Multiplica n * p * q, donde q = 0.5."
+      },
+      {
+        exerciseKey: "recovery-r05",
+        mode: "input",
+        statement: "R5. Desviación estándar: Para la variable binomial con n = 100 y p = 0.36:",
+        eq: "\\( X \\sim B(100, 0.36) \\quad \\Longrightarrow \\quad \\sigma = \\sqrt{n \\cdot p \\cdot q} \\)",
+        textQ: "Calcula el valor de la desviación estándar:",
+        hint: "Multiplica 100 * 0.36 * 0.64 = 23.04 y calcula su raíz cuadrada."
+      },
+      {
+        exerciseKey: "recovery-r06",
+        mode: "mcq",
+        statement: "R6. Probabilidad de cero éxitos con n = 3 y p = 0.2:",
+        eq: "\\( P(X = 0) = (1 - p)^3 = (0.8)^3 \\)",
+        options: ["0.512", "0.008", "0.384", "0.096"],
+        hint: "Eleva 0.8 al cubo."
+      },
+      {
+        exerciseKey: "recovery-r07",
+        mode: "mcq",
+        statement: "R7. Probabilidad de éxito total con n = 4 y p = 0.5:",
+        eq: "\\( P(X = 4) = p^4 = (0.5)^4 \\)",
+        options: ["0.0625 (ó 1/16)", "0.2500 (ó 1/4)", "0.5000 (ó 1/2)", "0.3125 (ó 5/16)"],
+        hint: "Eleva 0.5 a la cuarta potencia."
+      },
+      {
+        exerciseKey: "recovery-r08",
+        mode: "order",
+        statement: "R8. Ordena los pasos para calcular P(X=1) en una distribución B(3, 0.5):",
+        eq: "\\( X \\sim B(3, 0.5) \\quad \\Longrightarrow \\quad P(X = 1) \\)",
+        steps: [
+          { id: "o1", text: "Identificar la fórmula: \\( P(X=1) = \\binom{3}{1} (0.5)^1 (0.5)^2 \\)" },
+          { id: "o2", text: "Calcular el coeficiente combinatorio: \\( \\binom{3}{1} = 3 \\)" },
+          { id: "o3", text: "Calcular las potencias: \\( 0.5 \\cdot 0.25 = 0.125 \\)" },
+          { id: "o4", text: "Multiplicar todo: \\( 3 \\cdot 0.125 = 0.375 \\)" }
+        ],
+        hint: "Primero plantea la fórmula, halla el combinatorio, calcula las potencias y multiplica."
+      },
+      {
+        exerciseKey: "recovery-r09",
+        mode: "fill",
+        statement: "R9. Completa los exponentes de la fórmula general de la distribución binomial:",
+        eq: "\\( P(X = k) = \\binom{n}{k} p^{[\\text{A}]} q^{[\\text{B}]} \\)",
+        blanks: [
+          { id: "rb1", label: "Exponente A (éxitos)" },
+          { id: "rb2", label: "Exponente B (fracasos)" }
+        ],
+        hint: "El exponente de p es k, y el exponente de q es n-k."
+      },
+      {
+        exerciseKey: "recovery-r10",
+        mode: "input",
+        statement: "R10. Aplicación médica: Un tratamiento tiene 80% de efectividad (p=0.8). Si se aplica a 10 pacientes:",
+        eq: "\\( n = 10, \\quad p = 0.8 \\quad \\Longrightarrow \\quad E(X) \\)",
+        textQ: "Calcula el número esperado de pacientes recuperados:",
+        hint: "Multiplica el número de pacientes por la probabilidad de efectividad: 10 * 0.8."
+      }
+    ];
+
+    // ========================================================
+    // ESTADO LOCAL DE LA APLICACIÓN Y ALEATORIZACIÓN
+    // ========================================================
+    let activePhase = "initial"; 
+    let currentIdx = 0;
+    const exerciseState = {};
+
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // Aleatorizar el orden de aparición de los ejercicios
+    const exercisesVisual = shuffleArray(exercisesVisualRaw);
+    const recoveryVisual = shuffleArray(recoveryVisualRaw);
+
+    function initExerciseState(visualArray) {
+      visualArray.forEach(ex => {
+        let orderData = null;
+        let shuffledOptionsData = null;
+
+        if (ex.mode === "order") {
+          orderData = ex.steps.map(s => s.id);
+        }
+
+        if (ex.mode === "mcq") {
+          // Aleatorizar las opciones conservando su índice original para la pauta
+          let optObjs = ex.options.map((text, idx) => ({ text, originalIndex: idx }));
+          shuffledOptionsData = shuffleArray(optObjs);
+        }
+
+        let blanksData = null;
+        if (ex.mode === "fill") {
+          blanksData = Array(ex.blanks.length).fill("");
+        }
+
+        exerciseState[ex.exerciseKey] = {
+          answer: null,
+          shuffledOptions: shuffledOptionsData,
+          order: orderData,
+          blanks: blanksData,
+          attemptCount: 0,
+          status: "pending",
+          score: null,
+          locked: false,
+          solution: null,
+          feedbackText: null,
+          feedbackType: null,
+          showHint: false,
+          showSolution: false
+        };
+      });
+    }
+
+    initExerciseState(exercisesVisual);
+    initExerciseState(recoveryVisual);
+
+    // ========================================================
+    // SUBMISSION GUARD & IDEMPOTENCIA
+    // ========================================================
+    let _submitting = false;
+    let _pendingSubmission = null;
+
+    // ========================================================
+    // ADAPTADOR FINALIZACIÓN
+    // ========================================================
+    async function finalizeActivityAdapter() {
+      const list = getActiveList();
+      let totalSum = 0;
+      list.forEach(ex => {
+        const st = exerciseState[ex.exerciseKey];
+        totalSum += Number(st.score || 1);
+      });
+      const avg = Number((totalSum / list.length).toFixed(2));
+
+      try {
+        const res = await submitActivityResult({
+          activityKey: ACTIVITY_KEY,
+          runId: currentRunId,
+          phase: activePhase,
+          submission: {
+            run_id: currentRunId,
+            completed_at: new Date().toISOString()
+          }
+        });
+
+        if (res && res.success && res.data) {
+          const finalOfficial = Number(res.data.score).toFixed(2);
+          document.getElementById("sumFinal") && (document.getElementById("sumFinal").innerText = finalOfficial);
+        }
+      } catch (e) {
+        console.warn("Fallo registrando en backend:", e);
+      }
+
+      renderSummary();
+    }
+
+    // ========================================================
+    // LÓGICA DE INTERFAZ Y RENDER
+    // ========================================================
+    let checkInFlight = false;
+
+    function getActiveList() { 
+      return activePhase === "initial" ? exercisesVisual : recoveryVisual; 
+    }
+
+    function startActivity() { 
+      showScreen("workScreen"); 
+      renderWork(); 
+    }
+
+    function activateRecovery() {
+      activePhase = "recovery";
+      currentIdx = 0;
+      document.getElementById("phaseIndicator").innerText = "Paralelo A";
+      document.getElementById("phaseSubTag").innerText = "Fase de Recuperación";
+      document.getElementById("phaseSubTag").className = "tag purple";
+      showScreen("workScreen");
+      renderWork();
+    }
+
+    function renderWork() {
+      const list = getActiveList();
+      const total = list.length;
+      let completedCount = 0;
+      let sumScore = 0;
+
+      list.forEach(ex => {
+        const st = exerciseState[ex.exerciseKey];
+        if (st.status === "correct" || st.status === "failed") {
+          completedCount++;
+          sumScore += (st.score || 0);
+        }
+      });
+
+      const avg = completedCount > 0 ? (sumScore / completedCount).toFixed(2) : "0.00";
+      document.getElementById("doneCount").innerText = `${completedCount}/${total}`;
+      document.getElementById("avgNow").innerText = avg;
+      document.getElementById("progressBar").style.width = `${(completedCount / total) * 100}%`;
+      
+      const btn = document.getElementById("finishBtn");
+      btn.disabled = (completedCount < total);
+      btn.innerText = (activePhase === "initial") ? "📤 Enviar Actividad" : "🏁 Finalizar Recuperación";
+
+      renderNavGrid(list);
+      renderExercisePanel(list[currentIdx]);
+      typeset();
+    }
+
+    function renderNavGrid(list) {
+      const grid = document.getElementById("exerciseGrid");
+      grid.innerHTML = list.map((ex, idx) => {
+        const st = exerciseState[ex.exerciseKey];
+        let cls = "";
+        if (idx === currentIdx) cls += " active";
+        if (st.status === "correct") cls += " done";
+        if (st.status === "failed") cls += " fail";
+        if (st.status === "incorrect") cls += " incorrect";
+        return `<button class="exBtn${cls}" onclick="navTo(${idx})" aria-label="Ejercicio ${idx+1}">${idx + 1}</button>`;
+      }).join("");
+    }
+
+    function renderExercisePanel(exVisual) {
+      const st = exerciseState[exVisual.exerciseKey];
+      const panel = document.getElementById("exercisePanel");
+
+      const attemptsText = `${st.attemptCount}/${MAX_CHECK_ATTEMPTS}`;
+      const scoreText = st.score !== null ? `${st.score}/10` : "Pendiente";
+
+      let inputHtml = "";
+      
+      if (exVisual.mode === "mcq") {
+        inputHtml = `<div class="choiceGrid">
+          ${st.shuffledOptions.map((optObj) => {
+            const isSelected = st.answer === optObj.originalIndex;
+            let btnCls = "choice";
+            if (isSelected) btnCls += " selected";
+            return `<button class="${btnCls}" onclick="readCurrentAnswerMCQ(${optObj.originalIndex})" ${st.locked ? "disabled" : ""}>${optObj.text}</button>`;
+          }).join("")}
+        </div>`;
+      } else if (exVisual.mode === "input") {
+        inputHtml = `<div style="margin: 20px 0;">
+          ${exVisual.textQ ? `<p style="font-weight:700; color: var(--navy);">${exVisual.textQ}</p>` : ''}
+          <input type="text" id="answerInput" class="inputDirect" 
+                 value="${st.answer !== null ? escapeHtml(st.answer) : ""}" 
+                 placeholder="Escribe tu respuesta aquí (ej. 0.25 ó 1/4)..." 
+                 oninput="readCurrentAnswerInput(this.value)"
+                 ${st.locked ? "disabled" : ""} />
+        </div>`;
+      } else if (exVisual.mode === "order") {
+        let orderedSteps = st.order.map(id => exVisual.steps.find(s => s.id === id));
+        inputHtml = `<div class="orderList">
+          ${orderedSteps.map((step, idx) => `
+            <div class="orderItem ${st.locked ? 'locked' : ''}">
+              <span>${step.text}</span>
+              <div class="orderControls">
+                 <button class="btnControl" onclick="moveUp(${idx})" ${st.locked || idx === 0 ? "disabled" : ""} title="Subir paso">▲</button>
+                 <button class="btnControl" onclick="moveDown(${idx})" ${st.locked || idx === orderedSteps.length - 1 ? "disabled" : ""} title="Bajar paso">▼</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>`;
+      } else if (exVisual.mode === "fill") {
+        inputHtml = `<div class="fillGrid">
+          ${exVisual.blanks.map((b, i) => `
+            <div class="fillBox">
+              <label>${b.label}</label>
+              <input type="text" class="fillInput" value="${escapeHtml(st.blanks[i])}" 
+                     placeholder="Ingresa valor..."
+                     oninput="readCurrentFillInput(${i}, this.value)" ${st.locked ? "disabled" : ""} />
+            </div>
+          `).join("")}
+        </div>`;
+      }
+
+      panel.innerHTML = `
+        <div class="tagRow" style="margin-top: 0;">
+          <span class="tag gray">Ejercicio ${currentIdx + 1} de ${getActiveList().length}</span>
+          <span class="tag blue">Intentos: ${attemptsText}</span>
+          <span class="tag" style="background:#fef3c7; color:#92400e;">Puntaje: ${scoreText}</span>
+        </div>
+        <h2>${exVisual.statement}</h2>
+        ${exVisual.eq ? `<div class="mathBox">${exVisual.eq}</div>` : ''}
+        ${inputHtml}
+        
+        <div class="btnRow" style="margin-top: 20px;">
+          <button class="btnGood" onclick="handleCheck()" id="btnComprobar" ${st.locked ? "disabled" : ""}>
+            ✅ Comprobar
+          </button>
+          <button class="btnGhost" onclick="toggleHint()">
+            💡 Pista Pedagógica
+          </button>
+        </div>
+
+        <div class="feedback ${st.feedbackText ? 'show ' + st.feedbackType : ''}">${st.feedbackText || ''}</div>
+        
+        <div class="hintBox" id="hintBox"><strong>💡 Pista de Orientación:</strong><br>${exVisual.hint}</div>
+        <div class="solutionBox ${st.locked ? 'show' : ''}" id="solutionBox"></div>
+      `;
+
+      if (st.locked) {
+        const solHtml = st.solution || "Solución disponible en la plataforma.";
+        const solDiv = document.getElementById("solutionBox");
+        solDiv.innerHTML = `<strong>📝 Solución y Justificación Paso a Paso:</strong><br><div class="mathBox">${solHtml}</div>`;
+      }
+    }
+
+    // Manejadores de entrada
+    function readCurrentAnswerMCQ(originalIdx) {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      if (exerciseState[exKey].locked || _submitting) return;
+      exerciseState[exKey].answer = originalIdx;
+      renderExercisePanel(getActiveList()[currentIdx]);
+      typeset();
+    }
+
+    function readCurrentAnswerInput(val) {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      if (exerciseState[exKey].locked || _submitting) return;
+      exerciseState[exKey].answer = val;
+    }
+
+    function readCurrentFillInput(idx, val) {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      if (exerciseState[exKey].locked || _submitting) return;
+      exerciseState[exKey].blanks[idx] = val;
+    }
+
+    function moveUp(index) {
+      if (index === 0) return;
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      const st = exerciseState[exKey];
+      if (st.locked || _submitting) return;
+      let temp = st.order[index - 1];
+      st.order[index - 1] = st.order[index];
+      st.order[index] = temp;
+      renderExercisePanel(getActiveList()[currentIdx]);
+      typeset();
+    }
+
+    function moveDown(index) {
+      const exKey = getActiveList()[currentIdx].exerciseKey;
+      const st = exerciseState[exKey];
+      if (st.locked || _submitting || index === st.order.length - 1) return;
+      let temp = st.order[index + 1];
+      st.order[index + 1] = st.order[index];
+      st.order[index] = temp;
+      renderExercisePanel(getActiveList()[currentIdx]);
+      typeset();
+    }
+
+    async function handleCheck() {
+      if (_submitting) return;
+      
+      const exVisual = getActiveList()[currentIdx];
+      const exKey = exVisual.exerciseKey;
+      const st = exerciseState[exKey];
+
+      if (st.locked) return;
+      
+      let payload;
+      if (exVisual.mode === "mcq") {
+        if (st.answer === null) { notifyEmpty("Selecciona una opción antes de comprobar."); return; }
+        payload = st.answer;
+      } else if (exVisual.mode === "input") {
+        if (st.answer === null || st.answer.trim() === "") { notifyEmpty("Ingresa tu respuesta numérica antes de comprobar."); return; }
+        payload = st.answer.trim();
+      } else if (exVisual.mode === "order") {
+        payload = st.order;
+      } else if (exVisual.mode === "fill") {
+        if (st.blanks.some(v => !v.trim())) { notifyEmpty("Completa todas las casillas requeridas."); return; }
+        payload = st.blanks;
+      }
+
+      // Idempotency check binding
+      const isMatchingPending = _pendingSubmission &&
+        _pendingSubmission.runId === currentRunId &&
+        _pendingSubmission.phase === activePhase &&
+        _pendingSubmission.questionId === exKey &&
+        _pendingSubmission.exerciseIndex === currentIdx;
+
+      if (!isMatchingPending) {
+        _pendingSubmission = {
+          id: crypto.randomUUID(),
+          runId: currentRunId,
+          phase: activePhase,
+          questionId: exKey,
+          exerciseIndex: currentIdx
+        };
+      }
+
+      const submissionIdToSend = _pendingSubmission.id;
+
+      _submitting = true;
+      const btn = document.getElementById("btnComprobar");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Comprobando...";
+      }
+
+      try {
+        const result = await checkExercise({
+          activityKey: ACTIVITY_KEY,
+          exerciseKey: exKey,
+          answer: payload,
+          checkId: submissionIdToSend,
+          runId: currentRunId,
+          phase: activePhase
+        });
+
+        _submitting = false;
+
+        if (!result || !result.success) {
+          st.feedbackText = result?.error || "⚠️ Error de conexión con el servidor. Pulsa Comprobar para reintentar.";
+          st.feedbackType = "bad";
+          renderWork();
+          return;
+        }
+
+        if (result.run_id || result.activity_run_id) {
+          currentRunId = result.run_id || result.activity_run_id;
+        }
+
+        _pendingSubmission = null;
+        applyStoredExerciseState(exKey, result);
+        renderWork();
+      } catch (err) {
+        console.error("Error conectando con servidor:", err);
+        _submitting = false;
+        st.feedbackText = "⚠️ Error de conexión con el servidor. Pulsa Comprobar para reintentar.";
+        st.feedbackType = "bad";
+        renderWork();
+      }
+    }
+
+    function notifyEmpty(msg = "⚠️ Por favor, ingresa o selecciona una respuesta antes de comprobar.") {
+      const exVisual = getActiveList()[currentIdx];
+      const st = exerciseState[exVisual.exerciseKey];
+      st.feedbackText = msg;
+      st.feedbackType = "warn";
+      renderExercisePanel(exVisual);
+      typeset();
+    }
+
+    function applyStoredExerciseState(exKey, result) {
+      const st = exerciseState[exKey];
+      st.attemptCount = result.attempt_number || result.attempt_count || (st.attemptCount + 1);
+      st.status = result.status || (result.is_correct ? "correct" : (st.attemptCount >= MAX_CHECK_ATTEMPTS ? "failed" : "incorrect"));
+      st.score = result.question_score ?? result.score;
+      st.locked = Boolean(result.locked);
+      if (result.solution_html) {
+        st.solution = result.solution_html;
+      }
+
+      if (result.is_correct || result.status === "correct") {
+        st.feedbackText = `¡Excelente! Respuesta correcta en el intento ${st.attemptCount}. Calificación obtenida: ${st.score}/10.<br>✅ Comprobado y guardado.`;
+        st.feedbackType = "ok";
+      } else if (result.locked || st.status === "failed" || st.attemptCount >= MAX_CHECK_ATTEMPTS) {
+        st.feedbackText = `Has completado tus cuatro comprobaciones.<br>Este ejercicio queda registrado con ${st.score || 1}/10.<br>Revisa detenidamente la solución paso a paso.`;
+        st.feedbackType = "bad";
+      } else {
+        const rem = result.remaining_attempts !== undefined && result.remaining_attempts !== null
+          ? result.remaining_attempts
+          : Math.max(0, MAX_CHECK_ATTEMPTS - st.attemptCount);
+        st.feedbackText = `Aún no es correcto. Revisa tu planteamiento y operaciones.<br>Intentos utilizados: ${st.attemptCount} de ${MAX_CHECK_ATTEMPTS}. Te quedan ${rem} comprobación(es).`;
+        st.feedbackType = "warn";
+      }
+    }
+
+    function toggleHint() {
+      const hint = document.getElementById("hintBox");
+      if (hint) { hint.classList.toggle("show"); }
+    }
+    function navTo(idx) { currentIdx = idx; renderWork(); }
+    function prevExercise() {
+      const list = getActiveList();
+      currentIdx = (currentIdx - 1 + list.length) % list.length;
+      renderWork();
+    }
+    function nextExercise() {
+      const list = getActiveList();
+      currentIdx = (currentIdx + 1) % list.length;
+      renderWork();
+    }
+
+    function calculateVisualScore(visualArray) {
+      let sum = 0;
+      visualArray.forEach(ex => { sum += (exerciseState[ex.exerciseKey].score || 0); });
+      return sum / visualArray.length;
+    }
+
+    function renderSummary() {
+      const initialScore = calculateVisualScore(exercisesVisual);
+      document.getElementById("sumInitial").innerText = initialScore.toFixed(2);
+      
+      let finalScore = initialScore;
+
+      if (activePhase === "initial" && initialScore < RECOVERY_THRESHOLD) {
+        document.getElementById("recoveryNotice").style.display = "block";
+        document.getElementById("startRecoveryBtn").style.display = "inline-flex";
+      } 
+      else if (activePhase === "recovery") {
+        const recScore = calculateVisualScore(recoveryVisual);
+        document.getElementById("sumRecovery").innerText = recScore.toFixed(2);
+        finalScore = (initialScore + recScore) / 2;
+        document.getElementById("recoveryNotice").style.display = "none";
+        document.getElementById("startRecoveryBtn").style.display = "none";
+      } else {
+        document.getElementById("recoveryNotice").style.display = "none";
+        document.getElementById("startRecoveryBtn").style.display = "none";
+      }
+
+      document.getElementById("sumFinal").innerText = finalScore.toFixed(2);
+      
+      let levelText = "Inicial";
+      if (finalScore >= 9.0) levelText = "Destacado";
+      else if (finalScore >= 7.0) levelText = "Alcanzado";
+      else if (finalScore >= 4.0) levelText = "En Desarrollo";
+      
+      document.getElementById("sumLevel").innerText = levelText;
+      showScreen("summaryScreen");
+    }
+
+    function escapeHtml(str) {
+      return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      window.scrollTo(0, 0);
+      typeset();
+    }
+
+    function typeset() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise().catch(error => { console.warn("MathJax:", error); });
+      }
+    }
+
+    async function restoreSavedProgress() {
+      try {
+        const progressList = await getExerciseProgress(ACTIVITY_KEY);
+        if (Array.isArray(progressList) && progressList.length > 0) {
+          progressList.forEach(p => {
+            const st = exerciseState[p.exercise_key];
+            if (st) {
+              st.attemptCount = p.attempt_count || 0;
+              st.status = p.status || "pending";
+              st.score = p.exercise_score;
+              st.locked = Boolean(p.locked);
+              if (p.answer_data && p.answer_data.value !== undefined) {
+                if (st.order) st.order = p.answer_data.value;
+                else if (st.blanks) st.blanks = p.answer_data.value;
+                else if (st.shuffledOptions) st.answer = p.answer_data.value; 
+                else st.answer = p.answer_data.value;
+              }
+              if (p.solution_html) {
+                st.solution = p.solution_html;
+              }
+              if (st.status === "correct") {
+                st.feedbackText = `¡Excelente! Respuesta correcta en el intento ${st.attemptCount}. Calificación obtenida: ${st.score}/10.<br>✅ Comprobado y guardado.`;
+                st.feedbackType = "ok";
+              } else if (st.locked || st.status === "failed") {
+                st.feedbackText = `Has completado tus cuatro comprobaciones.<br>Este ejercicio queda registrado con 1/10.<br>Revisa detenidamente la solución paso a paso.`;
+                st.feedbackType = "bad";
+              }
+            }
+          });
+          // Avoid rendering work if we aren't yet in that screen, or let the user click start
+          // In unit 6, they just called renderWork() if on workScreen.
+        }
+      } catch (err) {
+        console.warn("No se pudo cargar progreso previo:", err);
+      }
+    }
+
+    if (!AUTHORING_MODE) {
+      restoreSavedProgress();
+    }
+    // Para que los handlers estén disponibles globalmente
+    window.startActivity = startActivity;
+    window.activateRecovery = activateRecovery;
+    window.finalizeActivityAdapter = finalizeActivityAdapter;
+    window.navTo = navTo;
+    window.prevExercise = prevExercise;
+    window.nextExercise = nextExercise;
+    window.handleCheck = handleCheck;
+    window.toggleHint = toggleHint;
+    window.readCurrentAnswerMCQ = readCurrentAnswerMCQ;
+    window.readCurrentAnswerInput = readCurrentAnswerInput;
+    window.readCurrentFillInput = readCurrentFillInput;
+    window.moveUp = moveUp;
+    window.moveDown = moveDown;
+    window.showScreen = showScreen;
+  </script>
+</body>
+</html>

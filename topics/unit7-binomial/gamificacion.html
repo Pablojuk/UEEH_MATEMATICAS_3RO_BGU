@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>UEEH - Frogger 1981: Distribución Binomial</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Configuración MathJax 3 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)'], ['$', '$']],
+                displayMath: [['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            },
+            startup: {
+                typeset: false
+            }
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <style>
+        /* ==========================================
+           VARIABLES DE DISEÑO RETRO ARCADE 80s (UEEH)
+           ========================================== */
+        :root {
+            --pixel-green: #34d399;   /* Rana / Menta */
+            --pixel-cyan: #38bdf8;    /* Agua / Celeste */
+            --pixel-magenta: #f472b6; /* Neón rosa */
+            --pixel-yellow: #fde047;  /* Oro arcade */
+            --pixel-purple: #a78bfa;  /* Lila neón */
+            --pixel-dark: #05070f;    /* Fondo gabinete */
+            --pixel-panel: #0f172a;   /* Panel CRT */
+            --pixel-border: #2dd4bf;  /* Turquesa */
+            --pixel-red: #f87171;     /* Alerta */
+            --pixel-orange: #fb923c;  /* Vehículos */
+            --text-main: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
+            background-color: var(--pixel-dark);
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace, system-ui;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            image-rendering: pixelated;
+        }
+
+        /* Efecto CRT Scanline Retro */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 200;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            transition: opacity 0.15s;
+        }
+
+        /* Mientras el reto está abierto, se apagan los scanlines para que las
+           fórmulas y el texto se lean nítidos, sin ruido visual encima. */
+        body.modal-open::before {
+            opacity: 0;
+        }
+
+        /* PANTALLAS */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--pixel-dark);
+            z-index: 10;
+            padding: 20px;
+            text-align: center;
+            overflow-y: auto;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        h1, h2, h3 { 
+            color: var(--pixel-green); 
+            text-shadow: 2px 2px 0px #000, 0 0 10px rgba(52, 211, 153, 0.6); 
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        p { 
+            margin-bottom: 0.8rem; 
+            line-height: 1.4; 
+            color: var(--text-main);
+            font-size: 0.92rem;
+        }
+
+        .btn {
+            background-color: #1e1b4b;
+            color: var(--pixel-yellow);
+            border: 3px solid var(--pixel-yellow);
+            padding: 12px 20px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            min-height: 48px;
+            box-shadow: 4px 4px 0px #000, 0 0 10px rgba(253, 224, 71, 0.4);
+            touch-action: manipulation;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            letter-spacing: 1px;
+            transition: transform 0.08s, filter 0.2s;
+        }
+        
+        .btn:active:not(:disabled) { 
+            transform: translate(2px, 2px); 
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .btn:disabled { 
+            opacity: 0.4; 
+            cursor: not-allowed; 
+            filter: grayscale(100%); 
+            transform: none; 
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border-color: var(--pixel-purple);
+            color: var(--pixel-purple);
+            box-shadow: 4px 4px 0px #000;
+        }
+
+        /* CONTENEDOR DE JUEGO */
+        #game-container {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto;
+            background: #020408;
+            border-left: 2px solid #1e293b;
+            border-right: 2px solid #1e293b;
+            height: 100%;
+            height: 100dvh;
+        }
+
+        #hud {
+            padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 5;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--pixel-cyan);
+            background-color: rgba(3, 7, 18, 0.9);
+            border-bottom: 2px solid #1e293b;
+            text-shadow: 2px 2px 0px #000;
+            letter-spacing: 1px;
+        }
+
+        #hud-pads {
+            color: var(--pixel-yellow);
+            font-size: 1rem;
+        }
+
+        canvas {
+            display: block;
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            background-color: #05070f;
+        }
+
+        /* CONTROLES MÓVILES (D-PAD) */
+        #mobile-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 54px);
+            gap: 6px;
+            padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 12px) 16px;
+            background-color: #030712;
+            border-top: 3px solid var(--pixel-green);
+            z-index: 15;
+            touch-action: none;
+            max-width: 380px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .btn-dpad {
+            background-color: #111827;
+            border: 3px solid var(--pixel-green);
+            color: var(--pixel-green);
+            font-size: 22px;
+            font-family: inherit;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 3px 3px 0px #000;
+            touch-action: none;
+            min-height: 48px;
+            cursor: pointer;
+        }
+
+        .btn-dpad:active {
+            background-color: var(--pixel-green);
+            color: #000;
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #000;
+        }
+
+        /* MODAL FORMATIVO UEEH */
+        #challenge-modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(3, 7, 18, 0.97);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px calc(env(safe-area-inset-bottom, 0px) + 16px) 12px;
+            /* Anula el efecto "pixelated" global del body: aquí van fórmulas y texto
+               que los estudiantes deben leer con nitidez, no arte retro. */
+            image-rendering: auto;
+        }
+
+        #challenge-modal svg,
+        #challenge-modal img,
+        #challenge-modal mjx-container {
+            image-rendering: auto;
+        }
+
+        .modal-content {
+            background-color: var(--pixel-panel);
+            border: 3px solid var(--pixel-green);
+            max-width: 580px;
+            width: 100%;
+            margin: auto;
+            padding: 16px;
+            box-shadow: 5px 5px 0px #000, 0 0 15px rgba(52, 211, 153, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mathBox {
+            background: #030712;
+            border: 2px dashed var(--pixel-cyan);
+            padding: 12px;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            text-align: center;
+            font-size: 1.15rem;
+            min-height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-btn {
+            background-color: #030712;
+            border: 2px solid var(--pixel-cyan);
+            color: var(--text-main);
+            padding: 10px 12px;
+            text-align: left;
+            min-height: 48px;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            font-size: 0.92rem;
+            box-shadow: 3px 3px 0px #000;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        
+        .option-btn:hover:not(:disabled) { background-color: rgba(56, 189, 248, 0.15); }
+        .option-btn.selected { 
+            background-color: #1e293b; 
+            border-color: var(--pixel-yellow); 
+            color: var(--pixel-yellow);
+            box-shadow: 3px 3px 0px #000, 0 0 8px rgba(253, 224, 71, 0.5); 
+        }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.75; }
+        
+        .feedback-box {
+            padding: 12px;
+            border: 2px solid;
+            display: none;
+            font-weight: bold;
+            line-height: 1.45;
+            font-size: 0.88rem;
+            box-shadow: 3px 3px 0px #000;
+        }
+        .feedback-box.incorrect { display: block; background: rgba(248, 113, 113, 0.15); border-color: var(--pixel-red); color: #fca5a5; }
+        .feedback-box.correct { display: block; background: rgba(52, 211, 153, 0.15); border-color: var(--pixel-green); color: var(--pixel-green); }
+        .feedback-box.failed { display: block; background: rgba(167, 139, 250, 0.15); border-color: var(--pixel-purple); color: var(--pixel-purple); }
+
+        .solution-box {
+            display: none;
+            background: #030712;
+            border-left: 4px solid var(--pixel-green);
+            padding: 12px;
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+        
+        .score-badge {
+            display: inline-block;
+            background: #000;
+            padding: 4px 10px;
+            border: 2px solid var(--pixel-yellow);
+            color: var(--pixel-yellow);
+            font-size: 0.82rem;
+            font-weight: bold;
+            align-self: flex-start;
+            letter-spacing: 1px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PANTALLA INICIAL -->
+    <div id="start-screen" class="screen active">
+        <h1>🐸 FROGGER '81 🐸</h1>
+        <h3 style="color: var(--pixel-yellow); margin-top: 5px;">Tercero de BGU - Matemáticas</h3>
+        <p style="margin-top: 14px;"><b>TEMA:</b> Distribución Binomial o de Bernoulli \( (n, p) \).</p>
+        <p>¡Guía a la rana a través de la concurrida carretera y el río para alcanzar los <b>6 nenúfares</b>!</p>
+        <p style="color: var(--pixel-cyan);">Cada cruce exitoso abrirá un reto matemático binomial.</p>
+        
+        <div style="background: #000; padding: 12px; border: 2px solid var(--pixel-green); margin: 12px 0; max-width: 440px; text-align: left; box-shadow: 4px 4px 0px #000;">
+            <p style="margin:0; font-size: 0.82rem; color: var(--pixel-green);"><b>[ SISTEMA DE EVALUACIÓN UEEH (SOBRE 10 PTS) ]</b><br>
+            • Reto superado en Intento 1: 10/10 pts<br>
+            • Reto superado en Intento 2: 9/10 pts<br>
+            • Reto superado en Intento 3: 8/10 pts<br>
+            • Reto superado en Intento 4: 7/10 pts<br>
+            • 4 comprobaciones fallidas: 1/10 pt (Solución formativa)<br>
+            • Calificación Final: Promedio exacto sobre 10 pts (6 retos = 60 pts máx).</p>
+        </div>
+        
+        <button class="btn" onclick="startGame()">▶ INSERT COIN / JUGAR</button>
+    </div>
+
+    <!-- CONTENEDOR DEL JUEGO -->
+    <div id="game-container" style="display: none;">
+        <div id="hud">
+            <span>NENÚFARES: <span id="hud-pads">0</span>/6</span>
+            <span>PROGRESO: <span id="hud-progress" style="color:var(--pixel-green);">0</span>%</span>
+            <span>PUNTAJE: <span id="hud-score" style="color:var(--pixel-yellow);">0.00</span>/10</span>
+        </div>
+        
+        <canvas id="game-canvas" width="560" height="600"></canvas>
+
+        <!-- Controles Táctiles D-Pad Mobile First -->
+        <div id="mobile-controls">
+            <div></div>
+            <button class="btn-dpad" id="btn-up" aria-label="Arriba">▲</button>
+            <div></div>
+            <button class="btn-dpad" id="btn-left" aria-label="Izquierda">◀</button>
+            <button class="btn-dpad" id="btn-down" aria-label="Abajo">▼</button>
+            <button class="btn-dpad" id="btn-right" aria-label="Derecha">▶</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA FINAL (VICTORIA) -->
+    <div id="end-screen" class="screen">
+        <h1>🏆 ¡MISIÓN COMPLETADA! 🏆</h1>
+        <p>Has cruzado exitosamente los 6 nenúfares y resuelto los problemas de distribución binomial.</p>
+        <div style="background: #000; border: 3px solid var(--pixel-green); padding: 18px; margin-bottom: 18px; box-shadow: 5px 5px 0px #000; max-width: 440px;">
+            <h2 style="margin: 0; color: var(--pixel-yellow);">CALIFICACIÓN FINAL: <span id="final-score">0.00</span> / 10</h2>
+            <p style="margin-top: 8px; font-size: 0.85rem; color: var(--pixel-cyan);">Puntaje acumulado: <span id="final-raw-score">0</span> / 60 pts</p>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--pixel-cyan); margin-bottom: 18px;">[ AUTHORING PREVIEW MODE - UEEH ]</p>
+        <button id="btn-finalize" class="btn" onclick="finalizeGameAdapter()">FINALIZAR MISIÓN</button>
+        <button class="btn btn-outline" style="margin-top: 12px;" onclick="restartPreviewGame()">REINICIAR JUEGO</button>
+    </div>
+
+    <!-- MODAL FORMATIVO UEEH -->
+    <div id="challenge-modal">
+        <div class="modal-content">
+            <h3 id="modal-title" style="margin-bottom:0;">🐸 NENÚFAR ALCANZADO</h3>
+            <div id="modal-score" class="score-badge">DISPONIBLE: 10/10 PTS</div>
+            
+            <p id="modal-statement" style="margin-top:4px; margin-bottom:2px; font-weight:bold;"></p>
+            <div class="mathBox" id="modal-equation"></div>
+            
+            <div class="options-grid" id="modal-options">
+                <!-- Inyectado dinámicamente en orden aleatorio -->
+            </div>
+
+            <div id="modal-feedback" class="feedback-box"></div>
+            
+            <div id="modal-solution" class="solution-box">
+                <b style="color:var(--pixel-yellow); text-transform: uppercase;">▶ Procedimiento Pedagógico:</b>
+                <div id="modal-solution-text" style="margin-top: 6px;"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="btn-check" class="btn" onclick="handleCheckClick()">COMPROBAR</button>
+                <button id="btn-continue" class="btn" style="display:none; border-color:var(--pixel-green); color:var(--pixel-green);" onclick="closeChallengeModal()">CONTINUAR ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from '../../core/supabase-client.js?v=1.4.5';
+        import { submitActivityResult } from '../../core/activity-service.js?v=1.4.5';
+        import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.5';
+
+        // ========================================================
+        // 1. CONFIGURACIÓN Y CONSTANTES (UEEH)
+        // ========================================================
+        const ACTIVITY_KEY = "u7-binomial-gam-01";
+        const UNIT_NUMBER = 7;
+        let currentGameRunId = crypto.randomUUID();
+
+        const GAME_TITLE = "Frogger 1981: Distribución Binomial";
+        const SUBJECT = "Matemáticas";
+        const COURSE = "Tercero de BGU";
+        const TOPIC = "Distribución Binomial o de Bernoulli (n, p)";
+        const TOTAL_CHALLENGES = 6;
+        const MAX_CHECK_ATTEMPTS = 4;
+        const AUTHORING_MODE = false;
+
+        // Estructura visual de retos (IDs estables)
+        // Ninguna respuesta ni solución dentro de MISSIONS (Cumple Unidad 5+)
+        const MISSIONS = [
+            {
+                exerciseKey: "level01-q01",
+                title: "Reto 1: Probabilidad Puntual",
+                statement: String.raw`Sea la variable aleatoria binomial \( X \sim B(10, 0.7) \). Calcula la probabilidad puntual \( P(X = 5) \):`,
+                equation: String.raw`\[ P(X = 5) = \binom{10}{5} (0.7)^5 (0.3)^5 \]`,
+                options: [
+                    String.raw`\( 0.1029 \) (o \( 10.29\% \))`,
+                    String.raw`\( 0.2520 \) (o \( 25.20\% \))`,
+                    String.raw`\( 0.0514 \) (o \( 5.14\% \))`,
+                    String.raw`\( 0.3500 \) (o \( 35.00\% \))`
+                ],
+                hint: "Aplica la fórmula binomial: P(X = k) = C(n, k) * p^k * q^(n-k), con n = 10, k = 5, p = 0.7 y q = 0.3. Recuerda que C(10, 5) = 252.",
+                solution: null
+            },
+            {
+                exerciseKey: "level01-q02",
+                title: "Reto 2: Probabilidad Acumulada",
+                statement: String.raw`Sea \( X \sim B(8, 0.8) \). Calcula la probabilidad acumulada \( P(X \le 1) \):`,
+                equation: String.raw`\[ P(X \le 1) = P(X = 0) + P(X = 1) \]`,
+                options: [
+                    String.raw`\( 0.000084 \) (o \( 8.45 \times 10^{-5} \))`,
+                    String.raw`\( 0.008400 \) (o \( 0.84\% \))`,
+                    String.raw`\( 0.125000 \) (o \( 12.50\% \))`,
+                    String.raw`\( 0.000512 \) (o \( 0.0512\% \))`
+                ],
+                hint: "Calcula por separado P(X = 0) = C(8,0)*(0.8)^0*(0.2)^8 y P(X = 1) = C(8,1)*(0.8)^1*(0.2)^7, luego suma ambos valores.",
+                solution: null
+            },
+            {
+                exerciseKey: "level01-q03",
+                title: "Reto 3: Parámetros y Momentos",
+                statement: String.raw`Dada la distribución \( X \sim B(6, 0.8) \), calcula el valor esperado \( E(X) \) y la varianza \( \operatorname{Var}(X) \):`,
+                equation: String.raw`\[ E(X) = n \cdot p, \quad \operatorname{Var}(X) = n \cdot p \cdot q \]`,
+                options: [
+                    String.raw`\( E(X) = 4.8, \quad \operatorname{Var}(X) = 0.96 \)`,
+                    String.raw`\( E(X) = 4.8, \quad \operatorname{Var}(X) = 1.20 \)`,
+                    String.raw`\( E(X) = 3.6, \quad \operatorname{Var}(X) = 0.72 \)`,
+                    String.raw`\( E(X) = 5.0, \quad \operatorname{Var}(X) = 1.00 \)`
+                ],
+                hint: "Recuerda que q = 1 - p = 1 - 0.8 = 0.2. Aplica directamente las fórmulas E(X) = n*p y Var(X) = n*p*q.",
+                solution: null
+            },
+            {
+                exerciseKey: "level01-q04",
+                title: "Reto 4: Rango Acumulado Superior",
+                statement: String.raw`Sea \( X \sim B(5, 0.6) \). Calcula la probabilidad de obtener al menos 4 éxitos, \( P(X \ge 4) \):`,
+                equation: String.raw`\[ P(X \ge 4) = P(X = 4) + P(X = 5) \]`,
+                options: [
+                    String.raw`\( 0.3370 \) (o \( 33.70\% \))`,
+                    String.raw`\( 0.2592 \) (o \( 25.92\% \))`,
+                    String.raw`\( 0.0778 \) (o \( 7.78\% \))`,
+                    String.raw`\( 0.4520 \) (o \( 45.20\% \))`
+                ],
+                hint: "Suma los términos P(X = 4) = C(5,4)*(0.6)^4*(0.4)^1 y P(X = 5) = C(5,5)*(0.6)^5*(0.4)^0.",
+                solution: null
+            },
+            {
+                exerciseKey: "level01-q05",
+                title: "Reto 5: Aplicación en Exámenes",
+                statement: "Un examen de 6 preguntas tiene 4 alternativas cada una (solo 1 correcta). Un estudiante responde al azar. Calcula la probabilidad de acertar exactamente 2:",
+                equation: String.raw`\[ X \sim B(6, 0.25), \quad P(X = 2) = \binom{6}{2} (0.25)^2 (0.75)^4 \]`,
+                options: [
+                    String.raw`\( 0.2966 \) (o \( 29.66\% \))`,
+                    String.raw`\( 0.1500 \) (o \( 15.00\% \))`,
+                    String.raw`\( 0.3520 \) (o \( 35.20\% \))`,
+                    String.raw`\( 0.0625 \) (o \( 6.25\% \))`
+                ],
+                hint: "Al tener 4 alternativas con una sola correcta, p = 1/4 = 0.25 y q = 0.75. Con n = 6 y k = 2, C(6, 2) = 15.",
+                solution: null
+            },
+            {
+                exerciseKey: "level01-q06",
+                title: "Reto 6: Deducción de Parámetros",
+                statement: String.raw`Si \( X \sim B(n, p) \), con \( E(X) = 18 \) y \( \operatorname{Var}(X) = 4.8 \), determina los parámetros \( n \) y \( p \):`,
+                equation: String.raw`\[ E(X) = n \cdot p = 18, \quad \operatorname{Var}(X) = n \cdot p \cdot q = 4.8 \]`,
+                options: [
+                    String.raw`\( p = \frac{11}{15} \approx 0.7333, \quad n = \frac{270}{11} \approx 24.55 \)`,
+                    String.raw`\( p = 0.2667, \quad n = 18.00 \)`,
+                    String.raw`\( p = 0.8000, \quad n = 22.50 \)`,
+                    String.raw`\( p = \frac{4}{15} \approx 0.2667, \quad n = 30.00 \)`
+                ],
+                hint: "Divide Var(X) entre E(X) para hallar q: q = 4.8 / 18 = 4/15. Luego halla p = 1 - q = 11/15, y finalmente n = E(X) / p.",
+                solution: null
+            }
+        ];
+
+
+
+        // ========================================================
+        // 2. SPRITES Y RENDERIZADORES DE VEHÍCULOS RETRO DETALLADOS
+        // ========================================================
+        const SPRITE_FROG = [
+            [0,1,0,0,0,0,1,0],
+            [1,1,1,1,1,1,1,1],
+            [1,0,1,1,1,1,0,1],
+            [1,1,1,1,1,1,1,1],
+            [0,1,1,1,1,1,1,0],
+            [1,1,0,1,1,0,1,1],
+            [1,0,0,1,1,0,0,1],
+            [1,1,0,0,0,0,1,1]
+        ];
+
+        function drawPixelMatrix(context, matrix, startX, startY, pixelSize, color) {
+            context.fillStyle = color;
+            for (let r = 0; r < matrix.length; r++) {
+                for (let c = 0; c < matrix[r].length; c++) {
+                    if (matrix[r][c] === 1) {
+                        context.fillRect(
+                            Math.floor(startX + c * pixelSize),
+                            Math.floor(startY + r * pixelSize),
+                            pixelSize,
+                            pixelSize
+                        );
+                    }
+                }
+            }
+        }
+
+        // Helper: rellena con un degradado vertical claro->oscuro para dar volumen (más "realista")
+        function bodyGradient(context, x, y, h, baseColor) {
+            const grad = context.createLinearGradient(0, y, 0, y + h);
+            grad.addColorStop(0, shadeColor(baseColor, 35));
+            grad.addColorStop(0.5, baseColor);
+            grad.addColorStop(1, shadeColor(baseColor, -30));
+            return grad;
+        }
+
+        function shadeColor(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            let r = (num >> 16) + Math.round(255 * (percent / 100));
+            let g = ((num >> 8) & 0x00FF) + Math.round(255 * (percent / 100));
+            let b = (num & 0x0000FF) + Math.round(255 * (percent / 100));
+            r = Math.max(0, Math.min(255, r));
+            g = Math.max(0, Math.min(255, g));
+            b = Math.max(0, Math.min(255, b));
+            return `rgb(${r},${g},${b})`;
+        }
+
+        // Sombra de contacto con el asfalto, da sensación de volumen/realismo
+        function drawVehicleShadow(context, x, y, w, h) {
+            context.fillStyle = 'rgba(0,0,0,0.35)';
+            context.beginPath();
+            context.ellipse(x + w / 2, y + h + 3, w / 2, 4, 0, 0, Math.PI * 2);
+            context.fill();
+        }
+
+        // Rueda con llanta y rin, más realista que un rectángulo plano
+        function drawWheel(context, cx, cy, r) {
+            context.fillStyle = '#0a0a0a';
+            context.beginPath();
+            context.arc(cx, cy, r, 0, Math.PI * 2);
+            context.fill();
+            context.fillStyle = '#9ca3af';
+            context.beginPath();
+            context.arc(cx, cy, r * 0.45, 0, Math.PI * 2);
+            context.fill();
+        }
+
+        // Renderizado detallado de troncos de madera flotantes
+        function drawRiverLog(context, l) {
+            const x = Math.floor(l.x), y = Math.floor(l.y), w = l.w, h = l.h;
+
+            // Reflejo/estela en el agua
+            context.fillStyle = 'rgba(2, 132, 199, 0.35)';
+            context.beginPath();
+            context.ellipse(x + w / 2, y + h + 2, w / 2 - 4, 3, 0, 0, Math.PI * 2);
+            context.fill();
+
+            // Cuerpo del tronco con veta (degradado marrón)
+            const grad = context.createLinearGradient(0, y, 0, y + h);
+            grad.addColorStop(0, '#c2803f');
+            grad.addColorStop(0.45, l.color);
+            grad.addColorStop(1, '#5c3210');
+            context.fillStyle = grad;
+            context.beginPath();
+            context.roundRect(x, y, w, h, 7);
+            context.fill();
+            context.strokeStyle = '#3f2410';
+            context.lineWidth = 1.5;
+            context.stroke();
+
+            // Líneas de veta de madera onduladas a lo largo del tronco
+            context.strokeStyle = 'rgba(63, 36, 16, 0.55)';
+            context.lineWidth = 1.5;
+            for (let ly = y + 6; ly < y + h - 4; ly += 7) {
+                context.beginPath();
+                for (let lx = x + 4; lx <= x + w - 4; lx += 8) {
+                    const wob = Math.sin((lx + ly) * 0.15) * 1.5;
+                    if (lx === x + 4) context.moveTo(lx, ly + wob);
+                    else context.lineTo(lx, ly + wob);
+                }
+                context.stroke();
+            }
+
+            // Cortes circulares en los extremos (anillos del tronco), estilo tronco real
+            [x + 10, x + w - 10].forEach(cx => {
+                const cy = y + h / 2;
+                const rGrad = context.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 9);
+                rGrad.addColorStop(0, '#e7b787');
+                rGrad.addColorStop(1, '#7a4a1f');
+                context.fillStyle = rGrad;
+                context.beginPath();
+                context.ellipse(cx, cy, 9, h / 2 - 3, 0, 0, Math.PI * 2);
+                context.fill();
+                context.strokeStyle = '#3f2410';
+                context.lineWidth = 1;
+                context.beginPath();
+                context.ellipse(cx, cy, 5, h / 2 - 7, 0, 0, Math.PI * 2);
+                context.stroke();
+            });
+
+            // Brillo superior (luz reflejada)
+            context.fillStyle = 'rgba(255,255,255,0.15)';
+            context.fillRect(x + 14, y + 2, w - 28, 2);
+        }
+
+        // Renderizado detallado de grupos de tortugas nadando
+        function drawTurtleRaft(context, l, tick) {
+            const x = Math.floor(l.x), y = Math.floor(l.y), w = l.w, h = l.h;
+            const dir = l.speed > 0 ? 1 : -1;
+
+            // Ondas del agua alrededor del grupo
+            context.fillStyle = 'rgba(56, 189, 248, 0.25)';
+            context.beginPath();
+            context.ellipse(x + w / 2, y + h + 1, w / 2 - 2, 3, 0, 0, Math.PI * 2);
+            context.fill();
+
+            // Determinar cuántas tortugas caben en el ancho (segmentos ~ el ancho / count)
+            const count = Math.max(1, Math.round(w / 42));
+            const segW = w / count;
+
+            for (let i = 0; i < count; i++) {
+                const cx = x + segW * i + segW / 2;
+                const cy = y + h / 2 + Math.sin(tick * 0.08 + i) * 1.5; // ligero bamboleo al nadar
+                const rW = segW * 0.42;
+                const rH = h * 0.38;
+
+                // Caparazón con degradado
+                const shellGrad = context.createRadialGradient(cx - 3, cy - 3, 2, cx, cy, rW + 2);
+                shellGrad.addColorStop(0, '#34d399');
+                shellGrad.addColorStop(1, l.color);
+                context.fillStyle = shellGrad;
+                context.beginPath();
+                context.ellipse(cx, cy, rW, rH, 0, 0, Math.PI * 2);
+                context.fill();
+                context.strokeStyle = '#065f46';
+                context.lineWidth = 1.5;
+                context.stroke();
+
+                // Patrón hexagonal del caparazón
+                context.strokeStyle = 'rgba(6, 95, 70, 0.6)';
+                context.lineWidth = 1;
+                context.beginPath();
+                context.moveTo(cx - rW * 0.5, cy);
+                context.lineTo(cx, cy - rH * 0.6);
+                context.lineTo(cx + rW * 0.5, cy);
+                context.lineTo(cx, cy + rH * 0.6);
+                context.closePath();
+                context.stroke();
+
+                // Cabeza asomando en la dirección del movimiento
+                context.fillStyle = '#059669';
+                context.beginPath();
+                context.ellipse(cx + dir * (rW + 3), cy, 3.5, 3, 0, 0, Math.PI * 2);
+                context.fill();
+                context.fillStyle = '#022c22';
+                context.beginPath();
+                context.arc(cx + dir * (rW + 4.5), cy - 1, 0.8, 0, Math.PI * 2);
+                context.fill();
+
+                // Patitas pequeñas (alternan con el bamboleo, dan sensación de nado)
+                const legPhase = Math.sin(tick * 0.25 + i) > 0;
+                context.fillStyle = '#059669';
+                context.beginPath();
+                context.ellipse(cx - rW * 0.5, cy + rH * (legPhase ? 0.7 : 0.5), 2.5, 1.8, 0, 0, Math.PI * 2);
+                context.fill();
+                context.beginPath();
+                context.ellipse(cx + rW * 0.5, cy + rH * (legPhase ? 0.5 : 0.7), 2.5, 1.8, 0, 0, Math.PI * 2);
+                context.fill();
+            }
+        }
+
+        // Renderizado detallado de vehículos estilo Arcade '81
+        function drawRetroVehicle(context, v) {
+            const x = Math.floor(v.x);
+            const y = Math.floor(v.y);
+            const w = v.w;
+            const h = v.h;
+            const dir = v.speed > 0 ? 1 : -1;
+
+            drawVehicleShadow(context, x, y, w, h);
+
+            if (v.type === 'racecar') {
+                // Auto Deportivo / Cupé
+                drawWheel(context, x + 8, y - 1, 5);
+                drawWheel(context, x + w - 8, y - 1, 5);
+                drawWheel(context, x + 8, y + h - 1, 5);
+                drawWheel(context, x + w - 8, y + h - 1, 5);
+
+                context.fillStyle = bodyGradient(context, x, y + 2, h - 4, v.color);
+                context.beginPath();
+                context.roundRect(x + 2, y + 2, w - 4, h - 4, 4);
+                context.fill();
+                context.strokeStyle = 'rgba(0,0,0,0.5)';
+                context.lineWidth = 1;
+                context.stroke();
+
+                context.fillStyle = '#0284c7';
+                context.fillRect(x + (dir > 0 ? 14 : 10), y + 6, w - 24, h - 12);
+                context.fillStyle = '#bae6fd';
+                context.fillRect(x + (dir > 0 ? 18 : 14), y + 8, w - 32, h - 16);
+
+                if (dir > 0) {
+                    context.fillStyle = '#fef08a';
+                    context.fillRect(x + w - 4, y + 4, 3, 5);
+                    context.fillRect(x + w - 4, y + h - 9, 3, 5);
+                    context.fillStyle = '#ef4444';
+                    context.fillRect(x + 1, y + 4, 3, 5);
+                    context.fillRect(x + 1, y + h - 9, 3, 5);
+                } else {
+                    context.fillStyle = '#fef08a';
+                    context.fillRect(x + 1, y + 4, 3, 5);
+                    context.fillRect(x + 1, y + h - 9, 3, 5);
+                    context.fillStyle = '#ef4444';
+                    context.fillRect(x + w - 4, y + 4, 3, 5);
+                    context.fillRect(x + w - 4, y + h - 9, 3, 5);
+                }
+            } else if (v.type === 'sedan') {
+                // Sedán Clásico
+                drawWheel(context, x + 10, y - 1, 5);
+                drawWheel(context, x + w - 10, y - 1, 5);
+                drawWheel(context, x + 10, y + h - 1, 5);
+                drawWheel(context, x + w - 10, y + h - 1, 5);
+
+                context.fillStyle = bodyGradient(context, x, y + 2, h - 4, v.color);
+                context.beginPath();
+                context.roundRect(x + 3, y + 2, w - 6, h - 4, 3);
+                context.fill();
+                context.strokeStyle = '#000000';
+                context.lineWidth = 1;
+                context.stroke();
+
+                context.fillStyle = '#1e293b';
+                context.fillRect(x + 12, y + 5, w - 24, h - 10);
+                context.fillStyle = '#38bdf8';
+                context.fillRect(x + 14, y + 7, w - 28, h - 14);
+
+                if (dir > 0) {
+                    context.fillStyle = '#fef08a';
+                    context.fillRect(x + w - 3, y + 4, 3, 6);
+                    context.fillRect(x + w - 3, y + h - 10, 3, 6);
+                    context.fillStyle = '#dc2626';
+                    context.fillRect(x, y + 4, 3, 6);
+                    context.fillRect(x, y + h - 10, 3, 6);
+                } else {
+                    context.fillStyle = '#fef08a';
+                    context.fillRect(x, y + 4, 3, 6);
+                    context.fillRect(x, y + h - 10, 3, 6);
+                    context.fillStyle = '#dc2626';
+                    context.fillRect(x + w - 3, y + 4, 3, 6);
+                    context.fillRect(x + w - 3, y + h - 10, 3, 6);
+                }
+            } else if (v.type === 'truck') {
+                // Camión de Carga Pesada
+                drawWheel(context, x + 11, y - 1, 5);
+                drawWheel(context, x + w - 33, y - 1, 5);
+                drawWheel(context, x + w - 19, y - 1, 5);
+                drawWheel(context, x + 11, y + h - 1, 5);
+                drawWheel(context, x + w - 33, y + h - 1, 5);
+                drawWheel(context, x + w - 19, y + h - 1, 5);
+
+                if (dir > 0) {
+                    context.fillStyle = bodyGradient(context, x, y + 2, h - 4, '#94a3b8');
+                    context.fillRect(x + 2, y + 2, w - 24, h - 4);
+                    context.fillStyle = '#64748b';
+                    context.fillRect(x + 12, y + 4, 2, h - 8);
+                    context.fillRect(x + 24, y + 4, 2, h - 8);
+                    context.fillRect(x + 36, y + 4, 2, h - 8);
+
+                    context.fillStyle = bodyGradient(context, x + w - 22, y + 2, h - 4, v.color);
+                    context.fillRect(x + w - 22, y + 2, 20, h - 4);
+                    context.fillStyle = '#38bdf8';
+                    context.fillRect(x + w - 10, y + 5, 6, h - 10);
+                    context.fillStyle = '#fef08a';
+                    context.fillRect(x + w - 2, y + 4, 2, 5);
+                    context.fillRect(x + w - 2, y + h - 9, 2, 5);
+                } else {
+                    context.fillStyle = bodyGradient(context, x, y + 2, h - 4, '#94a3b8');
+                    context.fillRect(x + 22, y + 2, w - 24, h - 4);
+                    context.fillStyle = '#64748b';
+                    context.fillRect(x + 32, y + 4, 2, h - 8);
+                    context.fillRect(x + 44, y + 4, 2, h - 8);
+                    context.fillRect(x + 56, y + 4, 2, h - 8);
+
+                    context.fillStyle = bodyGradient(context, x + 2, y + 2, h - 4, v.color);
+                    context.fillRect(x + 2, y + 2, 20, h - 4);
+                    context.fillStyle = '#38bdf8';
+                    context.fillRect(x + 4, y + 5, 6, h - 10);
+                    context.fillStyle = '#fef08a';
+                    context.fillRect(x, y + 4, 2, 5);
+                    context.fillRect(x, y + h - 9, 2, 5);
+                }
+            } else {
+                // Auto Compacto / F1
+                drawWheel(context, x + 8, y - 1, 4);
+                drawWheel(context, x + w - 8, y - 1, 4);
+                drawWheel(context, x + 8, y + h - 1, 4);
+                drawWheel(context, x + w - 8, y + h - 1, 4);
+
+                context.fillStyle = bodyGradient(context, x, y + 2, h - 4, v.color);
+                context.beginPath();
+                context.roundRect(x + 2, y + 2, w - 4, h - 4, 3);
+                context.fill();
+
+                context.fillStyle = '#bae6fd';
+                context.fillRect(x + 10, y + 6, w - 20, h - 12);
+            }
+        }
+
+        // ========================================================
+        // 3. ESTADO LOCAL, ALEATORIZACIÓN Y MOTOR DE JUEGO FROGGER
+        // ========================================================
+        let challengeState = {};
+        let activeExerciseKey = null;
+        let selectedOptionIndex = null;
+        let checkInFlight = false;
+        
+        let gameLoopId;
+        let gameActive = false;
+        let isPaused = false;
+        let animationTick = 0;
+
+        // Checkpoint en Zona Segura
+        let hasReachedCheckpoint = false;
+
+        // Aleatorización Fisher-Yates
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        let sessionShuffledMissions = [];
+
+        MISSIONS.forEach(m => {
+            challengeState[m.exerciseKey] = {
+                answerText: null,
+                attemptCount: 0,
+                status: "pending",
+                score: null,
+                locked: false
+            };
+        });
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Geometría del mundo Frogger (13 filas exactas)
+        const ROW_H = 46;
+        const COL_W = 40;
+
+        const frog = {
+            gridX: 6,
+            gridY: 12,
+            x: 6 * COL_W + 4,
+            y: 12 * ROW_H + 6,
+            size: 32,
+            targetX: 6 * COL_W + 4,
+            targetY: 12 * ROW_H + 6,
+            hopProgress: 1.0,
+            hopSpeed: 0.25,
+            isDead: false
+        };
+
+        // 6 Nidos / Nenúfares superiores (Fila 0)
+        const lilyPads = [
+            { id: 0, x: 25, y: 10, w: 50, h: 36, reached: false, exerciseKey: null },
+            { id: 1, x: 115, y: 10, w: 50, h: 36, reached: false, exerciseKey: null },
+            { id: 2, x: 205, y: 10, w: 50, h: 36, reached: false, exerciseKey: null },
+            { id: 3, x: 295, y: 10, w: 50, h: 36, reached: false, exerciseKey: null },
+            { id: 4, x: 385, y: 10, w: 50, h: 36, reached: false, exerciseKey: null },
+            { id: 5, x: 475, y: 10, w: 50, h: 36, reached: false, exerciseKey: null }
+        ];
+
+        // Obstáculos de Carretera (Filas 8, 9, 10, 11)
+        let vehicles = [];
+        // Elementos de Río (Filas 1, 2, 3, 4, 5)
+        let riverLogs = [];
+
+        function initObstacles() {
+            vehicles = [
+                // Carril 11 (Autos deportivos veloces rosa neón a la izquierda)
+                { x: 50, y: 11 * ROW_H + 6, w: 48, h: 32, speed: -2.8, color: '#f472b6', type: 'racecar' },
+                { x: 240, y: 11 * ROW_H + 6, w: 48, h: 32, speed: -2.8, color: '#f472b6', type: 'racecar' },
+                { x: 430, y: 11 * ROW_H + 6, w: 48, h: 32, speed: -2.8, color: '#f472b6', type: 'racecar' },
+
+                // Carril 10 (Sedanes celestes a la derecha)
+                { x: 30, y: 10 * ROW_H + 6, w: 52, h: 32, speed: 2.2, color: '#38bdf8', type: 'sedan' },
+                { x: 220, y: 10 * ROW_H + 6, w: 52, h: 32, speed: 2.2, color: '#38bdf8', type: 'sedan' },
+                { x: 410, y: 10 * ROW_H + 6, w: 52, h: 32, speed: 2.2, color: '#38bdf8', type: 'sedan' },
+
+                // Carril 9 (Camiones de carga pesada a la izquierda)
+                { x: 80, y: 9 * ROW_H + 6, w: 82, h: 32, speed: -1.6, color: '#fb923c', type: 'truck' },
+                { x: 340, y: 9 * ROW_H + 6, w: 82, h: 32, speed: -1.6, color: '#fb923c', type: 'truck' },
+
+                // Carril 8 (Taxis y autos amarillos a la derecha)
+                { x: 60, y: 8 * ROW_H + 6, w: 50, h: 32, speed: 3.0, color: '#fde047', type: 'sedan' },
+                { x: 270, y: 8 * ROW_H + 6, w: 50, h: 32, speed: 3.0, color: '#fde047', type: 'sedan' },
+                { x: 470, y: 8 * ROW_H + 6, w: 50, h: 32, speed: 3.0, color: '#fde047', type: 'sedan' }
+            ];
+
+            riverLogs = [
+                // Carril 5 (Troncos medianos a la derecha)
+                { x: 20, y: 5 * ROW_H + 6, w: 105, h: 32, speed: 1.8, color: '#92400e', type: 'log' },
+                { x: 210, y: 5 * ROW_H + 6, w: 105, h: 32, speed: 1.8, color: '#92400e', type: 'log' },
+                { x: 400, y: 5 * ROW_H + 6, w: 105, h: 32, speed: 1.8, color: '#92400e', type: 'log' },
+
+                // Carril 4 (Balsas de nenúfares a la izquierda)
+                { x: 50, y: 4 * ROW_H + 6, w: 85, h: 32, speed: -2.2, color: '#047857', type: 'turtle' },
+                { x: 230, y: 4 * ROW_H + 6, w: 85, h: 32, speed: -2.2, color: '#047857', type: 'turtle' },
+                { x: 410, y: 4 * ROW_H + 6, w: 85, h: 32, speed: -2.2, color: '#047857', type: 'turtle' },
+
+                // Carril 3 (Troncos gigantes a la derecha)
+                { x: 10, y: 3 * ROW_H + 6, w: 145, h: 32, speed: 2.4, color: '#92400e', type: 'log' },
+                { x: 270, y: 3 * ROW_H + 6, w: 145, h: 32, speed: 2.4, color: '#92400e', type: 'log' },
+
+                // Carril 2 (Balsas rápidas a la izquierda)
+                { x: 30, y: 2 * ROW_H + 6, w: 90, h: 32, speed: -1.9, color: '#047857', type: 'turtle' },
+                { x: 200, y: 2 * ROW_H + 6, w: 90, h: 32, speed: -1.9, color: '#047857', type: 'turtle' },
+                { x: 380, y: 2 * ROW_H + 6, w: 90, h: 32, speed: -1.9, color: '#047857', type: 'turtle' },
+
+                // Carril 1 (Troncos pequeños a la derecha)
+                { x: 40, y: 1 * ROW_H + 6, w: 85, h: 32, speed: 2.0, color: '#92400e', type: 'log' },
+                { x: 220, y: 1 * ROW_H + 6, w: 85, h: 32, speed: 2.0, color: '#92400e', type: 'log' },
+                { x: 400, y: 1 * ROW_H + 6, w: 85, h: 32, speed: 2.0, color: '#92400e', type: 'log' }
+            ];
+        }
+
+        function resetFrogPosition(toCheckpoint = false) {
+            if (toCheckpoint && hasReachedCheckpoint) {
+                // Reaparecer en la Zona Segura de Descanso (Fila 6)
+                frog.gridX = 6;
+                frog.gridY = 6;
+                frog.x = 6 * COL_W + 4;
+                frog.y = 6 * ROW_H + 6;
+            } else {
+                // Reaparecer en el Inicio (Fila 12)
+                frog.gridX = 6;
+                frog.gridY = 12;
+                frog.x = 6 * COL_W + 4;
+                frog.y = 12 * ROW_H + 6;
+            }
+            frog.targetX = frog.x;
+            frog.targetY = frog.y;
+            frog.hopProgress = 1.0;
+            frog.isDead = false;
+        }
+
+        function moveFrog(dx, dy) {
+            if (isPaused || !gameActive || frog.isDead || frog.hopProgress < 0.85) return;
+
+            // Si la rana venía flotando sobre un tronco/tortuga, su posición X real
+            // se desvió de la columna lógica (gridX quedó "vieja"). Resincronizamos
+            // la columna con la posición real ANTES de calcular el salto, para que
+            // un salto hacia arriba/abajo sea recto y no se sienta como que "jala"
+            // hacia un lado.
+            frog.gridX = Math.max(0, Math.min(13, Math.round((frog.x - 4) / COL_W)));
+
+            const newGridX = frog.gridX + dx;
+            const newGridY = frog.gridY + dy;
+
+            if (newGridX >= 0 && newGridX <= 13 && newGridY >= 0 && newGridY <= 12) {
+                frog.gridX = newGridX;
+                frog.gridY = newGridY;
+                frog.targetX = frog.gridX * COL_W + 4;
+                frog.targetY = frog.gridY * ROW_H + 6;
+                frog.hopProgress = 0.0;
+            }
+        }
+
+        function startGame() {
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('end-screen').classList.remove('active');
+            document.getElementById('game-container').style.display = 'flex';
+
+            // Aleatorizar orden de retos para cada estudiante
+            sessionShuffledMissions = shuffleArray(MISSIONS);
+            lilyPads.forEach((pad, idx) => {
+                pad.exerciseKey = sessionShuffledMissions[idx].exerciseKey;
+                pad.reached = (challengeState[pad.exerciseKey].status === 'correct' || challengeState[pad.exerciseKey].status === 'failed');
+            });
+
+            initObstacles();
+            hasReachedCheckpoint = false;
+            resetFrogPosition(false);
+            restorePreviewState();
+            
+            gameActive = true;
+            isPaused = false;
+            updateHUD();
+            typeset();
+            gameLoop();
+        }
+
+        function triggerDeath(reason) {
+            frog.isDead = true;
+            const respawnAtCheckpoint = (hasReachedCheckpoint && (reason === "water" || reason === "bank_water" || reason === "water_bounds"));
+            setTimeout(() => {
+                resetFrogPosition(respawnAtCheckpoint);
+            }, 300);
+        }
+
+        function updatePhysics() {
+            if (isPaused) return;
+            animationTick++;
+
+            // Animación suave de salto
+            if (frog.hopProgress < 1.0) {
+                frog.hopProgress += frog.hopSpeed;
+                if (frog.hopProgress >= 1.0) {
+                    frog.hopProgress = 1.0;
+                    frog.x = frog.targetX;
+                    frog.y = frog.targetY;
+                } else {
+                    frog.x += (frog.targetX - frog.x) * 0.4;
+                    frog.y += (frog.targetY - frog.y) * 0.4;
+                }
+            }
+
+            // Actualizar Vehículos
+            vehicles.forEach(v => {
+                v.x += v.speed;
+                if (v.speed > 0 && v.x > canvas.width) v.x = -v.w;
+                if (v.speed < 0 && v.x < -v.w) v.x = canvas.width;
+            });
+
+            // Actualizar Troncos y Balsas
+            riverLogs.forEach(l => {
+                l.x += l.speed;
+                if (l.speed > 0 && l.x > canvas.width) l.x = -l.w;
+                if (l.speed < 0 && l.x < -l.w) l.x = canvas.width;
+            });
+
+            // ACTIVACIÓN DE CHECKPOINT (Filas 6 y 7 - Zona Segura de Descanso)
+            if (frog.gridY === 6 || frog.gridY === 7) {
+                hasReachedCheckpoint = true;
+            }
+
+            // COLISIONES EN CARRETERA (Filas 8, 9, 10, 11) - Solo cuando está en carretera
+            if (frog.gridY >= 8 && frog.gridY <= 11) {
+                vehicles.forEach(v => {
+                    const rowY = frog.gridY * ROW_H + 6;
+                    if (Math.abs(v.y - rowY) < 10) {
+                        // Colisión horizontal con tolerancia justa
+                        if (frog.x + frog.size - 6 > v.x && frog.x + 6 < v.x + v.w) {
+                            triggerDeath("car");
+                        }
+                    }
+                });
+            }
+
+            // FÍSICAS DE AGUA Y FLOTACIÓN EN RÍO (Filas 1, 2, 3, 4, 5)
+            if (frog.gridY >= 1 && frog.gridY <= 5) {
+                let onLog = false;
+                let logSpeed = 0;
+
+                riverLogs.forEach(l => {
+                    const rowY = frog.gridY * ROW_H + 6;
+                    if (Math.abs(l.y - rowY) < 12) {
+                        // Margen más generoso: basta con que el centro de la rana
+                        // esté sobre el tronco/tortuga (antes exigía casi el centro exacto).
+                        if (frog.x + frog.size * 0.8 > l.x - 4 && frog.x + frog.size * 0.2 < l.x + l.w + 4) {
+                            onLog = true;
+                            logSpeed = l.speed;
+                        }
+                    }
+                });
+
+                if (onLog) {
+                    frog.riverGrace = 6; // reinicia el margen de gracia mientras va sobre un tronco
+                    frog.x += logSpeed;
+                    frog.targetX += logSpeed;
+                    if (frog.x < 0 || frog.x + frog.size > canvas.width) {
+                        triggerDeath("water_bounds");
+                    }
+                } else if (frog.hopProgress >= 0.85) {
+                    // Margen de gracia: solo se hunde si lleva varios frames seguidos sin tronco
+                    // (evita "muertes injustas" por un desfase de 1-2 px durante el salto).
+                    if (frog.riverGrace === undefined) frog.riverGrace = 6;
+                    frog.riverGrace--;
+                    if (frog.riverGrace <= 0) {
+                        triggerDeath("water");
+                    }
+                }
+            } else {
+                frog.riverGrace = 6;
+            }
+
+            // LLEGADA A NENÚFARES SUPERIORES (Fila 0)
+            if (frog.gridY === 0 && frog.hopProgress >= 0.85) {
+                let hitPad = null;
+                lilyPads.forEach(pad => {
+                    if (frog.x + frog.size * 0.5 >= pad.x && frog.x + frog.size * 0.5 <= pad.x + pad.w) {
+                        hitPad = pad;
+                    }
+                });
+
+                if (hitPad) {
+                    if (!hitPad.reached) {
+                        isPaused = true;
+                        setTimeout(() => {
+                            openMathChallenge(hitPad.exerciseKey);
+                        }, 250);
+                    } else {
+                        // Ya resuelto, regresar a la zona segura o inicio
+                        resetFrogPosition(true);
+                    }
+                } else {
+                    // Cayó al agua en la orilla superior
+                    triggerDeath("bank_water");
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#05070f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 1. ZONA SUPERIOR: Nidos y Banco de Nenúfares (Fila 0)
+            ctx.fillStyle = '#064e3b';
+            ctx.fillRect(0, 0, canvas.width, ROW_H + 4);
+
+            // Dibujar 6 Nenúfares
+            lilyPads.forEach(pad => {
+                ctx.fillStyle = pad.reached ? '#059669' : '#0f766e';
+                ctx.beginPath();
+                ctx.roundRect(pad.x, pad.y, pad.w, pad.h, 8);
+                ctx.fill();
+                ctx.strokeStyle = pad.reached ? '#34d399' : '#38bdf8';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                if (pad.reached) {
+                    ctx.fillStyle = '#fde047';
+                    ctx.font = 'bold 18px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('★', pad.x + pad.w / 2, pad.y + 24);
+                } else {
+                    ctx.fillStyle = '#a78bfa';
+                    ctx.font = 'bold 12px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('RETO', pad.x + pad.w / 2, pad.y + 22);
+                }
+            });
+
+            // 2. ZONA DE RÍO (Filas 1 a 5)
+            ctx.fillStyle = '#082f49';
+            ctx.fillRect(0, 1 * ROW_H, canvas.width, 5 * ROW_H);
+
+            // Aviso: aquí ya NO hay autos, hay que saltar sobre troncos/tortugas
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
+            ctx.font = 'bold 10px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('RÍO: SALTA SOBRE TRONCOS Y TORTUGAS · NO HAY AUTOS AQUÍ', canvas.width / 2, 5.85 * ROW_H);
+
+            // Olas pixeladas
+            ctx.fillStyle = '#0284c7';
+            for (let r = 1; r <= 5; r++) {
+                const waveOffset = ((animationTick * 1.5 + r * 50) % 40);
+                for (let x = -40; x < canvas.width + 40; x += 40) {
+                    ctx.fillRect(x + waveOffset, r * ROW_H + 18, 12, 3);
+                }
+            }
+
+            // Dibujar Troncos y Balsas
+            riverLogs.forEach(l => {
+                if (l.type === 'log') {
+                    drawRiverLog(ctx, l);
+                } else {
+                    drawTurtleRaft(ctx, l, animationTick);
+                }
+            });
+
+            // 3. MEDIANA SEGURA (ACERA INTERMEDIA DE DESCANSO - Filas 6 y 7)
+            ctx.fillStyle = '#1e1b4b';
+            ctx.fillRect(0, 6 * ROW_H, canvas.width, 2 * ROW_H);
+            ctx.strokeStyle = '#a78bfa';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 6 * ROW_H, canvas.width, 2 * ROW_H);
+
+            ctx.fillStyle = hasReachedCheckpoint ? '#34d399' : '#c084fc';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(hasReachedCheckpoint ? '★ CHECKPOINT GUARDADO: ZONA DE DESCANSO ★' : '=== ZONA SEGURA DE DESCANSO ===', canvas.width / 2, 6.8 * ROW_H);
+
+            // 4. ZONA DE CARRETERA (Filas 8 a 11)
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 8 * ROW_H, canvas.width, 4 * ROW_H);
+
+            // Líneas divisorias de asfalto arcade
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.setLineDash([14, 14]);
+            for (let r = 9; r <= 11; r++) {
+                ctx.beginPath();
+                ctx.moveTo(0, r * ROW_H);
+                ctx.lineTo(canvas.width, r * ROW_H);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Dibujar Vehículos detallados
+            vehicles.forEach(v => {
+                drawRetroVehicle(ctx, v);
+            });
+
+            // 5. ACERA DE INICIO (Fila 12)
+            ctx.fillStyle = '#064e3b';
+            ctx.fillRect(0, 12 * ROW_H, canvas.width, ROW_H + 10);
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 12 * ROW_H, canvas.width, ROW_H + 10);
+
+            // 6. DIBUJAR RANA
+            const hopScale = 1.0 + Math.sin(frog.hopProgress * Math.PI) * 0.25;
+            const frogDrawX = frog.x + (frog.size * (1 - hopScale)) / 2;
+            const frogDrawY = frog.y + (frog.size * (1 - hopScale)) / 2;
+
+            drawPixelMatrix(ctx, SPRITE_FROG, frogDrawX, frogDrawY, 4 * hopScale, '#34d399');
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+            if (document.visibilityState === "visible") {
+                updatePhysics();
+                draw();
+            }
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        // Controles de Teclado
+        window.addEventListener('keydown', e => {
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); moveFrog(0, -1); }
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); moveFrog(0, 1); }
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); moveFrog(-1, 0); }
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); moveFrog(1, 0); }
+        });
+
+        // Controles Táctiles Mobile First
+        const btnUp = document.getElementById('btn-up');
+        const btnDown = document.getElementById('btn-down');
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+
+        btnUp.addEventListener('pointerdown', (e) => { e.preventDefault(); moveFrog(0, -1); });
+        btnDown.addEventListener('pointerdown', (e) => { e.preventDefault(); moveFrog(0, 1); });
+        btnLeft.addEventListener('pointerdown', (e) => { e.preventDefault(); moveFrog(-1, 0); });
+        btnRight.addEventListener('pointerdown', (e) => { e.preventDefault(); moveFrog(1, 0); });
+
+        // ========================================================
+        // 4. LÓGICA PEDAGÓGICA UEEH Y ADAPTADORES
+        // ========================================================
+        function typeset() {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise().catch(error => { console.warn("MathJax:", error); });
+            }
+        }
+
+        let currentRenderedOptions = [];
+
+        function openMathChallenge(exerciseKey) {
+            activeExerciseKey = exerciseKey;
+            const mission = MISSIONS.find(m => m.exerciseKey === exerciseKey);
+            const state = challengeState[exerciseKey];
+            
+            document.getElementById('modal-title').innerText = `🐸 ${mission.title.toUpperCase()}`;
+            document.getElementById('modal-statement').innerText = mission.statement;
+            document.getElementById('modal-equation').innerHTML = mission.equation;
+            
+            // Aleatorización de las 4 opciones de respuesta para el estudiante
+            currentRenderedOptions = shuffleArray(mission.options);
+            selectedOptionIndex = null;
+            
+            const optionsContainer = document.getElementById('modal-options');
+            optionsContainer.innerHTML = '';
+            
+            currentRenderedOptions.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                if (state.answerText === optText) {
+                    btn.classList.add('selected');
+                    selectedOptionIndex = idx;
+                }
+                btn.innerHTML = `<span><b style="color:var(--pixel-yellow); font-family:inherit;">[${String.fromCharCode(65 + idx)}]</b> &nbsp; ${optText}</span>`;
+                
+                btn.onclick = () => {
+                    if (state.locked || checkInFlight) return;
+                    document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    selectedOptionIndex = idx;
+                    
+                    const btnCheck = document.getElementById('btn-check');
+                    if (btnCheck) btnCheck.disabled = false;
+                };
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('challenge-modal').style.display = 'flex';
+            document.body.classList.add('modal-open');
+            updateChallengeUIState(state, mission);
+            typeset();
+        }
+
+        function closeChallengeModal() {
+            document.getElementById('challenge-modal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+            
+            // Actualizar estado del nenúfar
+            const pad = lilyPads.find(p => p.exerciseKey === activeExerciseKey);
+            if (pad) {
+                pad.reached = (challengeState[activeExerciseKey].status === 'correct' || challengeState[activeExerciseKey].status === 'failed');
+            }
+
+            activeExerciseKey = null;
+            // Al resolver el ejercicio, reiniciar al inicio (Fila 12) para el siguiente reto
+            hasReachedCheckpoint = false;
+            resetFrogPosition(false);
+            isPaused = false;
+            updateHUD();
+            checkGameCompletion();
+        }
+
+        function getPreviewScoreByAttempt(attemptNumber, solved) {
+            if (!solved && attemptNumber >= 4) return 1;
+            if (attemptNumber === 1) return 10;
+            if (attemptNumber === 2) return 9;
+            if (attemptNumber === 3) return 8;
+            if (attemptNumber === 4) return 7;
+            return 1;
+        }
+
+        function generateCheckId() {
+            return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+        }
+
+        const _pendingGamCheckIds = {};
+
+        async function handleCheckClick() {
+            if (checkInFlight) return;
+            
+            const currentState = challengeState[activeExerciseKey];
+            if (!currentState || currentState.locked) return;
+
+            if (selectedOptionIndex === null || !currentRenderedOptions[selectedOptionIndex]) {
+                alert("Debes seleccionar una opción antes de comprobar.");
+                return;
+            }
+
+            const chosenAnswerText = currentRenderedOptions[selectedOptionIndex];
+            const mission = MISSIONS.find(m => m.exerciseKey === activeExerciseKey);
+            const originalOptionIndex = mission ? mission.options.indexOf(chosenAnswerText) : selectedOptionIndex;
+
+            if (!_pendingGamCheckIds[activeExerciseKey]) {
+                _pendingGamCheckIds[activeExerciseKey] = crypto.randomUUID();
+            }
+            const checkId = _pendingGamCheckIds[activeExerciseKey];
+            const btn = document.getElementById('btn-check');
+            
+            checkInFlight = true;
+            btn.disabled = true;
+            btn.innerText = "COMPROBANDO...";
+
+            try {
+                const result = await checkExercise({
+                    activityKey: ACTIVITY_KEY,
+                    exerciseKey: activeExerciseKey,
+                    answer: originalOptionIndex,
+                    checkId: checkId,
+                    runId: currentGameRunId,
+                    phase: "gamification"
+                });
+
+                if (!result || !result.success) {
+                    const fb = document.getElementById('modal-feedback');
+                    fb.className = 'feedback-box incorrect';
+                    fb.innerHTML = result?.error || "⚠️ No se pudo confirmar tu respuesta con el servidor. Tu progreso está a salvo. Pulsa Comprobar para reintentar.";
+                    fb.style.display = 'block';
+                    return;
+                }
+
+                if (result.run_id || result.activity_run_id) {
+                    currentGameRunId = result.run_id || result.activity_run_id;
+                }
+
+                // Éxito: limpiar check_id pendiente
+                delete _pendingGamCheckIds[activeExerciseKey];
+
+                applyCheckResult(result, chosenAnswerText);
+            } catch (error) {
+                console.warn("Error en comprobación:", error);
+                const fb = document.getElementById('modal-feedback');
+                fb.className = 'feedback-box incorrect';
+                fb.innerHTML = "⚠️ No se pudo confirmar tu respuesta con el servidor. Tu progreso está a salvo. Pulsa Comprobar para reintentar.";
+                fb.style.display = 'block';
+            } finally {
+                checkInFlight = false;
+                btn.innerText = "COMPROBAR";
+                
+                const updatedState = challengeState[activeExerciseKey];
+                if (updatedState && !updatedState.locked) {
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        function applyCheckResult(result, chosenAnswerText) {
+            const state = challengeState[result.exercise_key || activeExerciseKey];
+            const mission = MISSIONS.find(m => m.exerciseKey === (result.exercise_key || activeExerciseKey));
+            
+            state.attemptCount = result.attempt_number || result.attempt_count || (state.attemptCount + 1);
+            state.status = result.status || (result.is_correct ? "correct" : "incorrect");
+            state.score = result.question_score ?? result.score;
+            state.locked = Boolean(result.locked);
+            state.answerText = chosenAnswerText;
+            if (result.solution_html) {
+                state.solution_html = result.solution_html;
+            }
+
+            updateChallengeUIState(state, mission, result.solution_html);
+        }
+
+        function updateChallengeUIState(state, mission, solution_html = null) {
+            const fbBox = document.getElementById('modal-feedback');
+            const solBox = document.getElementById('modal-solution');
+            const solText = document.getElementById('modal-solution-text');
+            const btnCheck = document.getElementById('btn-check');
+            const btnContinue = document.getElementById('btn-continue');
+            const scoreBadge = document.getElementById('modal-score');
+
+            // Actualizar Badge de Puntaje (Gamificación: 10, 9, 8, 7...)
+            let avail = 10;
+            if (state.attemptCount === 1) avail = 9;
+            else if (state.attemptCount === 2) avail = 8;
+            else if (state.attemptCount >= 3) avail = 7;
+
+            if (state.status === 'pending' || state.status === 'incorrect') {
+                scoreBadge.innerText = `DISPONIBLE: ${avail}/10 PTS`;
+                scoreBadge.style.borderColor = 'var(--pixel-yellow)';
+                scoreBadge.style.color = 'var(--pixel-yellow)';
+            } else {
+                scoreBadge.innerText = `PUNTAJE: ${state.score}/10 PTS`;
+                scoreBadge.style.borderColor = state.status === 'correct' ? 'var(--pixel-green)' : 'var(--pixel-purple)';
+                scoreBadge.style.color = state.status === 'correct' ? 'var(--pixel-green)' : 'var(--pixel-purple)';
+            }
+
+            fbBox.className = 'feedback-box';
+            fbBox.style.display = 'none';
+
+            if (state.locked || state.status === 'correct') {
+                document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+                btnCheck.style.display = 'none';
+                btnContinue.style.display = 'inline-flex';
+                btnContinue.disabled = false;
+                
+                const sol = solution_html || state.solution_html;
+                if (sol) {
+                    solText.innerHTML = sol;
+                    solBox.style.display = 'block';
+                }
+                
+                if (state.status === 'correct') {
+                    fbBox.classList.add('correct');
+                    fbBox.innerHTML = `¡EXCELENTE! Superaste el reto en el intento ${state.attemptCount}.<br>Puntaje otorgado: <b>${state.score}/10</b>.<br><br>✅ Comprobado y guardado.`;
+                    fbBox.style.display = 'block';
+                } else if (state.status === 'failed') {
+                    fbBox.classList.add('failed');
+                    fbBox.innerHTML = `Has completado tus comprobaciones.<br>Puntaje: ${state.score}/10.<br><br>Revisa la solución pedagógica para reforzar y continúa con los siguientes nenúfares.`;
+                    fbBox.style.display = 'block';
+                }
+            } else {
+                document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = false);
+                btnCheck.style.display = 'inline-flex';
+                btnCheck.disabled = false;
+                btnContinue.style.display = 'none';
+                solBox.style.display = 'none';
+                
+                if (state.status === 'incorrect') {
+                    fbBox.classList.add('incorrect');
+                    fbBox.innerHTML = `⚠️ RESPUESTA INCORRECTA (Intento ${state.attemptCount}).<br><br><b>PISTA FORMATIVA:</b> ${mission.hint}<br><br>Puedes seguir intentándolo.`;
+                    fbBox.style.display = 'block';
+                }
+            }
+
+            typeset();
+        }
+
+        // ========================================================
+        // 5. PROGRESO Y CIERRE (CALIFICACIÓN SOBRE 10 PTS)
+        // ========================================================
+        function updateHUD() {
+            let completed = 0;
+            let currentRawScore = 0;
+
+            for (let key in challengeState) {
+                if (challengeState[key].status === 'correct' || challengeState[key].status === 'failed') {
+                    completed++;
+                    currentRawScore += (challengeState[key].score || 0);
+                }
+            }
+
+            const pct = Math.round((completed / TOTAL_CHALLENGES) * 100);
+            const scaledScore = completed > 0 ? (currentRawScore / TOTAL_CHALLENGES).toFixed(2) : "0.00";
+
+            document.getElementById('hud-pads').innerText = completed;
+            document.getElementById('hud-progress').innerText = pct;
+            document.getElementById('hud-score').innerText = scaledScore;
+        }
+
+        async function checkGameCompletion() {
+            let allDone = true;
+            let totalRawScore = 0;
+            
+            for (let key in challengeState) {
+                if (challengeState[key].status !== 'correct') {
+                    allDone = false;
+                    break;
+                }
+                totalRawScore += (challengeState[key].score || 7);
+            }
+
+            if (allDone) {
+                gameActive = false;
+                document.getElementById('game-container').style.display = 'none';
+                document.getElementById('end-screen').classList.add('active');
+                
+                const finalGrade = (totalRawScore / TOTAL_CHALLENGES).toFixed(2);
+                document.getElementById('final-score').innerText = finalGrade;
+                document.getElementById('final-raw-score').innerText = totalRawScore;
+
+                try {
+                    const res = await submitActivityResult({
+                        activityKey: ACTIVITY_KEY,
+                        runId: currentGameRunId,
+                        phase: "gamification",
+                        submission: {
+                            run_id: currentGameRunId,
+                            completed_at: new Date().toISOString()
+                        }
+                    });
+
+                    if (res && res.success && res.data) {
+                        const officialScore = Number(res.data.score).toFixed(2);
+                        document.getElementById('final-score').innerText = officialScore;
+                    }
+                } catch (e) {
+                    console.warn("Error registrando resultado final:", e);
+                }
+            }
+        }
+
+        function finalizeGameAdapter() {
+            window.location.href = "../../index.html";
+        }
+
+        function restartPreviewGame() {
+            location.reload();
+        }
+
+        // ========================================================
+        // 6. RESTAURACIÓN DE ESTADO DESDE SUPABASE
+        // ========================================================
+        async function restoreSavedProgress() {
+            try {
+                const progressList = await getExerciseProgress(ACTIVITY_KEY);
+                if (Array.isArray(progressList) && progressList.length > 0) {
+                    progressList.forEach(p => {
+                        const st = challengeState[p.exercise_key];
+                        if (st) {
+                            st.attemptCount = p.attempt_count || 0;
+                            st.status = p.status || "pending";
+                            st.score = p.exercise_score;
+                            st.locked = Boolean(p.locked);
+                            if (p.answer_data && p.answer_data.value !== undefined) {
+                                const m = MISSIONS.find(mis => mis.exerciseKey === p.exercise_key);
+                                if (m && m.options && m.options[p.answer_data.value]) {
+                                    st.answerText = m.options[p.answer_data.value];
+                                }
+                            }
+                            if (p.solution_html) {
+                                st.solution_html = p.solution_html;
+                            }
+                        }
+                    });
+                    updateHUD();
+                }
+            } catch (err) {
+                console.warn("No se pudo cargar progreso previo:", err);
+            }
+        }
+
+        restoreSavedProgress();
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState !== "visible") {
+                isPaused = true;
+            } else if (document.getElementById('game-container').style.display === 'flex' && !activeExerciseKey) {
+                isPaused = false;
+            }
+        });
+
+        // Exportar funciones para llamadas onclick en HTML
+        window.startGame = startGame;
+        window.handleCheckClick = handleCheckClick;
+        window.closeChallengeModal = closeChallengeModal;
+        window.finalizeGameAdapter = finalizeGameAdapter;
+        window.restartPreviewGame = restartPreviewGame;
+    </script>
+</body>
+</html>

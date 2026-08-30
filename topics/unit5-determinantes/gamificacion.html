@@ -875,7 +875,7 @@
 
     async function getAuthSessionToken() {
       try {
-        const authModule = await import('../../core/supabase-client.js?v=1.4.4');
+        const authModule = await import('../../core/supabase-client.js?v=1.4.5');
         const { data: { session } } = await authModule.supabase.auth.getSession();
         return session ? session.access_token : null;
       } catch (err) {
@@ -1211,7 +1211,7 @@
 
       // Enviar resultado final a Supabase server-side grading
       try {
-        const actModule = await import('../../core/activity-service.js?v=1.4.4');
+        const actModule = await import('../../core/activity-service.js?v=1.4.5');
         const res = await actModule.submitActivityResult({
           activityKey: "u5-determinantes-gam-01",
           runId: currentGameRunId,

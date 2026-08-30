@@ -2,7 +2,7 @@
 // Student Activity Summary Component — UEEH Matemáticas 3ro BGU
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { fetchStudentActivitySummary, submitActivityResult } from "../core/activity-service.js?v=1.4.4";
+import { fetchStudentActivitySummary, submitActivityResult } from "../core/activity-service.js?v=1.4.5";
 
 /**
  * Renderiza el Resumen de Actividades del Estudiante consultando Supabase como única fuente oficial.

@@ -1,4 +1,4 @@
-import { APP_VERSION } from "./version.js?v=1.4.4";
+import { APP_VERSION } from "./version.js?v=1.4.5";
 
 export const RELEASE_RELOAD_KEY = "ueeh_release_reload";
 export const RELEASE_UPDATE_MESSAGE = "Hay una actualización disponible. Actualizando la plataforma...";
