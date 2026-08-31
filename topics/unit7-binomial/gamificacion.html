@@ -387,8 +387,8 @@
             • Reto superado en Intento 1: 10/10 pts<br>
             • Reto superado en Intento 2: 9/10 pts<br>
             • Reto superado en Intento 3: 8/10 pts<br>
-            • Reto superado en Intento 4: 7/10 pts<br>
-            • 4 comprobaciones fallidas: 1/10 pt (Solución formativa)<br>
+            • Reto superado en Intento 4 o posterior: 7/10 pts<br>
+            • Intentos ilimitados hasta acertar (errores no bloquean el reto).<br>
             • Calificación Final: Promedio exacto sobre 10 pts (6 retos = 60 pts máx).</p>
         </div>
         
@@ -457,9 +457,9 @@
     </div>
 
     <script type="module">
-        import { supabase } from '../../core/supabase-client.js?v=1.4.5';
-        import { submitActivityResult } from '../../core/activity-service.js?v=1.4.5';
-        import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.5';
+        import { supabase } from '../../core/supabase-client.js?v=1.4.6';
+        import { submitActivityResult } from '../../core/activity-service.js?v=1.4.6';
+        import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.6';
 
         // ========================================================
         // 1. CONFIGURACIÓN Y CONSTANTES (UEEH)
@@ -1070,14 +1070,16 @@
             // Aleatorizar orden de retos para cada estudiante
             sessionShuffledMissions = shuffleArray(MISSIONS);
             lilyPads.forEach((pad, idx) => {
-                pad.exerciseKey = sessionShuffledMissions[idx].exerciseKey;
-                pad.reached = (challengeState[pad.exerciseKey].status === 'correct' || challengeState[pad.exerciseKey].status === 'failed');
+                if (sessionShuffledMissions[idx]) {
+                    pad.exerciseKey = sessionShuffledMissions[idx].exerciseKey;
+                    const st = challengeState[pad.exerciseKey];
+                    pad.reached = Boolean(st && (st.status === 'correct' || st.status === 'failed'));
+                }
             });
 
             initObstacles();
             hasReachedCheckpoint = false;
             resetFrogPosition(false);
-            restorePreviewState();
             
             gameActive = true;
             isPaused = false;
@@ -1344,8 +1346,8 @@
         // 4. LÓGICA PEDAGÓGICA UEEH Y ADAPTADORES
         // ========================================================
         function typeset() {
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise().catch(error => { console.warn("MathJax:", error); });
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise().catch(error => { console.warn("MathJax:", error); });
             }
         }
 

@@ -1,4 +1,4 @@
-﻿-- Provisioning Unit 7 Activities & Private Grading Configurations
+-- Provisioning Unit 7 Activities & Private Grading Configurations
 DO $$
 DECLARE
   v_gam_id UUID;
@@ -32,7 +32,7 @@ BEGIN
     7,
     10.00,
     1.00,
-    true,
+    false,
     '2026-08-29 00:00:00-05',
     '2026-09-15 23:59:59-05',
     1,
@@ -78,7 +78,7 @@ BEGIN
     7,
     10.00,
     1.00,
-    true,
+    false,
     '2026-08-29 00:00:00-05',
     '2026-09-15 23:59:59-05',
     2,

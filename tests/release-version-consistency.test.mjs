@@ -10,7 +10,7 @@ const manifest = JSON.parse(read("version.json"));
 assert.deepEqual(Object.keys(manifest).sort(), ["build", "version"], "version.json sólo debe exponer version y build");
 assert.equal(manifest.version, APP_VERSION, "version.json y APP_VERSION deben coincidir");
 assert.equal(manifest.build, BUILD_TIMESTAMP, "version.json y BUILD_TIMESTAMP deben coincidir");
-assert.equal(BUILD_TIMESTAMP, `2026-08-29-v${APP_VERSION}`, "El build final debe corresponder al release actual");
+assert.equal(BUILD_TIMESTAMP, `2026-08-30-v${APP_VERSION}`, "El build final debe corresponder al release actual");
 
 const indexHtml = read("index.html");
 assert.match(indexHtml, new RegExp(`assets/css/styles\\.css\\?v=${APP_VERSION.replaceAll(".", "\\.")}`));
