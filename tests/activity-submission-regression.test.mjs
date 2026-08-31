@@ -123,11 +123,20 @@ globalThis.__mockSupabase = {
     })
   }
 };
+globalThis.__mockGetCurrentValidSession = async (auth) => {
+  const { data, error } = await auth.getSession();
+  return { session: data?.session || null, user: data?.session?.user || null, refreshed: false, error };
+};
 
-const instrumentedService = serviceSource.replace(
-  /^import\s+\{\s*supabase\s*\}[^;]+;\s*/m,
-  "const supabase = globalThis.__mockSupabase;\n"
-);
+const instrumentedService = serviceSource
+  .replace(
+    /^import\s+\{\s*supabase\s*\}[^;]+;\s*/m,
+    "const supabase = globalThis.__mockSupabase;\n"
+  )
+  .replace(
+    /^import\s+\{\s*getCurrentValidSession\s*\}[^;]+;\s*/m,
+    "const getCurrentValidSession = globalThis.__mockGetCurrentValidSession;\n"
+  );
 assert.notEqual(instrumentedService, serviceSource, "The Supabase import must be replaceable for behavioral tests");
 const serviceModule = await import(`data:text/javascript;base64,${Buffer.from(instrumentedService).toString("base64")}`);
 

@@ -339,7 +339,7 @@ export function renderAuthErrorView(onRetry) {
   });
 
   bindClick("#btn-auth-home", () => {
-    sessionStorage.clear();
+    sessionStorage.removeItem("ueeh_active_view");
     renderAuthLoginView();
   });
 }

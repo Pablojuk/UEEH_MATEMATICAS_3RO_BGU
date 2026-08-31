@@ -2,8 +2,9 @@
 // Frontend Exercise Progress Service — UEEH Matemáticas 3ro BGU (Unidad 5+)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { supabase } from "./supabase-client.js?v=1.4.6";
-import { submitActivityResult } from "./activity-service.js?v=1.4.6";
+import { supabase } from "./supabase-client.js?v=1.4.7";
+import { getCurrentValidSession } from "./auth-session-service.js?v=1.4.7";
+import { submitActivityResult } from "./activity-service.js?v=1.4.7";
 
 const CHECK_FUNCTION_URL = "https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/check-activity-answer";
 
@@ -15,7 +16,7 @@ export async function checkExercise({ activityKey, exerciseKey, answer, checkId,
   const cid = checkId || crypto.randomUUID();
 
   try {
-    const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+    const { session, error: sessionErr } = await getCurrentValidSession(supabase.auth);
     if (sessionErr || !session) {
       return {
         success: false,
@@ -69,7 +70,7 @@ export async function checkExercise({ activityKey, exerciseKey, answer, checkId,
  */
 export async function getExerciseProgress(activityKey) {
   try {
-    const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+    const { session, error: sessionErr } = await getCurrentValidSession(supabase.auth);
     if (sessionErr || !session) return [];
 
     // 1. Obtener ID de la actividad

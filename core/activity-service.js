@@ -2,7 +2,8 @@
 // Frontend Activity Service — UEEH Matemáticas 3ro BGU (Unidad 5+)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { supabase } from "./supabase-client.js?v=1.4.6";
+import { supabase } from "./supabase-client.js?v=1.4.7";
+import { getCurrentValidSession } from "./auth-session-service.js?v=1.4.7";
 
 const SUBMIT_FUNCTION_URL = "https://fetfzizgkrdmocnlkgco.supabase.co/functions/v1/submit-activity-result";
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -96,7 +97,7 @@ export async function submitActivityResult({ activityKey, submission, submission
 
   let session;
   try {
-    const { data: { session: currentSession }, error: sessionErr } = await supabase.auth.getSession();
+    const { session: currentSession, error: sessionErr } = await getCurrentValidSession(supabase.auth);
     if (sessionErr || !currentSession) {
       return {
         success: false,

@@ -158,13 +158,15 @@ console.log("✔ Module Audit — components/activity-summary.js imports activit
 // D. exercise-progress-service.js -> supabase-client.js & activity-service.js
 const exProgJs = fs.readFileSync("core/exercise-progress-service.js", "utf-8");
 assert.ok(exProgJs.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ exercise-progress-service.js must import supabase-client.js with ?v=APP_VERSION");
+assert.ok(exProgJs.includes(`auth-session-service.js?v=${APP_VERSION}`), "❌ exercise-progress-service.js must import auth-session-service.js with ?v=APP_VERSION");
 assert.ok(exProgJs.includes(`activity-service.js?v=${APP_VERSION}`), "❌ exercise-progress-service.js must import activity-service.js with ?v=APP_VERSION");
-console.log("✔ Module Audit — core/exercise-progress-service.js imports dependencies with ?v=APP_VERSION");
+console.log("✔ Module Audit — core/exercise-progress-service.js imports auth/session dependencies with ?v=APP_VERSION");
 
 // E. activity-service.js -> supabase-client.js
 const actServJs = fs.readFileSync("core/activity-service.js", "utf-8");
 assert.ok(actServJs.includes(`supabase-client.js?v=${APP_VERSION}`), "❌ activity-service.js must import supabase-client.js with ?v=APP_VERSION");
-console.log("✔ Module Audit — core/activity-service.js imports supabase-client.js?v=APP_VERSION");
+assert.ok(actServJs.includes(`auth-session-service.js?v=${APP_VERSION}`), "❌ activity-service.js must import auth-session-service.js with ?v=APP_VERSION");
+console.log("✔ Module Audit — core/activity-service.js imports the canonical client and session service with ?v=APP_VERSION");
 
 // ────────────────────────────────────────────────────────────
 // 5. STATIC AUDIT: Unit 5, Unit 6 & Unit 7 Activity Pages
