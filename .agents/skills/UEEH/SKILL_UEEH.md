@@ -5,7 +5,7 @@ description: Integra una nueva unidad de Matemáticas de Tercero de BGU en la pl
 
 # UEEH
 
-> Revisión v5: incorpora salvaguardas aprendidas de incidencias reales de producción: servicio compartido obligatorio para COMPROBAR, adopción obligatoria del `run_id` canónico devuelto por servidor, finalización basada en progreso canónico, retry idempotente con distinción entre incertidumbre de red y error HTTP confirmado, validación de BOOT_ERROR/OPTIONS, edición administrativa segura, reapertura de plazos, resultados aislados por unidad y actualización automática de release/cache sin exigir borrado manual en celulares.
+> Revisión v6: conserva las salvaguardas v5 e incorpora aprendizajes de producción de Unidad 7 y release 1.4.7: política `gamification_unlimited` coherente también en el HTML fuente, auditoría de integridad de runtime tras retirar helpers de authoring, smoke interactivo real antes de declarar una actividad sana, cliente Supabase singleton resistente a URLs ESM versionadas/no versionadas, sesión/JWT vigente inmediatamente antes de cada request académico, regresión admin → estudiante, verificación remota real de provisionamiento/activación y secuencia segura publicar → smoke visual → activar → smoke académico.
 
 ## PROPÓSITO
 
@@ -153,9 +153,12 @@ Antes de integrar una nueva unidad, verificar que el repositorio actual conserve
 - `public.activity_attempts`;
 - `public.activity_results`;
 - `private.activity_grading_configs`;
+- `core/supabase-client.js` o singleton global equivalente vigente;
+- `core/auth-session-service.js` o servicio de sesión equivalente vigente;
 - `core/exercise-progress-service.js`;
 - `core/activity-service.js`;
 - `components/activity-summary.js`;
+- `core/version.js` / `version.json` / `core/release-check.js` cuando sigan vigentes;
 - `check-activity-answer`;
 - `submit-activity-result`.
 
@@ -544,11 +547,24 @@ El estudiante NO avanza hasta resolver correctamente el reto.
 
 No existe recuperación automática por cantidad de intentos en Gamificación.
 
-Si el HTML fuente utiliza una regla distinta:
+Si el HTML fuente utiliza una regla distinta, por ejemplo:
 
-NO cambiarla silenciosamente.
+- máximo 4 intentos;
+- 4 fallos → 1/10;
+- estado `failed` por cantidad de errores;
+- “no existe quinto intento”;
 
-Reportar la discrepancia.
+tratarlo como INCOMPATIBILIDAD LEGACY conocida.
+
+Proceder así:
+
+1. conservar intacto el MASTER original;
+2. reportar la discrepancia;
+3. adaptar la COPIA de producción a `gamification_unlimited`;
+4. corregir también textos visibles, tutorial, contadores, progreso, bloqueo, solución y preview local;
+5. verificar que NO quede lógica de 4 fallos escondida en JavaScript.
+
+No basta con cambiar `attempt_policy` en Supabase si el HTML sigue mostrando o ejecutando la regla antigua.
 
 ---
 
@@ -681,6 +697,71 @@ La seguridad debe provenir del servidor.
 
 ---
 
+# INTEGRIDAD DE RUNTIME DESPUÉS DE ADAPTAR EL HTML FUENTE
+
+Retirar `AUTHORING_ANSWER_KEY`, validadores locales o helpers de preview NO puede dejar referencias huérfanas.
+
+Antes de considerar adaptada una copia de producción:
+
+1. identificar funciones/constantes authoring-only que serán retiradas;
+2. buscar TODAS sus referencias y llamadas;
+3. sustituirlas por el adaptador/servicio UEEH correspondiente o retirar también la llamada;
+4. comprobar que cada función invocada esté definida o importada;
+5. ejecutar la interacción REAL que dispara esas funciones.
+
+Ejemplo de incidencia que debe prevenirse:
+
+`startGame()` llama a `restorePreviewState()`
+↓
+durante integración se elimina `restorePreviewState()`
+↓
+queda la llamada
+↓
+`ReferenceError`
+↓
+el render loop nunca comienza.
+
+Este patrón es PROHIBIDO.
+
+No aceptar como prueba suficiente:
+
+- que el canvas exista;
+- que la función `draw()` aparezca en el código;
+- que `requestAnimationFrame(...)` esté escrito;
+- que los tests de strings pasen.
+
+Para gamificación con canvas/juego:
+
+- pulsar realmente Iniciar/Jugar;
+- comprobar que se alcanza `gameLoop()`/render equivalente;
+- comprobar dibujo no vacío;
+- comprobar controles principales;
+- abrir al menos un reto;
+- consola sin errores JS no controlados.
+
+Para classwork:
+
+- iniciar;
+- renderizar primer ejercicio;
+- responder;
+- COMPROBAR en modo apropiado;
+- navegar;
+- consola sin errores JS no controlados.
+
+Si aparece pantalla negra, congelada o UI parcial:
+
+CAPTURAR PRIMERO el error real de consola con:
+
+- mensaje;
+- archivo;
+- línea;
+- stack;
+- función donde ocurrió.
+
+NO adivinar la causa.
+
+---
+
 # PROHIBIDO EXPONER RESPUESTAS
 
 En las copias desplegadas buscar especialmente:
@@ -791,6 +872,89 @@ linked_user_id
 La plataforma ya utiliza autenticación Google/Supabase.
 
 La identidad académica se deriva del usuario autenticado.
+
+---
+
+# CLIENTE SUPABASE ÚNICO Y SESIÓN VIGENTE
+
+La plataforma debe tener UNA sola instancia efectiva del cliente Supabase en navegador.
+
+Antes de integrar una unidad evaluable inspeccionar:
+
+- `core/supabase-client.js` o equivalente;
+- `core/auth-session-service.js` o equivalente;
+- todos los `createClient(` productivos;
+- imports ESM del cliente;
+- servicios académicos que obtienen JWT.
+
+Esperado:
+
+`createClient(` efectivo = 1
+
+o la arquitectura singleton equivalente actualmente validada.
+
+## IDENTIDAD ESM
+
+En módulos ESM, estas URLs pueden considerarse módulos distintos:
+
+`supabase-client.js`
+
+y:
+
+`supabase-client.js?v=<release>`
+
+Por eso NO basta con que “apunten al mismo archivo”.
+
+Si el proyecto vigente usa un singleton mediante:
+
+`globalThis`
+
+`Symbol.for(...)`
+
+o mecanismo equivalente,
+
+PRESERVARLO.
+
+Una nueva unidad NO debe crear otro cliente Supabase ni importar una copia alternativa que mantenga una sesión distinta en memoria.
+
+## JWT ACTUAL, NO CACHEADO
+
+Los servicios académicos deben obtener/validar la sesión VIGENTE inmediatamente antes de:
+
+- `check-activity-answer`;
+- restauración protegida cuando requiera auth;
+- `submit-activity-result`;
+- cualquier request académico autenticado.
+
+NO conservar como autoridad un `access_token` capturado al cargar la página si el usuario puede:
+
+admin
+↓
+signOut
+↓
+estudiante
+
+El request posterior debe usar el JWT del estudiante.
+
+Si existe un servicio central de sesión, REUTILIZARLO.
+
+No implementar refresh ad-hoc por unidad.
+
+## REGRESIÓN OBLIGATORIA DE CAMBIO DE CUENTA
+
+Probar:
+
+1. login usuario A/admin;
+2. `signOut`;
+3. login usuario B/estudiante test;
+4. `getSession`/`getUser` corresponden a B;
+5. COMPROBAR;
+6. Authorization usa sesión B;
+7. POST esperado = 200.
+
+Agregar/reutilizar también prueba de refresh seguro cuando el token realmente está vencido.
+
+No imprimir tokens completos en logs o reportes.
 
 ---
 
@@ -1183,7 +1347,10 @@ Antes de considerar integrada una actividad evaluable, verificar explícitamente
 2. `deber.html` importa/reutiliza el servicio central = SÍ;
 3. `fetch` académico inline hacia `check-activity-answer` = 0;
 4. restauración mediante `getExerciseProgress` o equivalente = SÍ;
-5. autenticación proviene de la sesión Supabase vigente = SÍ.
+5. autenticación proviene de la sesión Supabase vigente = SÍ;
+6. `createClient(` efectivo no se duplica por la nueva unidad = SÍ;
+7. no se cachea un JWT de una cuenta anterior = SÍ;
+8. cambio admin → estudiante test usa el JWT nuevo = SÍ.
 
 Si cualquiera falla, la unidad NO está lista para publicación.
 
@@ -1864,6 +2031,8 @@ Los usuarios NO deben necesitar borrar manualmente el caché después de una pub
 Cuando cambien módulos compartidos como:
 
 - `core/app.js`;
+- `core/supabase-client.js`;
+- `core/auth-session-service.js`;
 - `core/activity-service.js`;
 - `core/exercise-progress-service.js`;
 - `components/activity-summary.js`;
@@ -1896,6 +2065,16 @@ Si el proyecto todavía no cubre módulos compartidos con su cache-busting globa
 reportarlo como defecto de infraestructura antes de publicar nuevas unidades.
 
 No crear múltiples clientes Supabase.
+
+IMPORTANTE SOBRE ESM:
+
+`modulo.js` y `modulo.js?v=release` pueden producir instancias de módulo distintas.
+
+Por tanto, el cache-busting NO puede depender de que el cliente Supabase quede singleton únicamente porque “es el mismo archivo”.
+
+Si un módulo mantiene estado de sesión, debe usar el singleton global/canónico vigente y además mantener imports productivos coherentes.
+
+Agregar/reutilizar regresión que demuestre que variantes de URL permitidas por el sistema de release NO terminan en dos clientes con sesiones diferentes.
 
 ## RELEASE CHECKER GLOBAL
 
@@ -1963,6 +2142,77 @@ Antes de realizar operaciones:
 inspeccionar cómo Unidad 5 fue provisionada.
 
 NO inventar SQL ad hoc si ya existe un gateway administrativo aprobado.
+
+---
+
+# PROVISIONAMIENTO REMOTO Y ACTIVACIÓN SEGURA
+
+Nunca afirmar que una actividad está “provisionada remotamente” únicamente porque exista:
+
+- un SQL local;
+- una migración local;
+- un objeto de configuración;
+- un test que inspecciona archivos.
+
+La prueba remota debe venir de la FUENTE REMOTA REAL:
+
+- respuesta del gateway administrativo;
+- consulta remota de `public.activities`;
+- consulta remota de `private.activity_grading_configs` mediante mecanismo autorizado;
+- listado remoto de migraciones SOLO si realmente hubo una migración estructural autorizada.
+
+Para actividades ordinarias seguir prefiriendo Admin API/RPC existente, no migraciones de datos.
+
+Después de provisionar, comprobar como mínimo:
+
+- `activity_key` exactos;
+- `unit_number`;
+- `type`;
+- `attempt_policy`;
+- `is_active`;
+- `opens_at`;
+- `due_at`;
+- `source_path`;
+- cantidad exacta de grading configs privadas.
+
+No confundir:
+
+“la migración/operación está preparada”
+
+con:
+
+“la base remota ya contiene los registros”.
+
+## SECUENCIA SEGURA DE PUBLICACIÓN Y ACTIVACIÓN
+
+En la integración inicial, si todavía NO se ha publicado el frontend o faltan pruebas, mantener las nuevas actividades inactivas cuando sea posible.
+
+Si el usuario posteriormente autoriza publicación, el orden seguro es:
+
+1. publicar frontend;
+2. confirmar GitHub Pages/release real;
+3. smoke VISUAL público de presentation/gamification/classwork;
+4. verificar Supabase remoto;
+5. activar únicamente las actividades nuevas;
+6. confirmar `is_active = true` y fechas vigentes;
+7. smoke ACADÉMICO con cuenta técnica;
+8. revisar POST/logs;
+9. regresión mínima de unidades anteriores cuando cambió un servicio compartido.
+
+Mientras `is_active = false`, un mensaje equivalente a:
+
+“La actividad no se encuentra disponible”
+
+puede ser el comportamiento CORRECTO del backend.
+
+No diagnosticar ese mensaje como error de HTML antes de consultar:
+
+`is_active`
+`opens_at`
+`due_at`
+`now()` del servidor.
+
+No dejar actividades activas antes de tener el frontend público sano cuando exista riesgo de que estudiantes accedan.
 
 ---
 
@@ -2649,9 +2899,52 @@ Para cada nueva unidad evaluable, agregar o reutilizar una prueba data-driven qu
 - se utiliza la restauración global `getExerciseProgress(...)` o equivalente;
 - errores técnicos preservan la respuesta visible;
 - retry técnico conserva el mismo `check_id`;
-- F5 recupera progreso confirmado desde Supabase.
+- F5 recupera progreso confirmado desde Supabase;
+- existe una sola instancia efectiva del cliente Supabase;
+- `createClient(` no se duplica por imports de la unidad;
+- cambio admin → estudiante usa sesión/JWT del estudiante;
+- token vencido se renueva por el servicio global vigente sin loops;
+- imports versionados/no versionados no crean sesiones divergentes.
 
 Esta prueba es obligatoria porque una actividad puede pasar pruebas matemáticas/visuales y aun fallar en producción si omite el servicio central de autenticación y persistencia.
+
+---
+
+# TEST OBLIGATORIO DE RUNTIME INTERACTIVO
+
+Agregar/reutilizar un smoke que EJECUTE la UI real, no solo inspección estática.
+
+Gamificación:
+
+- abrir página;
+- pulsar Iniciar/Jugar;
+- verificar consola = 0 errores no controlados;
+- si usa canvas, verificar operaciones/dibujo real después de iniciar;
+- controles alteran estado/posición;
+- abrir primer reto;
+- UI sigue viva.
+
+Classwork:
+
+- abrir página;
+- iniciar;
+- renderizar primer ejercicio;
+- interactuar;
+- navegación funciona;
+- consola = 0 errores no controlados.
+
+Presentation:
+
+- Anterior/Siguiente;
+- contador;
+- al menos una interacción dinámica;
+- MathJax no aborta navegación.
+
+Además, realizar auditoría de símbolos removidos:
+
+cualquier función/constante retirada de AUTHORING MODE debe tener 0 referencias productivas huérfanas.
+
+Si falla el smoke, el reporte debe incluir el PRIMER error real con stack.
 
 ---
 
@@ -2710,7 +3003,9 @@ Esperado:
 - no requiere borrar cookies;
 - no rompe sesión Supabase;
 - no usa `Date.now()` por apertura;
-- incógnito y navegador normal convergen a la misma versión publicada.
+- incógnito y navegador normal convergen a la misma versión publicada;
+- `version.json`, `APP_VERSION` e imports productivos usan la misma release;
+- el versionado de ESM no crea una segunda instancia de Supabase.
 
 ---
 
@@ -2785,6 +3080,19 @@ Seguir este orden:
 5. contrato `activity_key`, `exercise_key`, `check_id`, `answer`;
 6. RPC/SQL;
 7. recién después revisar caché/assets.
+
+Si el mensaje es “La actividad no se encuentra disponible” o equivalente:
+- revisar primero `is_active`, `opens_at`, `due_at`, `now()`.
+
+Si el HTTP es 401 o la UI dice “Sesión inválida o expirada”:
+- comprobar sesión actual;
+- comprobar `getUser`/`getSession` del cliente canónico;
+- buscar múltiples `createClient(`;
+- revisar imports ESM versionados/no versionados;
+- verificar cambio de cuenta admin → estudiante;
+- confirmar que el servicio obtiene JWT inmediatamente antes del request.
+
+No asumir que una sesión no expirada implica que el request usa ESE mismo cliente/token.
 
 Un error técnico NO puede convertirse en:
 
@@ -3148,11 +3456,17 @@ CONECTAR COMPROBAR OBLIGATORIAMENTE CON `exercise-progress-service` / `check-act
 FASE 13
 CONECTAR RESTAURACIÓN DE PROGRESO Y RESULTADO OFICIAL
 
+FASE 13A
+AUDITAR CLIENTE SUPABASE SINGLETON + SESIÓN/JWT VIGENTE
+
+FASE 13B
+AUDITAR REFERENCIAS HUÉRFANAS Y EJECUTAR SMOKE RUNTIME LOCAL
+
 FASE 14
 REGISTRAR CURRICULUM-CONFIG
 
 FASE 15
-PREPARAR ACTIVIDADES
+PREPARAR ACTIVIDADES EN ESTADO SEGURO Y VERIFICAR PROVISIONAMIENTO REAL
 
 FASE 16
 EJECUTAR TESTS
@@ -3359,6 +3673,42 @@ due_at =
 si falta activación, indicar motivo =
 
 ========================================
+PROVISIONAMIENTO / ACTIVACIÓN
+========================================
+
+activities verificadas en remoto = SÍ/NO/NO EJECUTADO
+grading configs verificadas en remoto = SÍ/NO/NO EJECUTADO
+se confundió archivo local con estado remoto = NO/OTRO
+estado seguro prepublicación = PASS/FAIL
+activación pendiente post-publicación = SÍ/NO
+secuencia publicar→visual→activar→académico = PASS/FAIL/NO EJECUTADA
+actividad no disponible explicada por is_active=false = SÍ/NO/NO APLICA
+
+========================================
+AUTH / CLIENTE SUPABASE
+========================================
+
+createClient efectivos =
+singleton Supabase = PASS/FAIL
+imports ESM duplicados peligrosos = SÍ/NO
+servicio sesión global reutilizado = SÍ/NO
+JWT cacheado entre cuentas = NO/OTRO
+admin→estudiante regression = PASS/FAIL/NO EJECUTADA
+refresh sesión regression = PASS/FAIL/NO EJECUTADA
+
+========================================
+RUNTIME
+========================================
+
+referencias authoring huérfanas = 0/OTRO
+gamification inicia sin error JS = PASS/FAIL
+canvas/render real = PASS/FAIL/NO APLICA
+controles gamification = PASS/FAIL/NO APLICA
+classwork inicia sin error JS = PASS/FAIL
+presentation navegación runtime = PASS/FAIL
+primer error console/stack = NINGUNO/[...]
+
+========================================
 GRADING
 ========================================
 
@@ -3401,6 +3751,7 @@ gamification:
 4+=7 = OK/ERROR
 intentos ilimitados = OK/ERROR
 incorrecto no bloquea = OK/ERROR
+failed por cantidad de intentos = NO/OTRO
 remaining_attempts null = OK/ERROR
 
 classwork:
@@ -3482,6 +3833,11 @@ Edge BOOT_ERROR = 0/OTRO/NO MODIFICADA
 POST autenticado smoke = PASS/FAIL/NO MODIFICADA
 resultados aislados por unidad = PASS/FAIL
 cache-busting módulos compartidos = PASS/FAIL/NO APLICA
+singleton Supabase regression = PASS/FAIL/NO APLICA
+admin→estudiante JWT = PASS/FAIL/NO APLICA
+runtime gamification start/render = PASS/FAIL
+runtime classwork = PASS/FAIL
+referencias huérfanas = 0/OTRO
 F5 restore producción = PASS/FAIL
 feedback error técnico no destructivo = PASS/FAIL
 comprobar guarda automáticamente = PASS/FAIL
