@@ -111,7 +111,7 @@ export async function exportGradebookXLSX() {
         if (res) {
           if (res.result_status === "completed") {
             completedCount++;
-            return Number(res.best_score);
+            return Number(res.final_score ?? res.best_score);
           } else if (res.result_status === "not_submitted") {
             notSubmittedCount++;
             return Number(a.minimum_score || 1);

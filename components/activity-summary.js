@@ -106,8 +106,8 @@ function renderActivityCard(item) {
       detailsHtml = `
         <div class="mt-4 pt-4 border-t border-neutral-100 grid grid-cols-2 gap-2 text-xs">
           <div>
-            <span class="text-neutral-400 block text-[10px] uppercase font-bold">Mejor Nota</span>
-            <span class="font-extrabold text-emerald-700 text-base">${Number(result.best_score).toFixed(2)} / ${Number(activity.max_score).toFixed(2)}</span>
+            <span class="text-neutral-400 block text-[10px] uppercase font-bold">Nota Oficial</span>
+            <span class="font-extrabold text-emerald-700 text-base">${Number(result.final_score ?? result.best_score).toFixed(2)} / ${Number(activity.max_score).toFixed(2)}</span>
           </div>
           <div>
             <span class="text-neutral-400 block text-[10px] uppercase font-bold">Intentos</span>

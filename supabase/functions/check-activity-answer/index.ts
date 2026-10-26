@@ -219,12 +219,54 @@ serve(async (req) => {
     const graderType = gradingConfigData.grader_type;
     const config = gradingConfigData.config;
 
+    const qStr = resolvedExerciseKey;
+
+    // 9.1. Control de seguridad y elegibilidad para fase de recuperación
+    const isRecovery = (phase === "recovery") ||
+      (graderType === "determinants_classwork_v1" && Boolean(config.recoveryQuestions?.[qStr])) ||
+      (graderType === "exercise_set" && Boolean(config.recoveryExercises?.[qStr]));
+
+    if (isRecovery) {
+      const { data: pastAttempts, error: pastAttErr } = await serviceClient
+        .from("activity_attempts")
+        .select("score, submission_data")
+        .eq("activity_id", activity.id)
+        .eq("student_id", student.id)
+        .order("completed_at", { ascending: false });
+
+      if (pastAttErr || !pastAttempts || pastAttempts.length === 0) {
+        return new Response(
+          JSON.stringify({
+            error: "La fase de recuperación requiere haber finalizado y registrado previamente la evaluación inicial."
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const initialAttempt = pastAttempts.find((att: any) =>
+        att.submission_data?.phase === "initial"
+      ) || pastAttempts[pastAttempts.length - 1];
+
+      const rawInitScore = Number(
+        initialAttempt?.submission_data?.raw_initial_score ??
+        initialAttempt?.submission_data?.raw_score ??
+        initialAttempt?.score
+      );
+
+      if (isNaN(rawInitScore) || rawInitScore >= 7.00) {
+        return new Response(
+          JSON.stringify({
+            error: "La fase de recuperación solo está permitida si la calificación inicial es menor a 7.00/10."
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // 10. Evaluador Servidor según grader_type
     let isCorrect = false;
     let partialFraction: number | null = null;
     let solutionHtml: string | null = null;
-
-    const qStr = resolvedExerciseKey;
 
     if (graderType === "determinants_gamification_v1") {
       const planetCfg = config.planets?.[qStr];
@@ -289,18 +331,36 @@ serve(async (req) => {
 
       if (exCfg.type === "mcq" || exCfg.mode === "mcq") {
         const uVal = String(resolvedAnswer ?? "").trim();
-        isCorrect = uVal === String(exCfg.correct_option ?? exCfg.correctIndex ?? "").trim();
+        isCorrect = uVal === String(exCfg.correct_option ?? exCfg.correctOptionKey ?? exCfg.correctIndex ?? "").trim();
       } else if (exCfg.type === "numeric" || exCfg.type === "input" || exCfg.mode === "input") {
         const uAns = String(resolvedAnswer ?? "").trim().replace(",", ".");
+        const strippedVar = uAns.replace(/^[zxkμp]=/i, "");
         const accepted = (exCfg.accepted_answers || exCfg.acceptedAnswers || []).map((a: any) => String(a).trim().replace(",", "."));
-        isCorrect = accepted.includes(uAns);
+        isCorrect = accepted.includes(uAns) || accepted.includes(strippedVar) ||
+                    accepted.some((a: string) => a.replace(/^[zxkμp]=/i, "") === strippedVar);
+        if (!isCorrect && typeof exCfg.numericTarget === "number") {
+          let numU = Number(strippedVar.endsWith("%") ? Number(strippedVar.slice(0, -1)) / 100 : strippedVar);
+          const tol = typeof exCfg.numericTolerance === "number" ? exCfg.numericTolerance : 0.001;
+          if (!isNaN(numU) && Math.abs(numU - exCfg.numericTarget) <= tol) {
+            isCorrect = true;
+          }
+        }
       } else if (exCfg.type === "fill" || exCfg.mode === "fill") {
         const userBlanks: any[] = Array.isArray(resolvedAnswer) ? resolvedAnswer : [];
         const expectedBlanks: any[] = exCfg.blanks || [];
         isCorrect = expectedBlanks.length > 0 && expectedBlanks.every((b: any, idx: number) => {
           const uVal = String(userBlanks[idx] ?? "").trim().replace(",", ".").toLowerCase();
+          const stripped = uVal.replace(/^[zxkμp]=/i, "");
           const accepted = (b.accepted || [b.answer]).map((a: any) => String(a).trim().replace(",", ".").toLowerCase());
-          return accepted.includes(uVal);
+          const directMatch = accepted.includes(uVal) || accepted.includes(stripped) ||
+                              accepted.some((a: string) => a.replace(/^[zxkμp]=/i, "") === stripped);
+          if (directMatch) return true;
+          if (typeof b.numericTarget === "number") {
+            let numU = Number(stripped.endsWith("%") ? Number(stripped.slice(0, -1)) / 100 : stripped);
+            const tol = typeof b.numericTolerance === "number" ? b.numericTolerance : 0.001;
+            if (!isNaN(numU) && Math.abs(numU - b.numericTarget) <= tol) return true;
+          }
+          return false;
         });
       } else if (exCfg.type === "order" || exCfg.mode === "order") {
         const userOrder = Array.isArray(resolvedAnswer) ? resolvedAnswer : [];

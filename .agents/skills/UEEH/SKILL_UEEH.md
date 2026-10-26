@@ -1519,6 +1519,41 @@ La UI puede mostrar los intentos restantes, pero el backend es la autoridad.
 
 Los HTML fuente pueden contener una fase pedagógica de recuperación.
 
+## POLÍTICA ACADÉMICA OFICIAL DE RECUPERACIÓN
+
+La política académica oficial aprobada para la fase de recuperación es:
+
+**NOTA FINAL OFICIAL = (NOTA INICIAL + NOTA DE RECUPERACIÓN) / 2**
+
+### Condiciones y Reglas Obligatorias:
+
+1. **Elegibilidad**: La recuperación solo se habilita cuando la calificación inicial oficial es estrictamente inferior a 7.00/10.00.
+2. **Exclusión**: Si el estudiante obtiene 7.00 o más en la evaluación inicial, no debe ni puede realizar recuperación.
+3. **Obligatoriedad de Completar**: Si corresponde recuperación, esta debe completarse al 100% (todos los ejercicios de recuperación en estado terminal) antes de calcular la nota definitiva.
+4. **Redondeo**: El promedio debe redondearse a dos decimales exactos.
+5. **Rango Académico**: Nota mínima oficial de 1.00/10.00 y máxima de 10.00/10.00.
+6. **Prohibición de Math.max**: NO utilizar `Math.max()` para elegir entre nota inicial y recuperación en actividades con política de promedio.
+7. **Sin Conservación de Nota Mayor**: Si la nota de recuperación es inferior a la nota inicial, el promedio resultante podrá ser inferior a la nota inicial.
+8. **Autoridad Exclusiva de Servidor**: La nota definitiva debe calcularse exclusivamente en Supabase Edge Functions (`submit-activity-result`). El navegador o JavaScript público NUNCA tiene autoridad para decidir la nota oficial ni enviar calificaciones.
+9. **Seguridad en Comprobaciones**: `check-activity-answer` debe validar en el servidor que el estudiante posee una entrega inicial completada con nota < 7.00 antes de aceptar o registrar cualquier comprobación en fase de recuperación.
+10. **Conservación del Historial**: La entrega inicial y la entrega de recuperación se conservan de forma inmutable en `public.activity_attempts`. En `public.activity_results`, `final_score` almacena el promedio oficial consolidado, mientras `best_score` conserva la mejor marca histórica para auditoría.
+11. **Coherencia Absoluta**: La nota final confirmada por Supabase debe coincidir exactamente en todas las pantallas y reportes:
+    - Resultado final del deber del estudiante (`deber.html`).
+    - Resumen de actividades del estudiante (`activity-summary.js`).
+    - Panel docente / Matriz de calificaciones (`admin-activities.js`).
+    - Detalle individual de actividad por estudiante.
+    - Exportaciones oficiales en CSV y Excel OpenXML .xlsx (`admin-exports.js`).
+12. **Configuración Explícita**: Para actividades nuevas, registrar explícitamente `"recovery_policy": "average"` en la configuración privada `private.activity_grading_configs`. Las actividades históricas previas (como Unidad 5) mantienen su política histórica configurada (`"max"`).
+13. **Aprovisionamiento de Futuras Unidades (Unidad 8+)**: Toda nueva migración de provisión de trabajo en clase con fase de recuperación DEBE declarar explícitamente en el JSON de `private.activity_grading_configs.config`:
+    ```json
+    {
+      "recovery_policy": "average",
+      "exercises": { ... },
+      "recoveryExercises": { ... }
+    }
+    ```
+    De este modo, cualquier futura unidad queda automáticamente gobernada por la política de promedio sin requerir modificaciones en el código de las Edge Functions.
+
 NO asumir automáticamente que una recuperación condicional forma parte del MISMO conjunto obligatorio de `exercise_key` del grading oficial.
 
 Antes de integrar recuperación:

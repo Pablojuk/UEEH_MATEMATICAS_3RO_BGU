@@ -397,6 +397,63 @@ export const CURRICULUM_UNITS = [
         viewTitle: "Resultados · Unidad 7 Distribución Binomial"
       }
     }
+  },
+  {
+    unitNumber: 8,
+    slug: "unit8-normal",
+    badge: "N(μ,σ)",
+    status: "ACTIVA",
+    title: "Distribución Normal",
+    description: "Variables continuas, campana de Gauss, estandarización z, cálculo de probabilidades y aplicaciones.",
+    modalSubtitle: "Cada actividad completada se registra en Supabase como tu calificación oficial.",
+    cardButtonId: "btn-open-unit-normal",
+    requiresStudentData: false,
+    routes: {
+      presentation: {
+        title: "Presentación de la Clase",
+        description: "Diapositivas interactivas con teoría, fórmulas, estandarización y ejemplos aplicados.",
+        icon: "📽️",
+        actionText: "Iniciar lectura →",
+        actionColor: "text-moodle-orange",
+        buttonId: "btn-unit-8-slides",
+        type: "html-lesson",
+        src: "./topics/unit8-normal/presentation.html",
+        viewerTitle: "Distribución Normal - Presentación de la Clase",
+        viewTitle: "Distribución Normal"
+      },
+      gamification: {
+        title: "Gamificación",
+        description: "Bomberman Z-Gauss 3D: Derrota a los Droides Gauss aplicando estandarización y probabilidades.",
+        icon: "💣",
+        actionText: "Empezar a jugar →",
+        actionColor: "text-violet-600",
+        buttonId: "btn-unit-8-game",
+        type: "html-lesson",
+        src: "./topics/unit8-normal/gamificacion.html",
+        viewerTitle: "Bomberman Z-Gauss 3D: Distribución Normal · Unidad 8",
+        viewTitle: "Gamificación · Bomberman Normal"
+      },
+      classwork: {
+        title: "Trabajo en Clase",
+        description: "Deber interactivo con 20 ejercicios iniciales + 10 de recuperación.",
+        icon: "📐",
+        actionText: "Ver actividades →",
+        actionColor: "text-blue-600",
+        buttonId: "btn-unit-8-homework",
+        type: "html-lesson",
+        src: "./topics/unit8-normal/deber.html",
+        viewerTitle: "Deber Interactivo | Distribución Normal · Unidad 8",
+        viewTitle: "Trabajo en Clase · Distribución Normal"
+      },
+      results: {
+        title: "Resultados de las Actividades",
+        description: "Consulta tu desempeño en la plataforma oficial Supabase.",
+        icon: "📊",
+        buttonId: "btn-unit-8-results",
+        type: "supabase-summary",
+        viewTitle: "Resultados · Unidad 8 Distribución Normal"
+      }
+    }
   }
 ];
 

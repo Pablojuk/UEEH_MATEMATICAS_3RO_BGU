@@ -237,9 +237,9 @@ function filterAndRenderLocalGrades() {
         } else if (act.activity_type === "classwork") {
           if (gradeInfo?.result_status === "completed") {
             completedCount++;
-            const initVal = gradeInfo.initial_score !== null ? Number(gradeInfo.initial_score).toFixed(2) : Number(gradeInfo.best_score).toFixed(2);
+            const initVal = gradeInfo.initial_score !== null ? Number(gradeInfo.initial_score).toFixed(2) : Number(gradeInfo.final_score ?? gradeInfo.best_score).toFixed(2);
             const recVal = gradeInfo.recovery_score !== null ? Number(gradeInfo.recovery_score).toFixed(2) : null;
-            const finalVal = Number(gradeInfo.best_score).toFixed(2);
+            const finalVal = Number(gradeInfo.final_score ?? gradeInfo.best_score).toFixed(2);
 
             classworkInitCell = `<td class="px-5 py-4 text-center font-bold text-neutral-800">${initVal} / 10</td>`;
             classworkRecCell = `<td class="px-5 py-4 text-center font-bold ${recVal !== null ? 'text-blue-900' : 'text-neutral-400'}">${recVal !== null ? `${recVal} / 10` : '—'}</td>`;

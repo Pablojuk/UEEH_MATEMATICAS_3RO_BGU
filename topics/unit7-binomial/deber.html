@@ -747,6 +747,7 @@
       });
       const avg = Number((totalSum / list.length).toFixed(2));
 
+      let serverFinalScore = null;
       try {
         const res = await submitActivityResult({
           activityKey: ACTIVITY_KEY,
@@ -759,14 +760,13 @@
         });
 
         if (res && res.success && res.data) {
-          const finalOfficial = Number(res.data.score).toFixed(2);
-          document.getElementById("sumFinal") && (document.getElementById("sumFinal").innerText = finalOfficial);
+          serverFinalScore = Number(res.data.score);
         }
       } catch (e) {
         console.warn("Fallo registrando en backend:", e);
       }
 
-      renderSummary();
+      renderSummary(serverFinalScore);
     }
 
     // ========================================================
@@ -1103,7 +1103,7 @@
       return sum / visualArray.length;
     }
 
-    function renderSummary() {
+    function renderSummary(serverFinalScore = null) {
       const initialScore = calculateVisualScore(exercisesVisual);
       document.getElementById("sumInitial").innerText = initialScore.toFixed(2);
       
@@ -1116,7 +1116,7 @@
       else if (activePhase === "recovery") {
         const recScore = calculateVisualScore(recoveryVisual);
         document.getElementById("sumRecovery").innerText = recScore.toFixed(2);
-        finalScore = (initialScore + recScore) / 2;
+        finalScore = (serverFinalScore !== null && !isNaN(serverFinalScore)) ? serverFinalScore : Number(((initialScore + recScore) / 2).toFixed(2));
         document.getElementById("recoveryNotice").style.display = "none";
         document.getElementById("startRecoveryBtn").style.display = "none";
       } else {
@@ -1124,6 +1124,7 @@
         document.getElementById("startRecoveryBtn").style.display = "none";
       }
 
+      if (serverFinalScore !== null && !isNaN(serverFinalScore)) { finalScore = serverFinalScore; }
       document.getElementById("sumFinal").innerText = finalScore.toFixed(2);
       
       let levelText = "Inicial";

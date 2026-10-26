@@ -225,7 +225,7 @@ export async function fetchStudentActivitySummary(unitNumber = null) {
 
   const { data: results, error: resErr } = await supabase
     .from("activity_results")
-    .select("activity_id, best_score, attempt_count, result_status, result_source, first_completed_at, last_completed_at");
+    .select("*");
 
   if (resErr) {
     console.error("Error al consultar resultados del estudiante:", resErr);

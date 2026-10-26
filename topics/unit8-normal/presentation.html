@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#b8f2e6" />
+  <title>Distribución Normal: Estandarización y Cálculo · Tercero de BGU</title>
+
+  <!-- MathJax v3 para renderizado matemático formal -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      /* Paleta suave de tonos pastel / colores de helado */
+      --celeste: #cfefff;
+      --turquesa: #b8f2e6;
+      --menta: #d9f7d8;
+      --rosa: #ffdce8;
+      --durazno: #ffe1c6;
+      --crema: #fff4bf;
+      --lila: #e8dcff;
+      --arena: #f7ead7;
+      --blanco: #fffdf8;
+      --tinta: #273142;
+      --texto-suave: #596275;
+      --azul-titulo: #2c5276;
+      --verde-ok: #226f5d;
+      --rojo-alerta: #a83b4b;
+      --sombra: 0 18px 42px rgba(44, 62, 80, 0.12);
+      --sombra-suave: 0 8px 22px rgba(44, 62, 80, 0.08);
+      --radio-pantalla: 32px;
+      --radio-tarjeta: 22px;
+      --borde: rgba(55, 90, 127, 0.13);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--tinta);
+      background:
+        radial-gradient(circle at 8% 10%, rgba(255, 220, 232, 0.7), transparent 26%),
+        radial-gradient(circle at 92% 6%, rgba(184, 242, 230, 0.75), transparent 28%),
+        radial-gradient(circle at 15% 90%, rgba(232, 220, 255, 0.7), transparent 28%),
+        radial-gradient(circle at 85% 92%, rgba(255, 244, 191, 0.65), transparent 25%),
+        linear-gradient(135deg, #fbfdfe 0%, #eafaf7 45%, #fff5e8 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(55, 90, 127, 0.038) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(55, 90, 127, 0.038) 1px, transparent 1px);
+      background-size: 34px 34px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    button, input { font-family: inherit; }
+
+    .app {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    /* Barra Superior */
+    .topbar {
+      width: min(1180px, calc(100% - 22px));
+      margin: 12px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--tinta);
+      background: rgba(255, 253, 248, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: var(--sombra-suave);
+      border-radius: 22px;
+      padding: 10px 14px;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-badge {
+      width: 44px; height: 44px;
+      display: grid; place-items: center;
+      border-radius: 15px;
+      background: linear-gradient(135deg, var(--turquesa), var(--lila));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+      font-size: 1.4rem; flex: 0 0 auto;
+    }
+    .brand-title {
+      font-weight: 900; line-height: 1.15;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: min(50vw, 580px); font-size: 1.02rem;
+      color: var(--azul-titulo);
+    }
+    .brand small {
+      display: block; color: var(--texto-suave);
+      font-weight: 700; font-size: 0.82rem; margin-top: 2px;
+    }
+
+    .progress-wrap {
+      flex: 1; max-width: 380px; min-width: 140px;
+      border-radius: 999px; padding: 5px 8px;
+      background: rgba(235, 242, 248, 0.85);
+      border: 1px solid rgba(55, 90, 127, 0.12);
+    }
+    .progress-label {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.75rem; font-weight: 850; color: var(--texto-suave); margin-bottom: 3px;
+    }
+    .progress-track {
+      height: 10px; background: rgba(55, 90, 127, 0.12);
+      border-radius: 999px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; width: 0%; border-radius: inherit;
+      background: linear-gradient(90deg, #ffdce8, #b8f2e6, #cfefff, #fff4bf);
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Deck de Diapositivas */
+    .deck {
+      width: min(1180px, calc(100% - 22px));
+      flex: 1; margin: 14px auto; position: relative;
+    }
+    .slide {
+      min-height: calc(100dvh - 170px);
+      display: none; align-items: stretch; justify-content: center;
+      animation: fadeSlide 0.35s ease both;
+    }
+    .slide.active { display: flex; }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px) scale(0.995); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .screen {
+      width: 100%; min-height: 600px;
+      border-radius: var(--radio-pantalla);
+      padding: clamp(20px, 4.2vw, 44px);
+      background:
+        linear-gradient(145deg, rgba(255, 253, 248, 0.97), rgba(255, 255, 255, 0.90)),
+        radial-gradient(circle at 12% 14%, rgba(255, 220, 232, 0.35), transparent 25%),
+        radial-gradient(circle at 88% 16%, rgba(184, 242, 230, 0.38), transparent 28%);
+      box-shadow: var(--sombra);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      position: relative;
+    }
+    .screen::after {
+      content: ""; position: absolute; inset: 12px;
+      border-radius: 24px; border: 2px dashed rgba(55, 90, 127, 0.11);
+      pointer-events: none;
+    }
+    .screen-content { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+
+    /* Tipografía */
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(2.1rem, 5vw, 3.5rem); line-height: 1.05; color: var(--azul-titulo); margin-bottom: 14px; letter-spacing: -1px; font-weight: 900; }
+    h2 { font-size: clamp(1.65rem, 3.5vw, 2.4rem); line-height: 1.12; color: var(--azul-titulo); margin-bottom: 14px; letter-spacing: -0.5px; font-weight: 850; }
+    h3 { font-size: clamp(1.08rem, 2vw, 1.45rem); color: var(--azul-titulo); margin-bottom: 8px; font-weight: 800; }
+    p, li { font-size: clamp(0.96rem, 1.35vw, 1.12rem); line-height: 1.54; }
+    .lead { font-size: clamp(1.02rem, 1.6vw, 1.3rem); font-weight: 650; color: #3d4a5d; max-width: 960px; margin-bottom: 14px; }
+    .muted { color: var(--texto-suave); }
+    .center { text-align: center; }
+
+    /* Grids */
+    .split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr); gap: clamp(16px, 3.5vw, 36px); align-items: center; }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch; margin: 10px 0; }
+    .three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; margin: 10px 0; }
+    
+    /* Etiquetas DUA */
+    .pill-row, .dua-bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 14px; }
+    .pill, .dua {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px;
+      border-radius: 999px; font-weight: 850; font-size: 0.84rem; line-height: 1.1;
+      background: rgba(255, 255, 255, 0.8); box-shadow: inset 0 0 0 1px rgba(55, 90, 127, 0.12);
+    }
+    .dua.compromiso { background: rgba(217, 247, 216, 0.85); color: #1e6454; }
+    .dua.representacion { background: rgba(232, 220, 255, 0.85); color: #523f82; }
+    .dua.accion { background: rgba(207, 239, 255, 0.9); color: #235478; }
+
+    /* Tarjetas */
+    .card {
+      background: rgba(255, 255, 255, 0.78); border: 1px solid var(--borde);
+      border-radius: var(--radio-tarjeta); padding: clamp(14px, 2vw, 20px);
+      box-shadow: var(--sombra-suave); display: flex; flex-direction: column; min-width: 0;
+    }
+    .card.soft-celeste { background: linear-gradient(145deg, rgba(207, 239, 255, 0.88), rgba(255, 255, 255, 0.78)); }
+    .card.soft-menta { background: linear-gradient(145deg, rgba(217, 247, 216, 0.88), rgba(255, 255, 255, 0.78)); }
+    .card.soft-rosa { background: linear-gradient(145deg, rgba(255, 220, 232, 0.88), rgba(255, 255, 255, 0.78)); }
+    .card.soft-crema { background: linear-gradient(145deg, rgba(255, 244, 191, 0.92), rgba(255, 255, 255, 0.78)); }
+    .card.soft-lila { background: linear-gradient(145deg, rgba(232, 220, 255, 0.88), rgba(255, 255, 255, 0.78)); }
+    .card.soft-durazno { background: linear-gradient(145deg, rgba(255, 225, 198, 0.88), rgba(255, 255, 255, 0.78)); }
+    .card.soft-blanco { background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(255,255,255, 0.9); box-shadow: var(--sombra); }
+
+    .mini-tag { display: inline-block; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.03em; text-transform: uppercase; color: var(--texto-suave); margin-bottom: 4px; }
+    
+    /* Contenedores Matemáticos */
+    .math-box {
+      width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      padding: 12px 14px; border-radius: 18px;
+      background: rgba(255, 250, 238, 0.95); border: 1.5px solid rgba(245, 197, 86, 0.35);
+      margin: 10px 0; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    }
+    .math-box.center-math { text-align: center; }
+    
+    /* Listas y Callouts */
+    .step-list { display: grid; gap: 10px; margin: 10px 0; }
+    .step {
+      display: grid; grid-template-columns: 38px 1fr; gap: 12px; align-items: center;
+      padding: 11px 14px; border-radius: 16px; background: rgba(255, 255, 255, 0.78); border: 1px solid var(--borde);
+    }
+    .step-number {
+      width: 38px; height: 38px; display: grid; place-items: center;
+      border-radius: 12px; background: linear-gradient(135deg, var(--crema), var(--durazno));
+      font-weight: 900; color: #634527; font-size: 1.05rem;
+    }
+    
+    .callout {
+      border-radius: 18px; padding: 12px 16px; margin: 10px 0;
+      border: 1px solid var(--borde); background: rgba(255, 255, 255, 0.8);
+      box-shadow: var(--sombra-suave); font-size: 0.95rem; line-height: 1.48;
+    }
+    .callout.remember { background: rgba(217, 247, 216, 0.8); border-color: rgba(45, 143, 115, 0.25); }
+    .callout.error { background: rgba(255, 220, 232, 0.82); border-color: rgba(198, 83, 97, 0.25); }
+    .callout.teacher { background: rgba(232, 220, 255, 0.8); border-color: rgba(89, 69, 138, 0.25); }
+
+    /* Botones y Navegación */
+    .btn {
+      border: 0; border-radius: 16px; padding: 12px 18px; min-height: 48px;
+      font-weight: 850; cursor: pointer; font-size: 0.98rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      touch-action: manipulation; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(44, 62, 80, 0.12); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg, var(--turquesa), var(--celeste)); color: var(--tinta); }
+    .btn-ghost { background: rgba(255, 255, 255, 0.85); box-shadow: inset 0 0 0 2px rgba(55, 90, 127, 0.14); }
+    
+    .nav-controls {
+      width: min(1180px, calc(100% - 22px)); margin: 0 auto 8px;
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    }
+    .slide-counter {
+      font-weight: 900; padding: 10px 16px; border-radius: 999px;
+      background: rgba(255, 253, 248, 0.9); box-shadow: var(--sombra-suave);
+      font-size: 0.94rem; white-space: nowrap; border: 1px solid rgba(55, 90, 127, 0.1);
+    }
+    
+    /* Interacciones */
+    .option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+    .option {
+      text-align: left; padding: 14px 18px; border: 2px solid rgba(55, 90, 127, 0.14);
+      border-radius: 18px; background: rgba(255, 255, 255, 0.82); cursor: pointer;
+      font-weight: 800; transition: 0.16s ease; font-size: 0.96rem;
+    }
+    .option:hover { border-color: rgba(45, 143, 115, 0.5); transform: translateY(-1px); }
+    .option.correct { background: rgba(217, 247, 216, 0.95); border-color: var(--verde-ok); color: #104e41; }
+    .option.wrong { background: rgba(255, 220, 232, 0.95); border-color: var(--rojo-alerta); color: #781e2b; }
+    
+    .feedback { display: none; margin-top: 10px; padding: 12px 16px; border-radius: 16px; font-weight: 850; }
+    .feedback.show { display: block; animation: fadeSlide 0.2s ease both; }
+    .feedback.ok { background: rgba(217, 247, 216, 0.9); color: var(--verde-ok); }
+    .feedback.bad { background: rgba(255, 220, 232, 0.9); color: var(--rojo-alerta); }
+    
+    .reveal { display: none; margin-top: 12px; animation: fadeSlide 0.22s ease both; }
+    .reveal.show { display: block; }
+    
+    .hero-art {
+      min-height: 380px; border-radius: 28px;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8), transparent 25%), linear-gradient(145deg, var(--celeste), var(--turquesa));
+      box-shadow: var(--sombra-suave); position: relative; overflow: hidden;
+      border: 4px solid rgba(255, 255, 255, 0.65); display: grid; place-items: center;
+    }
+    .curve-card {
+      background: rgba(255, 253, 248, 0.94); padding: 16px 24px; border-radius: 22px;
+      box-shadow: 0 16px 36px rgba(44, 62, 80, 0.15); border: 1px solid rgba(255, 255, 255, 0.9);
+    }
+    .footer-author { margin-top: 14px; font-size: 0.82rem; color: var(--texto-suave); font-weight: 750; }
+
+    /* SVG Graphics */
+    .chart-container svg {
+      width: 100%; max-width: 480px; height: auto; margin: auto; display: block;
+      font-family: inherit;
+    }
+    .chart-container .curve { fill: none; stroke: var(--azul-titulo); stroke-width: 3.5; }
+    .chart-container .axis { stroke: var(--texto-suave); stroke-width: 2; }
+    .chart-container .marker { stroke: var(--tinta); stroke-dasharray: 4; stroke-width: 1.5; }
+    .chart-container .fill-base { fill: #f0f4f8; }
+    .chart-container .text-val { font-size: 14px; fill: var(--tinta); font-weight: bold; text-anchor: middle; }
+    .chart-container .text-area { font-size: 16px; font-weight: 850; text-anchor: middle; }
+
+    @media (max-width: 920px) {
+      .split, .two-col, .three-col { grid-template-columns: 1fr; }
+      .screen { padding: 22px 18px; }
+      .option-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .topbar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .brand-title { max-width: 100%; white-space: normal; }
+      .nav-controls { flex-wrap: wrap; }
+      .nav-controls .btn { flex: 1 1 120px; }
+      .slide-counter { order: -1; width: 100%; text-align: center; }
+      h1 { font-size: 2rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Barra Superior -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-badge">📊</div>
+        <div>
+          <div class="brand-title" id="brandTitle">Matemáticas · Distribución Normal</div>
+          <small id="brandSubtitle">Tercero de BGU · 90 minutos</small>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>Avance de la clase</span>
+          <span id="globalProgressText">1/20</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="globalProgress"></div></div>
+      </div>
+    </header>
+
+    <main class="deck" id="deck">
+
+      <!-- SLIDE 1: Portada -->
+      <section class="slide active" data-slide-title="Portada">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar">
+                <span class="dua compromiso">DUA · Compromiso</span>
+                <span class="dua representacion">DUA · Representación</span>
+              </div>
+              <h1>Distribución Normal: Estandarización y Probabilidades</h1>
+              <p class="lead">Modelo continuo estadístico, variables estandarizadas Z, curva de densidad y aplicación de la Regla Empírica.</p>
+              <div class="pill-row">
+                <span class="pill">📘 Matemáticas</span>
+                <span class="pill">🎓 Tercero de BGU</span>
+                <span class="pill">⏱️ 90 minutos</span>
+              </div>
+              <div class="callout remember">
+                <strong>Idea Clave:</strong> La curva normal es el modelo continuo más importante en estadística, describiendo fenómenos donde la mayoría de los valores se agrupan en torno a un promedio.
+              </div>
+              <div class="footer-author">Módulo pedagógico elaborado por: Econ. Pablo Hernan Juca Farfan</div>
+            </div>
+            <div class="hero-art">
+              <div class="curve-card">
+                <span class="mini-tag">Notación Matemática</span>
+                <div class="math-box center-math">
+                  \[ X \sim N(\mu, \sigma) \]
+                </div>
+                <div class="math-box center-math">
+                  \[ Z = \frac{x - \mu}{\sigma} \]
+                </div>
+                <small class="muted">Campana de Gauss Estandarizada</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 2: Propósito de la clase -->
+      <section class="slide" data-slide-title="Propósito">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Propósito y Ruta de la Clase</h2>
+            <p class="lead">Al finalizar esta clase comprenderás cómo funciona el modelo de la distribución normal, cómo estandarizar variables y cómo calcular la probabilidad de eventos continuos.</p>
+            <div class="three-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Momento 1</span>
+                <h3>Conceptos</h3>
+                <p>Curva de densidad, área bajo la curva, parámetros \(\mu\) (media) y \(\sigma\) (desviación estándar).</p>
+              </div>
+              <div class="card soft-menta">
+                <span class="mini-tag">Momento 2</span>
+                <h3>Estandarización</h3>
+                <p>Convertir variables reales a la distribución normal estándar \(Z \sim N(0, 1)\) usando su fórmula.</p>
+              </div>
+              <div class="card soft-lila">
+                <span class="mini-tag">Momento 3</span>
+                <h3>Cálculo y Tablas</h3>
+                <p>Aprender a leer la tabla \(\Phi(z)\) y calcular probabilidades en intervalos cerrados o colas.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 3: Activación -->
+      <section class="slide" data-slide-title="Activación diagnóstica">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua compromiso">DUA · Compromiso</span></div>
+            <h2>Activación: Variables Continuas</h2>
+            <p class="lead">Cuando medimos magnitudes exactas, ¿cómo se calcula la probabilidad de que una caja de banano pese <strong>exactamente</strong> 20.0000 kg?</p>
+            <div class="option-grid" data-question="q_act">
+              <button class="option" data-correct="false" onclick="checkOption(this)">Es muy alta, porque 20 kg es el promedio.</button>
+              <button class="option" data-correct="true" onclick="checkOption(this)">La probabilidad de un valor exacto en variables continuas es siempre CERO.</button>
+            </div>
+            <div class="feedback ok" id="q_act-ok">
+              ✅ ¡Exacto! En una variable aleatoria continua, \(P(X=a)=0\). No se asigna probabilidad a puntos aislados, sino al <strong>área bajo la curva</strong> en un intervalo: \(P(a \le X \le b)\).
+            </div>
+            <div class="feedback bad" id="q_act-bad">
+              💡 Piensa en esto: una balanza infinitamente precisa jamás marcará un número cerrado como 20.00000000 sin el mínimo desvío. Por eso \(P(X=a)=0\).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 4: La distribución normal -->
+      <section class="slide" data-slide-title="La Distribución Normal">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>01. La Distribución Normal y sus Parámetros</h2>
+            <p class="lead">Describe fenómenos donde los valores se agrupan alrededor del centro (estaturas, pesos, puntajes, errores de medición). Se denota como:</p>
+            <div class="math-box center-math">
+              \[ X \sim N(\mu, \sigma) \]
+            </div>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <h3>El centro: \(\mu\) (media)</h3>
+                <p>Es el centro geométrico de la campana. Si \(\mu\) cambia, la curva entera <strong>se desplaza</strong> a la izquierda o derecha en el eje horizontal.</p>
+              </div>
+              <div class="card soft-rosa">
+                <h3>La dispersión: \(\sigma\) (desv. estándar)</h3>
+                <p>Determina la anchura de la campana. Si \(\sigma\) es grande, la curva es baja y ancha. Si \(\sigma\) es pequeño, la curva es alta y estrecha (\(\sigma > 0\)).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 5: Propiedades -->
+      <section class="slide" data-slide-title="Propiedades de la Curva">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Propiedades de la Curva Normal</h2>
+            <div class="step-list">
+              <div class="step">
+                <div class="step-number">1</div>
+                <div><strong>Forma y simetría:</strong> Tiene forma de campana y es simétrica respecto a la recta \(x=\mu\).</div>
+              </div>
+              <div class="step">
+                <div class="step-number">2</div>
+                <div><strong>Centro:</strong> La media, mediana y moda coinciden en \(\mu\). Ahí alcanza su valor máximo.</div>
+              </div>
+              <div class="step">
+                <div class="step-number">3</div>
+                <div><strong>Área total:</strong> El área total bajo la curva es igual a <strong>1</strong> (100%). Por la simetría, hay 0.5 a la izquierda y 0.5 a la derecha.</div>
+              </div>
+              <div class="step">
+                <div class="step-number">4</div>
+                <div><strong>Asintótica:</strong> Se acerca al eje horizontal sin tocarlo jamás. Los valores alejados son posibles pero poco probables.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 6: Ejemplo 1 -->
+      <section class="slide" data-slide-title="Ejemplo 1 (Identificar parámetros)">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar"><span class="dua accion">DUA · Acción y expresión</span></div>
+              <h2>Ejemplo 1: Identificar y comparar</h2>
+              <p class="lead">El tiempo que Ana tarda en llegar al colegio sigue \(X \sim N(25, 4)\).</p>
+              <div class="card soft-crema">
+                <span class="mini-tag">Parámetros</span>
+                <p>\(\mu = 25 \text{ min}\) y \(\sigma = 4 \text{ min}\).</p>
+                <p><strong>¿Qué es más probable?</strong> ¿Tardar entre 24 y 26 min, o entre 14 y 16 min?</p>
+              </div>
+              <div class="callout error">
+                <strong>Análisis:</strong> Ambos intervalos duran 2 minutos de longitud. Pero [24, 26] está en el centro (\(\mu=25\)), donde la curva es alta (mayor área). En cambio, [14, 16] está en la cola izquierda, donde el área es ínfima.
+              </div>
+            </div>
+            
+            <div class="card soft-blanco chart-container">
+              <span class="mini-tag center">Comparación de Áreas</span>
+              <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <clipPath id="clip-ej1-center"><rect x="234" y="0" width="32" height="200" /></clipPath>
+                  <clipPath id="clip-ej1-tail"><rect x="72" y="0" width="32" height="200" /></clipPath>
+                </defs>
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" class="fill-base" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" fill="#b8f2e6" clip-path="url(#clip-ej1-center)" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" fill="#ffdce8" clip-path="url(#clip-ej1-tail)" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170" class="curve" />
+                <line x1="10" y1="170" x2="490" y2="170" class="axis" />
+                <line x1="250" y1="170" x2="250" y2="20" class="marker" />
+                <text x="250" y="190" class="text-val">25</text>
+                <text x="250" y="70" class="text-area" fill="#1e6454">Alto</text>
+                <text x="88" y="140" class="text-area" fill="#a83b4b" font-size="12">Bajo</text>
+                <text x="88" y="190" class="text-val">15</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 7: Regla empírica -->
+      <section class="slide" data-slide-title="Regla Empírica">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>La Regla Empírica (68 - 95 - 99.7)</h2>
+            <p class="lead">Antes de usar tablas exactas, esta regla permite estimar probabilidades rápidamente usando múltiplos de \(\sigma\) alrededor de \(\mu\).</p>
+            <div class="math-box center-math">
+              \[ P(\mu - \sigma < X < \mu + \sigma) \approx 0.68 \quad (68\%) \]
+              \[ P(\mu - 2\sigma < X < \mu + 2\sigma) \approx 0.95 \quad (95\%) \]
+              \[ P(\mu - 3\sigma < X < \mu + 3\sigma) \approx 0.997 \quad (99.7\%) \]
+            </div>
+            <div class="callout remember">
+              <strong>Interpretación:</strong> Casi todos los valores (99.7%) se encuentran a menos de 3 desviaciones estándar (\(3\sigma\)) de la media. Un valor fuera de este límite es, estadísticamente, un caso muy raro.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 8: Estandarización -->
+      <section class="slide" data-slide-title="Estandarización (z)">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>02. La Estandarización: El valor z</h2>
+            <p class="lead">Sería imposible tener una tabla para cada combinación de \(\mu\) y \(\sigma\). Convertimos cualquier variable \(X\) a la escala <strong>Normal Estándar \(Z \sim N(0, 1)\)</strong>.</p>
+            <div class="card soft-menta">
+              <span class="mini-tag">Fórmula de Estandarización</span>
+              <div class="math-box center-math">
+                \[ z = \frac{x - \mu}{\sigma} \]
+              </div>
+              <p class="center">El valor \(z\) mide <strong>cuántas desviaciones estándar</strong> hay de distancia entre el valor \(x\) y la media \(\mu\).</p>
+            </div>
+            <div class="three-col">
+              <div class="card soft-celeste center">
+                <h3>\(z > 0\)</h3>
+                <p>El valor está por encima de la media.</p>
+              </div>
+              <div class="card soft-crema center">
+                <h3>\(z = 0\)</h3>
+                <p>El valor coincide exactamente con la media.</p>
+              </div>
+              <div class="card soft-rosa center">
+                <h3>\(z < 0\)</h3>
+                <p>El valor está por debajo de la media.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 9: Función Acumulada y Tabla -->
+      <section class="slide" data-slide-title="Función Acumulada Phi">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>La Función de Distribución Acumulada \(\Phi(z)\)</h2>
+            <p class="lead">Para la normal estándar \(Z\), \(\Phi(z)\) entrega el área <strong>acumulada desde la izquierda</strong> hasta el valor \(z\).</p>
+            <div class="math-box center-math">
+              \[ \Phi(z) = P(Z \le z) \]
+            </div>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <h3>Propiedades Fundamentales</h3>
+                <ul>
+                  <li>\(\Phi(0) = 0.5\)</li>
+                  <li>\(P(Z > z) = 1 - \Phi(z)\)</li>
+                  <li>Para valores negativos: \(\Phi(-z) = 1 - \Phi(z)\)</li>
+                </ul>
+              </div>
+              <div class="card soft-durazno">
+                <h3>Lectura de la Tabla Z</h3>
+                <p>Ejemplo: Para buscar \(\Phi(1.37)\):</p>
+                <ol>
+                  <li>Buscar fila <strong>1.3</strong></li>
+                  <li>Buscar columna <strong>0.07</strong></li>
+                  <li>Cruce: <strong>0.9147</strong></li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 10: Modelos de Cálculo -->
+      <section class="slide" data-slide-title="Modelos de Cálculo">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Modelos de Cálculo en 4 Pasos</h2>
+            <div class="math-box center-math">
+              \[ \text{Cola Izquierda: } P(X < b) = \Phi(z_b) \]
+              \[ \text{Cola Derecha: } P(X > a) = 1 - \Phi(z_a) \]
+              \[ \text{Entre dos valores: } P(a < X < b) = \Phi(z_b) - \Phi(z_a) \]
+            </div>
+            <p class="center">Donde \(z_a = \frac{a-\mu}{\sigma}\) y \(z_b = \frac{b-\mu}{\sigma}\)</p>
+            
+            <div class="card soft-crema">
+              <span class="mini-tag">Método General Recomendado</span>
+              <div class="step-list">
+                <div class="step">
+                  <div class="step-number">1</div><div><strong>Identifica:</strong> Reconoce \(\mu\), \(\sigma\) y el área pedida. Dibuja la campana.</div>
+                </div>
+                <div class="step">
+                  <div class="step-number">2</div><div><strong>Estandariza:</strong> Convierte cada límite de \(X\) a \(z\) dividiendo por \(\sigma\).</div>
+                </div>
+                <div class="step">
+                  <div class="step-number">3</div><div><strong>Busca \(\Phi\):</strong> Lee en la tabla los valores correspondientes.</div>
+                </div>
+                <div class="step">
+                  <div class="step-number">4</div><div><strong>Calcula:</strong> Combina las áreas según tu dibujo.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 11: Ejemplo 2 -->
+      <section class="slide" data-slide-title="Ejemplo 2 (Probabilidad Entre)">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar"><span class="dua accion">DUA · Acción y expresión</span></div>
+              <h2>Ejemplo 2: Entre dos valores</h2>
+              <p class="lead">Puntajes de una prueba siguen \(X \sim N(70, 10)\). Hallar \(P(60 < X < 80)\).</p>
+              <div class="card soft-celeste">
+                <div class="math-box">
+                  \[ z_a = \frac{60 - 70}{10} = -1 \quad z_b = \frac{80 - 70}{10} = 1 \]
+                </div>
+                <p>En la tabla: \(\Phi(1) = 0.8413\), \(\Phi(-1) = 0.1587\).</p>
+                <div class="math-box">
+                  \[ P = 0.8413 - 0.1587 = \mathbf{0.6826} \]
+                </div>
+                <p class="center">Aproximadamente el <strong>68.26%</strong>.</p>
+              </div>
+            </div>
+
+            <div class="card soft-blanco chart-container">
+              <span class="mini-tag center">Gráfico Área Central</span>
+              <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+                <defs><clipPath id="clip-ej2"><rect x="185" y="0" width="130" height="200" /></clipPath></defs>
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" class="fill-base" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" fill="#b8f2e6" clip-path="url(#clip-ej2)" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170" class="curve" />
+                <line x1="10" y1="170" x2="490" y2="170" class="axis" />
+                <line x1="250" y1="170" x2="250" y2="20" class="marker" />
+                <text x="250" y="190" class="text-val">70</text>
+                <line x1="185" y1="170" x2="185" y2="100" class="marker" stroke="#226f5d" />
+                <text x="185" y="190" class="text-val">60</text>
+                <line x1="315" y1="170" x2="315" y2="100" class="marker" stroke="#226f5d" />
+                <text x="315" y="190" class="text-val">80</text>
+                <text x="250" y="110" class="text-area" fill="#1e6454">68.26%</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 12: Ejemplo 3 -->
+      <section class="slide" data-slide-title="Ejemplo 3 (Interpretar Z)">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar"><span class="dua accion">DUA · Acción y expresión</span></div>
+              <h2>Ejemplo 3: Interpretar la Z</h2>
+              <p class="lead">Puntajes \(X \sim N(70, 10)\). Mónica = 85, Luis = 58.</p>
+              <div class="card soft-lila" style="margin-bottom: 10px;">
+                <p><strong>Mónica (85):</strong></p>
+                <div class="math-box center-math">\[ z_{M} = \frac{85 - 70}{10} = \mathbf{1.5} \]</div>
+                <p>1.5 desviaciones <strong>por encima</strong>.</p>
+              </div>
+              <div class="card soft-rosa">
+                <p><strong>Luis (58):</strong></p>
+                <div class="math-box center-math">\[ z_{L} = \frac{58 - 70}{10} = \mathbf{-1.2} \]</div>
+                <p>1.2 desviaciones <strong>por debajo</strong>.</p>
+              </div>
+            </div>
+
+            <div class="card soft-blanco chart-container">
+              <span class="mini-tag center">Ubicación de Valores Z</span>
+              <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" class="fill-base" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170" class="curve" />
+                <line x1="10" y1="170" x2="490" y2="170" class="axis" />
+                
+                <line x1="250" y1="170" x2="250" y2="20" class="marker" />
+                <text x="250" y="190" class="text-val">70 (z=0)</text>
+                
+                <line x1="172" y1="170" x2="172" y2="90" stroke="#a83b4b" stroke-width="2" />
+                <text x="172" y="190" class="text-val" fill="#a83b4b">58 (z=-1.2)</text>
+                
+                <line x1="347.5" y1="170" x2="347.5" y2="60" stroke="#226f5d" stroke-width="2" />
+                <text x="347.5" y="190" class="text-val" fill="#226f5d">85 (z=1.5)</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 13: Ejemplo 4 -->
+      <section class="slide" data-slide-title="Ejemplo 4 (Cola Izquierda)">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar"><span class="dua accion">DUA · Acción y expresión</span></div>
+              <h2>Ejemplo 4: Cola Izquierda</h2>
+              <p class="lead">Cajas de banano \(X \sim N(18.5, 0.3)\). ¿Proporción que pesa menos de 18.14 kg?</p>
+              <div class="card soft-rosa">
+                <div class="math-box center-math">
+                  \[ z = \frac{18.14 - 18.5}{0.3} = -1.2 \]
+                </div>
+                <div class="math-box center-math">
+                  \[ P(X < 18.14) = \Phi(-1.2) \]
+                  \[ = 1 - \Phi(1.2) \]
+                  \[ = 1 - 0.8849 = \mathbf{0.1151} \]
+                </div>
+                <p>El <strong>11.51%</strong> pesa menos del mínimo.</p>
+              </div>
+            </div>
+
+            <div class="card soft-blanco chart-container">
+              <span class="mini-tag center">Cola Izquierda</span>
+              <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+                <defs><clipPath id="clip-ej4"><rect x="0" y="0" width="172" height="200" /></clipPath></defs>
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" class="fill-base" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" fill="#ffdce8" clip-path="url(#clip-ej4)" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170" class="curve" />
+                <line x1="10" y1="170" x2="490" y2="170" class="axis" />
+                
+                <line x1="250" y1="170" x2="250" y2="20" class="marker" />
+                <text x="250" y="190" class="text-val">18.5</text>
+                
+                <line x1="172" y1="170" x2="172" y2="90" stroke="#a83b4b" stroke-width="2" />
+                <text x="172" y="190" class="text-val">18.14</text>
+                
+                <text x="120" y="140" class="text-area" fill="#a83b4b">11.51%</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 14: Ejemplo 5 -->
+      <section class="slide" data-slide-title="Ejemplo 5 (Cola Derecha)">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar"><span class="dua accion">DUA · Acción y expresión</span></div>
+              <h2>Ejemplo 5: Cola Derecha</h2>
+              <p class="lead">Con \(X \sim N(70, 10)\), calcula \(P(X > 85)\).</p>
+              <div class="card soft-durazno">
+                <div class="math-box center-math">
+                  \[ z = \frac{85 - 70}{10} = 1.5 \]
+                </div>
+                <div class="math-box center-math">
+                  \[ P(X > 85) = 1 - \Phi(1.5) \]
+                  \[ = 1 - 0.9332 = \mathbf{0.0668} \]
+                </div>
+                <p>El <strong>6.68%</strong> obtiene más de 85.</p>
+              </div>
+            </div>
+
+            <div class="card soft-blanco chart-container">
+              <span class="mini-tag center">Cola Derecha</span>
+              <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+                <defs><clipPath id="clip-ej5"><rect x="347.5" y="0" width="152.5" height="200" /></clipPath></defs>
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" class="fill-base" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" fill="#ffe1c6" clip-path="url(#clip-ej5)" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170" class="curve" />
+                <line x1="10" y1="170" x2="490" y2="170" class="axis" />
+                
+                <line x1="250" y1="170" x2="250" y2="20" class="marker" />
+                <text x="250" y="190" class="text-val">70</text>
+                
+                <line x1="347.5" y1="170" x2="347.5" y2="60" stroke="#d97706" stroke-width="2" />
+                <text x="347.5" y="190" class="text-val">85</text>
+                
+                <text x="390" y="150" class="text-area" fill="#d97706">6.68%</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 15: Ejemplo 6 -->
+      <section class="slide" data-slide-title="Ejemplo 6 (Asimétrico)">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar"><span class="dua accion">DUA · Acción y expresión</span></div>
+              <h2>Ejemplo 6: Asimétrico</h2>
+              <p class="lead">Estatura \(X \sim N(165, 6)\). Hallar \(P(153 < X < 171)\).</p>
+              <div class="card soft-celeste">
+                <div class="math-box">
+                  \[ z_a = \frac{153 - 165}{6} = -2 \quad z_b = \frac{171 - 165}{6} = 1 \]
+                </div>
+                <div class="math-box">
+                  \[ \Phi(1) - \Phi(-2) = 0.8413 - 0.0228 \]
+                  \[ = \mathbf{0.8185} \]
+                </div>
+                <p>Área abarcada = <strong>81.85%</strong>.</p>
+              </div>
+            </div>
+
+            <div class="card soft-blanco chart-container">
+              <span class="mini-tag center">Intervalo Asimétrico</span>
+              <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+                <defs><clipPath id="clip-ej6"><rect x="120" y="0" width="195" height="200" /></clipPath></defs>
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" class="fill-base" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" fill="#cfefff" clip-path="url(#clip-ej6)" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170" class="curve" />
+                <line x1="10" y1="170" x2="490" y2="170" class="axis" />
+                
+                <line x1="250" y1="170" x2="250" y2="20" class="marker" />
+                <text x="250" y="190" class="text-val">165</text>
+                
+                <line x1="120" y1="170" x2="120" y2="140" stroke="#2c5276" stroke-width="2" />
+                <text x="120" y="190" class="text-val">153</text>
+                
+                <line x1="315" y1="170" x2="315" y2="100" stroke="#2c5276" stroke-width="2" />
+                <text x="315" y="190" class="text-val">171</text>
+                
+                <text x="220" y="110" class="text-area" fill="#2c5276">81.85%</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 16: Camino Inverso -->
+      <section class="slide" data-slide-title="Camino Inverso">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+              <h2>Ejemplo 8: Camino Inverso</h2>
+              <p class="lead">Puntajes \(X \sim N(70, 10)\). Puntaje mínimo para estar en el 10% mejor.</p>
+              <div class="card soft-lila">
+                <ul>
+                  <li>El 10% superior significa que deja al 90% por debajo: \(P(X \le x) = 0.90\).</li>
+                  <li>En tabla, \(\Phi(1.28) \approx 0.90\).</li>
+                  <li>Despejamos: \(x = \mu + z\sigma\)</li>
+                </ul>
+                <div class="math-box center-math">
+                  \[ x = 70 + (1.28)(10) = \mathbf{82.8} \]
+                </div>
+              </div>
+            </div>
+
+            <div class="card soft-blanco chart-container">
+              <span class="mini-tag center">El 10% de la Cola Derecha</span>
+              <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+                <defs><clipPath id="clip-ej8"><rect x="333" y="0" width="167" height="200" /></clipPath></defs>
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" class="fill-base" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" fill="#e8dcff" clip-path="url(#clip-ej8)" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170" class="curve" />
+                <line x1="10" y1="170" x2="490" y2="170" class="axis" />
+                
+                <line x1="250" y1="170" x2="250" y2="20" class="marker" />
+                <text x="250" y="190" class="text-val">70</text>
+                
+                <line x1="333" y1="170" x2="333" y2="70" stroke="#523f82" stroke-width="2" />
+                <text x="333" y="190" class="text-val">82.8</text>
+                
+                <text x="220" y="110" class="text-area" fill="#596275">90% inferior</text>
+                <text x="380" y="140" class="text-area" fill="#523f82">10%</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 17: Comparación -->
+      <section class="slide" data-slide-title="Ejemplo 9 (Comparación)">
+        <div class="screen">
+          <div class="screen-content split">
+            <div>
+              <div class="dua-bar"><span class="dua compromiso">DUA · Compromiso</span></div>
+              <h2>Ejemplo 9: Comparación</h2>
+              <p class="lead">Mate: 82 ptos en \(N(70, 10)\). Lengua: 76 ptos en \(N(65, 5)\).</p>
+              <div class="card soft-crema" style="margin-bottom: 8px;">
+                <div class="math-box">\[ z_M = \frac{82 - 70}{10} = \mathbf{1.2} \]</div>
+              </div>
+              <div class="card soft-menta">
+                <div class="math-box">\[ z_L = \frac{76 - 65}{5} = \mathbf{2.2} \]</div>
+              </div>
+              <p class="center" style="margin-top: 10px;"><strong>Lengua es mejor (está más a la derecha).</strong></p>
+            </div>
+
+            <div class="card soft-blanco chart-container">
+              <span class="mini-tag center">Curva Z Estándar N(0,1)</span>
+              <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170 L 480 170 L 20 170 Z" class="fill-base" />
+                <path d="M 20 170 C 110 170, 160 20, 250 20 C 340 20, 390 170, 480 170" class="curve" />
+                <line x1="10" y1="170" x2="490" y2="170" class="axis" />
+                
+                <line x1="250" y1="170" x2="250" y2="20" class="marker" />
+                <text x="250" y="190" class="text-val">0 (Centro)</text>
+                
+                <line x1="328" y1="170" x2="328" y2="80" stroke="#d97706" stroke-width="2.5" />
+                <text x="328" y="190" class="text-val" fill="#d97706">1.2 (Mate)</text>
+                
+                <line x1="393" y1="170" x2="393" y2="140" stroke="#226f5d" stroke-width="2.5" />
+                <text x="393" y="190" class="text-val" fill="#226f5d">2.2 (Lengua)</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 18: Errores Frecuentes -->
+      <section class="slide" data-slide-title="Errores Frecuentes">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua accion">DUA · Acción y expresión</span></div>
+            <h2>Errores muy comunes a evitar</h2>
+            <div class="three-col">
+              <div class="card soft-rosa">
+                <span class="icon-big">⚠️</span>
+                <h3>Usar la Varianza</h3>
+                <p>Usar \(\sigma^2\) en lugar de \(\sigma\) en el denominador al estandarizar. <strong>Siempre</strong> divide por la desviación estándar.</p>
+              </div>
+              <div class="card soft-durazno">
+                <span class="icon-big">⚠️</span>
+                <h3>Restar las z</h3>
+                <p>Calcular \(z_b - z_a\) en vez de las probabilidades acumuladas. Lo correcto es restar áreas: \(\Phi(z_b) - \Phi(z_a)\).</p>
+              </div>
+              <div class="card soft-celeste">
+                <span class="icon-big">⚠️</span>
+                <h3>Mala Interpretación</h3>
+                <p>Confundir "mayor que" (cola derecha, restar de 1) con "menor que" (directo \(\Phi\)). <strong>Dibuja siempre la campana</strong> antes de resolver.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 19: Síntesis -->
+      <section class="slide" data-slide-title="Síntesis">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua representacion">DUA · Representación</span></div>
+            <h2>Síntesis Conceptual</h2>
+            <div class="step-list">
+              <div class="step">
+                <div class="step-number">1</div>
+                <div><strong>Modelo Normal:</strong> Depende solo del promedio (\(\mu\)) y de la dispersión de datos (\(\sigma\)).</div>
+              </div>
+              <div class="step">
+                <div class="step-number">2</div>
+                <div><strong>Estandarización (\(z\)):</strong> Permite comparar diferentes situaciones usando una tabla universal. Se calcula con \(z = \frac{x-\mu}{\sigma}\).</div>
+              </div>
+              <div class="step">
+                <div class="step-number">3</div>
+                <div><strong>Área = Probabilidad:</strong> \(\Phi(z)\) acumula toda la probabilidad desde la izquierda extrema hasta \(z\).</div>
+              </div>
+              <div class="step">
+                <div class="step-number">4</div>
+                <div><strong>Intervalos:</strong> Para buscar qué porcentaje cae entre dos límites, se restan sus probabilidades acumuladas \(\Phi(z_b) - \Phi(z_a)\).</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 20: Cierre y Reto -->
+      <section class="slide" data-slide-title="Cierre y Reto">
+        <div class="screen">
+          <div class="screen-content">
+            <div class="dua-bar"><span class="dua compromiso">DUA · Compromiso</span></div>
+            <h2>Evaluación Formativa y Reto</h2>
+            <div class="two-col">
+              <div class="card soft-celeste">
+                <span class="mini-tag">Reflexión Final</span>
+                <h3>Simetría</h3>
+                <p>¿Por qué el porcentaje de casos superiores a \(\mu + 2\sigma\) es exactamente el mismo porcentaje inferior a \(\mu - 2\sigma\)?</p>
+              </div>
+              <div class="card soft-lila">
+                <span class="mini-tag">Reto de Simetría (Pág. 15)</span>
+                <p>Sea \(Z \sim N(0, 1)\). Sabiendo que \(\Phi(-z) = 1 - \Phi(z)\), demuestra formalmente que:</p>
+                <div class="math-box center-math">
+                  \[ P(-z < Z < z) = 2\Phi(z) - 1 \]
+                </div>
+                <button class="btn btn-primary" onclick="toggleReveal('retoSol')">Mostrar pista</button>
+                <div class="reveal" id="retoSol">
+                  <div class="callout teacher">
+                    \(\Phi(z) - \Phi(-z) = \Phi(z) - (1 - \Phi(z)) = 2\Phi(z) - 1\). ¡Inténtalo!
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="footer-author center">
+              ¡Excelente trabajo en clase! · Bachillerato General Unificado · Matemáticas
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Navegación -->
+    <nav class="nav-controls">
+      <button class="btn btn-ghost" id="prevBtn" onclick="prevSlide()">← Anterior</button>
+      <div class="slide-counter" id="slideCounter">1 / 20</div>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextSlide()">Siguiente →</button>
+    </nav>
+  </div>
+
+  <script>
+    const PRESENTATION_TITLE = "Distribución Normal: Estandarización";
+    const SUBJECT = "Matemáticas";
+    const COURSE = "Tercero de BGU";
+    
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const progressFill = document.getElementById('globalProgress');
+    const progressText = document.getElementById('globalProgressText');
+    const slideCounter = document.getElementById('slideCounter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    let currentSlide = 0;
+
+    function updateSlide() {
+      slides.forEach((slide, index) => slide.classList.toggle('active', index === currentSlide));
+      const total = slides.length;
+      const index = currentSlide + 1;
+      slideCounter.textContent = `${index} / ${total}`;
+      progressText.textContent = `${index}/${total}`;
+      progressFill.style.width = `${(index / total) * 100}%`;
+      prevBtn.disabled = currentSlide === 0;
+      nextBtn.disabled = currentSlide === total - 1;
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([slides[currentSlide]]).catch(err => console.warn("MathJax error:", err));
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToSlide(i) {
+      currentSlide = Math.max(0, Math.min(i, slides.length - 1));
+      updateSlide();
+    }
+    function nextSlide() { goToSlide(currentSlide + 1); }
+    function prevSlide() { goToSlide(currentSlide - 1); }
+
+    function toggleReveal(id) {
+      const el = document.getElementById(id);
+      if(el) {
+        el.classList.toggle('show');
+        if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([el]);
+      }
+    }
+
+    function checkOption(button) {
+      const grid = button.closest('.option-grid');
+      const questionId = grid.dataset.question;
+      grid.querySelectorAll('.option').forEach(opt => opt.classList.remove('correct', 'wrong'));
+      document.querySelectorAll(`#${questionId}-ok, #${questionId}-bad`).forEach(f => f.classList.remove('show'));
+      
+      const isCorrect = button.dataset.correct === 'true';
+      button.classList.add(isCorrect ? 'correct' : 'wrong');
+      const feedback = document.getElementById(`${questionId}-${isCorrect ? 'ok' : 'bad'}`);
+      if (feedback) feedback.classList.add('show');
+      
+      if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([grid, feedback]);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { if (e.target.tagName !== 'BUTTON') nextSlide(); }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') { if (e.target.tagName !== 'BUTTON') prevSlide(); }
+      if (e.key === 'Home') goToSlide(0);
+      if (e.key === 'End') goToSlide(slides.length - 1);
+    });
+
+    let touchX = 0, touchY = 0;
+    document.addEventListener('touchstart', e => {
+      if(e.changedTouches) { touchX = e.changedTouches[0].screenX; touchY = e.changedTouches[0].screenY; }
+    }, {passive: true});
+    document.addEventListener('touchend', e => {
+      if(!e.changedTouches) return;
+      const dx = e.changedTouches[0].screenX - touchX;
+      const dy = e.changedTouches[0].screenY - touchY;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        dx < 0 ? nextSlide() : prevSlide();
+      }
+    }, {passive: true});
+
+    updateSlide();
+  </script>
+</body>
+</html>

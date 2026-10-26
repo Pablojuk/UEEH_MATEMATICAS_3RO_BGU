@@ -292,7 +292,7 @@ serve(async (req: Request) => {
 
     const { data: activity, error: actError } = await serviceClient
       .from("activities")
-      .select("id, class_section_id, max_score, minimum_score, is_active, opens_at, due_at")
+      .select("id, class_section_id, unit_number, max_score, minimum_score, is_active, opens_at, due_at")
       .eq("activity_key", activity_key)
       .maybeSingle();
 
@@ -335,6 +335,7 @@ serve(async (req: Request) => {
           score: existingAttempt.score,
           max_score: Number(activity.max_score) || 10.00,
           best_score: bestRes?.best_score ?? existingAttempt.score,
+          final_score: existingAttempt.score,
           attempt_count: bestRes?.attempt_count ?? existingAttempt.attempt_number,
           registered_at: existingAttempt.completed_at || new Date().toISOString()
         }),
@@ -450,19 +451,80 @@ serve(async (req: Request) => {
       computedScore = totalScore / totalRequired;
 
       if (currentPhase === "recovery") {
-        const { data: initialRun } = await serviceClient
-          .from("activity_runs")
-          .select("final_score")
+        const { data: pastAttempts, error: pastAttErr } = await serviceClient
+          .from("activity_attempts")
+          .select("id, score, submission_data, completed_at")
           .eq("activity_id", activity.id)
           .eq("student_id", student.id)
-          .eq("phase", "initial")
-          .eq("status", "completed")
-          .order("completed_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .order("completed_at", { ascending: false });
 
-        const initialScore = Number(initialRun?.final_score || 0);
-        computedScore = Math.max(initialScore, computedScore);
+        if (pastAttErr || !pastAttempts || pastAttempts.length === 0) {
+          return badRequest(
+            cors,
+            diagnostic,
+            "INITIAL_ATTEMPT_NOT_FOUND",
+            "No se encontró una entrega inicial registrada para esta actividad"
+          );
+        }
+
+        const initialAttempt = pastAttempts.find((att: any) =>
+          att.submission_data?.phase === "initial"
+        ) || (pastAttempts.length > 0 ? pastAttempts[pastAttempts.length - 1] : null);
+
+        if (!initialAttempt) {
+          return badRequest(
+            cors,
+            diagnostic,
+            "INITIAL_ATTEMPT_NOT_FOUND",
+            "No se encontró una entrega inicial registrada para esta actividad"
+          );
+        }
+
+        const rawInitialScore = Number(
+          initialAttempt.submission_data?.raw_initial_score ??
+          initialAttempt.submission_data?.raw_score ??
+          initialAttempt.score
+        );
+
+        if (isNaN(rawInitialScore)) {
+          return badRequest(
+            cors,
+            diagnostic,
+            "INVALID_INITIAL_SCORE",
+            "No se pudo determinar la calificación inicial oficial"
+          );
+        }
+
+        if (rawInitialScore >= 7.00) {
+          return badRequest(
+            cors,
+            diagnostic,
+            "RECOVERY_NOT_ALLOWED",
+            "La fase de recuperación solo está disponible si la nota inicial es menor a 7.00"
+          );
+        }
+
+        const recoveryScore = totalScore / totalRequired;
+        const activityUnit = Number(activity.unit_number) || 0;
+        const explicitPolicy = gradingConfigData.config.recovery_policy ||
+                               gradingConfigData.config.recoveryPolicy;
+        const recoveryPolicy = explicitPolicy || (activityUnit >= 7 || graderType === "exercise_set" ? "average" : "max");
+
+        if (recoveryPolicy === "average") {
+          computedScore = (rawInitialScore + recoveryScore) / 2.0;
+        } else {
+          computedScore = Math.max(rawInitialScore, recoveryScore);
+        }
+
+        submissionDetails.phase = "recovery";
+        submissionDetails.raw_initial_score = rawInitialScore;
+        submissionDetails.recovery_score = recoveryScore;
+        submissionDetails.recovery_average = recoveryScore;
+        submissionDetails.recovery_policy = recoveryPolicy;
+        submissionDetails.final_raw_score = computedScore;
+      } else {
+        submissionDetails.phase = "initial";
+        submissionDetails.raw_initial_score = computedScore;
       }
 
       submissionDetails.activity_run_id = activeRunId;
@@ -571,26 +633,37 @@ serve(async (req: Request) => {
         submissionDetails.questions_count = 14;
 
       } else if (currentPhase === "recovery") {
-        if (!initial_run_id || typeof initial_run_id !== "string" || !UUID_REGEX.test(initial_run_id)) {
-          return badRequest(cors, diagnostic, "INVALID_INITIAL_RUN_ID", "initial_run_id debe ser un UUID válido para la fase de recuperación");
-        }
-
         const { data: pastAttempts } = await serviceClient
           .from("activity_attempts")
-          .select("submission_data")
+          .select("submission_data, score")
           .eq("activity_id", activity.id)
           .eq("student_id", student.id)
           .order("completed_at", { ascending: false });
 
-        const targetAttempt = (pastAttempts || []).find((att: any) =>
-          att.submission_data?.phase === "initial" && att.submission_data?.run_id === initial_run_id
-        );
-
-        if (!targetAttempt || targetAttempt.submission_data?.raw_initial_score === undefined || targetAttempt.submission_data?.raw_initial_score === null) {
-          return badRequest(cors, diagnostic, "INITIAL_ATTEMPT_NOT_FOUND", "No se encontró una entrega inicial registrada correspondiente a este initial_run_id");
+        let targetAttempt = null;
+        if (initial_run_id && typeof initial_run_id === "string" && UUID_REGEX.test(initial_run_id)) {
+          targetAttempt = (pastAttempts || []).find((att: any) =>
+            att.submission_data?.phase === "initial" && (att.submission_data?.run_id === initial_run_id || att.submission_data?.activity_run_id === initial_run_id)
+          );
+        }
+        if (!targetAttempt) {
+          targetAttempt = (pastAttempts || []).find((att: any) => att.submission_data?.phase === "initial") ||
+                          (pastAttempts && pastAttempts.length > 0 ? pastAttempts[pastAttempts.length - 1] : null);
         }
 
-        const rawInitialScore = Number(targetAttempt.submission_data.raw_initial_score);
+        if (!targetAttempt) {
+          return badRequest(cors, diagnostic, "INITIAL_ATTEMPT_NOT_FOUND", "No se encontró una entrega inicial registrada para esta actividad");
+        }
+
+        const rawInitialScore = Number(
+          targetAttempt.submission_data?.raw_initial_score ??
+          targetAttempt.submission_data?.raw_score ??
+          targetAttempt.score
+        );
+
+        if (isNaN(rawInitialScore)) {
+          return badRequest(cors, diagnostic, "INVALID_INITIAL_SCORE", "No se pudo determinar la calificación inicial oficial");
+        }
 
         if (rawInitialScore >= 7.00) {
           return badRequest(cors, diagnostic, "RECOVERY_NOT_ALLOWED", "La fase de recuperación solo está disponible si la nota inicial es menor a 7.00");
@@ -625,15 +698,26 @@ serve(async (req: Request) => {
         const totalRecScore = terminalRecovery.reduce((acc: number, q: any) => acc + Number(q.terminal_score || 0), 0);
         const recoveryAvg = totalRecScore / 8.0;
 
-        const finalRaw = Math.max(rawInitialScore, recoveryAvg);
+        const activityUnit = Number(activity.unit_number) || 0;
+        const explicitPolicy = gradingConfigData.config.recovery_policy ||
+                               gradingConfigData.config.recoveryPolicy;
+        const recoveryPolicy = explicitPolicy || (activityUnit >= 7 ? "average" : "max");
+
+        let finalRaw: number;
+        if (recoveryPolicy === "average") {
+          finalRaw = (rawInitialScore + recoveryAvg) / 2.0;
+        } else {
+          finalRaw = Math.max(rawInitialScore, recoveryAvg);
+        }
         computedScore = finalRaw;
 
         submissionDetails.run_id = payloadRunId;
         submissionDetails.phase = "recovery";
-        submissionDetails.initial_run_id = initial_run_id;
+        submissionDetails.initial_run_id = initial_run_id || targetAttempt.submission_data?.run_id || null;
         submissionDetails.raw_initial_score = rawInitialScore;
         submissionDetails.recovery_score = recoveryAvg;
         submissionDetails.recovery_average = recoveryAvg;
+        submissionDetails.recovery_policy = recoveryPolicy;
         submissionDetails.final_raw_score = finalRaw;
       }
     } else {
@@ -671,6 +755,8 @@ serve(async (req: Request) => {
         .eq("id", activeRunId);
     }
 
+
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -679,6 +765,7 @@ serve(async (req: Request) => {
         score: finalOfficialScore,
         max_score: maxScore,
         best_score: recordResult.best_score,
+        final_score: finalOfficialScore,
         attempt_count: recordResult.attempt_count,
         registered_at: new Date().toISOString()
       }),

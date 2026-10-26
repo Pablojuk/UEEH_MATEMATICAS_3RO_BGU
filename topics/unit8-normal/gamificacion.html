@@ -1,0 +1,2435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Bomberman Z-Gauss 3D · Distribución Normal · Tercero de BGU (UEEH)</title>
+
+  <!-- Configuración MathJax 3 -->
+  <script type="module">
+    import { supabase } from '../../core/supabase-client.js?v=1.4.7';
+    import { submitActivityResult } from '../../core/activity-service.js?v=1.4.7';
+    import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.7';
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: {
+        fontCache: 'global'
+      },
+      startup: {
+        typeset: false
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-panel: #131c2e;
+      --bg-card: #1e293b;
+      --celeste: #7dd3fc;
+      --turquesa: #2dd4bf;
+      --menta: #6ee7b7;
+      --lila: #c4b5fd;
+      --crema: #fde68a;
+      --durazno: #fdba74;
+      --rosa: #f9a8d4;
+      --rojo: #fca5a5;
+      --blanco: #f8fafc;
+      --gris-suave: #94a3b8;
+      --borde: rgba(125, 211, 252, 0.22);
+      --sombra-3d: 0 14px 32px rgba(0, 0, 0, 0.55);
+      --radio: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      background: radial-gradient(circle at 15% 15%, #1e293b 0%, #090d16 70%);
+      color: var(--blanco);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    button, input {
+      font-family: inherit;
+    }
+
+    /* Contenedor General */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: max(8px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom)) 10px;
+      gap: 10px;
+    }
+
+    /* Pantallas del Sistema */
+    .screen {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      flex: 1;
+      width: 100%;
+      background: linear-gradient(145deg, rgba(19, 28, 46, 0.95), rgba(15, 23, 42, 0.98));
+      border: 1px solid var(--borde);
+      border-radius: 24px;
+      padding: clamp(16px, 3.5vw, 32px);
+      box-shadow: var(--sombra-3d);
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      background: rgba(125, 211, 252, 0.12);
+      color: var(--celeste);
+      border: 1px solid rgba(125, 211, 252, 0.3);
+    }
+
+    .badge.menta { background: rgba(110, 231, 183, 0.14); color: var(--menta); border-color: rgba(110, 231, 183, 0.35); }
+    .badge.lila { background: rgba(196, 181, 253, 0.14); color: var(--lila); border-color: rgba(196, 181, 253, 0.35); }
+    .badge.crema { background: rgba(253, 230, 138, 0.14); color: var(--crema); border-color: rgba(253, 230, 138, 0.35); }
+
+    h1 {
+      font-size: clamp(1.7rem, 4.2vw, 2.75rem);
+      font-weight: 900;
+      text-align: center;
+      background: linear-gradient(90deg, var(--celeste), var(--menta), var(--crema));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+      line-height: 1.15;
+    }
+
+    h2 {
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      color: var(--crema);
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+      color: var(--gris-suave);
+      text-align: center;
+      max-width: 680px;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+      width: 100%;
+      max-width: 860px;
+      margin-bottom: 20px;
+    }
+
+    .info-card {
+      background: rgba(30, 41, 59, 0.78);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio);
+      padding: 16px;
+      text-align: left;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .info-card h3 {
+      font-size: 1rem;
+      color: var(--turquesa);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .info-card ul {
+      list-style: none;
+      display: grid;
+      gap: 6px;
+      font-size: 0.88rem;
+      color: #e2e8f0;
+      line-height: 1.4;
+    }
+
+    /* Botones Accesibles */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .btn {
+      min-height: 48px;
+      padding: 12px 22px;
+      border-radius: 14px;
+      border: 2px solid transparent;
+      font-size: 0.98rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .btn:focus-visible {
+      outline: 3px solid var(--crema);
+      outline-offset: 2px;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--turquesa), var(--celeste));
+      color: #062229;
+      box-shadow: 0 6px 0 #0d9488, 0 10px 20px rgba(45, 212, 191, 0.28);
+    }
+
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.9);
+      color: var(--lila);
+      border-color: rgba(196, 181, 253, 0.45);
+      box-shadow: 0 5px 0 #312e81;
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, var(--crema), var(--durazno));
+      color: #271705;
+      box-shadow: 0 5px 0 #b45309;
+    }
+
+    /* Interfaz Principal del Juego */
+    #game-screen {
+      padding: 10px;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+
+    .hud-bar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--borde);
+      border-radius: 16px;
+      padding: 8px 12px;
+    }
+
+    .hud-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(30, 41, 59, 0.7);
+      padding: 6px 8px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .hud-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gris-suave);
+      font-weight: 700;
+    }
+
+    .hud-value {
+      font-size: clamp(0.9rem, 2vw, 1.15rem);
+      font-weight: 900;
+      color: var(--crema);
+    }
+
+    .hud-value.menta { color: var(--menta); }
+    .hud-value.celeste { color: var(--celeste); }
+    .hud-value.rosa { color: var(--rosa); }
+
+    .arena-wrapper {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex: 1;
+      min-height: 290px;
+    }
+
+    canvas#bomber-canvas {
+      width: 100%;
+      max-width: 780px;
+      aspect-ratio: 13 / 11;
+      max-height: 58dvh;
+      border-radius: 18px;
+      border: 2px solid rgba(125, 211, 252, 0.35);
+      background: #0b1320;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+      display: block;
+      touch-action: none;
+    }
+
+    .status-banner {
+      width: 100%;
+      max-width: 780px;
+      margin-top: 6px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid var(--borde);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+    }
+
+    /* Controles Táctiles Mobile First */
+    .controls-bar {
+      width: 100%;
+      max-width: 780px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 4px;
+      user-select: none;
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 52px);
+      grid-template-rows: repeat(2, 50px);
+      gap: 6px;
+    }
+
+    .ctrl-btn {
+      min-width: 48px;
+      min-height: 48px;
+      border-radius: 14px;
+      border: 2px solid rgba(125, 211, 252, 0.45);
+      background: linear-gradient(180deg, #1e293b, #0f172a);
+      color: var(--celeste);
+      font-size: 1.25rem;
+      font-weight: 900;
+      box-shadow: 0 4px 0 #020617;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+
+    .ctrl-btn:active, .ctrl-btn.pressed {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #020617;
+      background: var(--celeste);
+      color: #090d16;
+    }
+
+    .bomb-action-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .btn-bomb {
+      width: 100%;
+      max-width: 210px;
+      min-height: 62px;
+      border-radius: 18px;
+      border: 2px solid var(--durazno);
+      background: radial-gradient(circle at 30% 30%, #fb923c, #c2410c);
+      color: var(--blanco);
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      box-shadow: 0 6px 0 #7c2d12, 0 8px 20px rgba(251, 146, 60, 0.35);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      touch-action: manipulation;
+    }
+
+    .btn-bomb:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #7c2d12;
+    }
+
+    /* Modal de Reto Evaluable */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 17, 0.88);
+      backdrop-filter: blur(5px);
+      z-index: 200;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: max(12px, env(safe-area-inset-top)) 10px max(24px, env(safe-area-inset-bottom)) 10px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 650px;
+      background: linear-gradient(160deg, #162032 0%, #0f172a 100%);
+      border: 2px solid rgba(125, 211, 252, 0.4);
+      border-radius: 22px;
+      padding: clamp(14px, 3vw, 24px);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75);
+      margin: auto 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      padding-bottom: 10px;
+    }
+
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: var(--turquesa);
+    }
+
+    .score-pill {
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(253, 230, 138, 0.14);
+      border: 1px solid var(--crema);
+      color: var(--crema);
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .mathBox {
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: rgba(9, 13, 22, 0.85);
+      border: 1.5px dashed rgba(125, 211, 252, 0.4);
+      border-radius: 14px;
+      padding: 12px 14px;
+      text-align: center;
+      font-size: 1.08rem;
+    }
+
+    .options-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .option-btn {
+      width: 100%;
+      min-height: 50px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 2px solid rgba(125, 211, 252, 0.25);
+      background: rgba(30, 41, 59, 0.8);
+      color: var(--blanco);
+      text-align: left;
+      font-size: 0.96rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--celeste);
+      background: rgba(56, 189, 248, 0.14);
+    }
+
+    .option-btn.selected {
+      border-color: var(--crema);
+      background: rgba(253, 230, 138, 0.16);
+      color: var(--crema);
+      box-shadow: 0 0 0 2px rgba(253, 230, 138, 0.2);
+    }
+
+    .option-letter {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: inline-grid;
+      place-items: center;
+      font-weight: 900;
+      color: var(--celeste);
+      flex-shrink: 0;
+    }
+
+    /* Tabla de apoyo Phi(z) desplegable */
+    .phi-helper {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(196, 181, 253, 0.3);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 0.84rem;
+    }
+
+    .phi-helper summary {
+      cursor: pointer;
+      font-weight: 800;
+      color: var(--lila);
+      padding: 4px 0;
+    }
+
+    .phi-table-wrap {
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+
+    .phi-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    .phi-table th, .phi-table td {
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 5px 8px;
+    }
+
+    .phi-table th {
+      background: rgba(196, 181, 253, 0.15);
+      color: var(--crema);
+    }
+
+    /* Cajas de Pistas, Feedback y Solución */
+    .feedback-panel {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 0.92rem;
+      line-height: 1.48;
+      border: 1.5px solid transparent;
+    }
+
+    .feedback-panel.show {
+      display: block;
+    }
+
+    .feedback-panel.incorrect {
+      background: rgba(248, 113, 113, 0.13);
+      border-color: var(--rojo);
+      color: #fecaca;
+    }
+
+    .feedback-panel.correct {
+      background: rgba(110, 231, 183, 0.14);
+      border-color: var(--menta);
+      color: #d1fae5;
+    }
+
+    .hint-box {
+      display: none;
+      padding: 11px 14px;
+      border-radius: 14px;
+      background: rgba(253, 230, 138, 0.12);
+      border-left: 4px solid var(--crema);
+      color: #fef3c7;
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .hint-box.show {
+      display: block;
+    }
+
+    .solution-box {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.95);
+      border-left: 4px solid var(--turquesa);
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .solution-box.show {
+      display: block;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 600px) {
+      .hud-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .dpad {
+        grid-template-columns: repeat(3, 48px);
+        grid-template-rows: repeat(2, 48px);
+      }
+      .btn-bomb {
+        min-height: 54px;
+        font-size: 0.95rem;
+      }
+      .modal-footer .btn {
+        flex: 1 1 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- ==========================================
+         1. PANTALLA INICIAL
+         ========================================== -->
+    <section id="start-screen" class="screen active" aria-labelledby="main-title">
+      <div class="badge-row">
+        <span class="badge">UEEH · Matemáticas</span>
+        <span class="badge menta">Tercero de BGU</span>
+        <span class="badge lila">Render 3D Blender-Style</span>
+      </div>
+
+      <h1 id="main-title">💣 BOMBERMAN Z-GAUSS 3D</h1>
+      <p class="subtitle">
+        Misión de <strong>1 Nivel Único</strong>: Recorre el laberinto blindado, destruye cajas de energía y elimina a los <strong>6 Droides Gauss</strong> que patrullan el sector. Cada enemigo derrotado activará uno de los 6 ejercicios de <strong>Estandarización y Cálculo de Probabilidad Normal</strong>.
+      </p>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h3>🎮 Reglas de Combate</h3>
+          <ul>
+            <li>• Muévete con <strong>WASD / Flechas</strong> o el mando táctil.</li>
+            <li>• Pulsa <strong>ESPACIO</strong> o <strong>PLANTAR BOMBA</strong> junto a cajas o enemigos.</li>
+            <li>• Al alcanzar a un enemigo con la onda expansiva, se abrirá su reto matemático.</li>
+            <li>• Una vez superado y calificado el reto, ve a cazar al siguiente enemigo hasta eliminar a los 6.</li>
+          </ul>
+        </div>
+
+        <div class="info-card">
+          <h3>📐 Evaluación Formativa (Intentos Ilimitados)</h3>
+          <ul>
+            <li>• <strong>1.º intento correcto:</strong> 10 / 10 pts</li>
+            <li>• <strong>2.º intento correcto:</strong> 9 / 10 pts</li>
+            <li>• <strong>3.º intento correcto:</strong> 8 / 10 pts</li>
+            <li>• <strong>4.º intento o posterior:</strong> 7 / 10 pts</li>
+            <li>• Si fallas, recibes pistas progresivas sin límite de intentos hasta acertar.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-primary" onclick="startGame()">▶ INICIAR MISIÓN</button>
+        <button type="button" class="btn btn-secondary" onclick="showInstructions()">📘 TUTORIAL Y TABLA Φ(z)</button>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         2. PANTALLA DE TUTORIAL / INSTRUCCIONES
+         ========================================== -->
+    <section id="instructions-screen" class="screen" aria-labelledby="tutorial-title">
+      <div class="badge-row">
+        <span class="badge crema">Guía Operativa y Fórmulas</span>
+      </div>
+      <h2 id="tutorial-title">Manual del Operador Estadístico</h2>
+      <p class="subtitle">
+        Repasa las fórmulas clave de la Distribución Normal \( X \sim N(\mu, \sigma) \) antes de entrar al laberinto.
+      </p>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h3>1. Fórmula de Estandarización</h3>
+          <div class="mathBox">
+            \[ z = \frac{x - \mu}{\sigma} \]
+          </div>
+          <ul>
+            <li>• \(\mu\): Media poblacional (centro de la campana).</li>
+            <li>• \(\sigma\): Desviación estándar (dispersión).</li>
+            <li>• Si \(x < \mu\), el valor \(z\) será negativo.</li>
+          </ul>
+        </div>
+
+        <div class="info-card">
+          <h3>2. Cálculo de Probabilidades con \(\Phi(z)\)</h3>
+          <ul>
+            <li>• <strong>Cola izquierda:</strong> \(P(X < b) = \Phi(z_b)\)</li>
+            <li>• <strong>Cola derecha:</strong> \(P(X > a) = 1 - \Phi(z_a)\)</li>
+            <li>• <strong>Entre dos valores:</strong> \(P(a < X < b) = \Phi(z_b) - \Phi(z_a)\)</li>
+            <li>• <strong>Simetría:</strong> \(\Phi(-z) = 1 - \Phi(z)\)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-primary" onclick="startGame()">▶ IR AL JUEGO</button>
+        <button type="button" class="btn btn-secondary" onclick="backToStart()">← VOLVER AL INICIO</button>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         3. PANTALLA DE JUEGO (NIVEL 1)
+         ========================================== -->
+    <section id="game-screen" class="screen" aria-label="Escenario de juego Bomberman">
+      <div class="hud-bar">
+        <div class="hud-item">
+          <span class="hud-label">Enemigos / Retos</span>
+          <span class="hud-value menta" id="hud-completed">0 / 6</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Progreso Nivel 1</span>
+          <span class="hud-value celeste" id="hud-progress">0%</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Nota Prevista</span>
+          <span class="hud-value" id="hud-score">-- / 10</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Monedas Arcade</span>
+          <span class="hud-value rosa" id="hud-coins">🪙 0</span>
+        </div>
+      </div>
+
+      <div class="arena-wrapper">
+        <canvas id="bomber-canvas" width="780" height="660" aria-label="Laberinto Bomberman 3D con 6 enemigos"></canvas>
+
+        <div class="status-banner">
+          <span id="banner-msg">🎯 <strong>Objetivo:</strong> Coloca bombas para alcanzar a un Droide Gauss y desbloquear su ejercicio.</span>
+          <button type="button" class="btn btn-warning" id="btn-open-pending" style="display:none; min-height:38px; padding:6px 14px; font-size:0.82rem;" onclick="reopenPendingChallenge()">
+            ⚡ RESOLVER RETO ACTIVO
+          </button>
+        </div>
+      </div>
+
+      <!-- Controles Táctiles y de Teclado -->
+      <div class="controls-bar">
+        <div class="dpad" role="group" aria-label="Controles de dirección">
+          <div></div>
+          <button type="button" class="ctrl-btn" id="btn-up" aria-label="Mover arriba">▲</button>
+          <div></div>
+          <button type="button" class="ctrl-btn" id="btn-left" aria-label="Mover izquierda">◀</button>
+          <button type="button" class="ctrl-btn" id="btn-down" aria-label="Mover abajo">▼</button>
+          <button type="button" class="ctrl-btn" id="btn-right" aria-label="Mover derecha">▶</button>
+        </div>
+
+        <div class="bomb-action-wrap">
+          <button type="button" class="btn-bomb" id="btn-bomb" aria-label="Plantar bomba">
+            💣 PLANTAR BOMBA
+          </button>
+          <small style="color:var(--gris-suave); font-size:0.75rem;">Teclado: Flechas / WASD + Espacio</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         4. PANTALLA FINAL (MISIÓN COMPLETADA)
+         ========================================== -->
+    <section id="end-screen" class="screen" aria-labelledby="end-title">
+      <div class="badge-row">
+        <span class="badge menta">Nivel 1 Superado</span>
+        <span class="badge crema">6 / 6 Enemigos Derrotados</span>
+      </div>
+
+      <h1 id="end-title">🏆 ¡LABORATORIO DESPEJADO!</h1>
+      <p class="subtitle">
+        Has eliminado a los 6 Droides Gauss y resuelto correctamente todos los ejercicios de estandarización y probabilidades de la Distribución Normal.
+      </p>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h3>📊 Resumen Académico (Preview)</h3>
+          <ul>
+            <li>• <strong>Retos superados:</strong> <span id="end-completed">6 / 6 (100%)</span></li>
+            <li>• <strong>Promedio académico previsto:</strong> <span id="end-score" style="color:var(--menta); font-weight:900; font-size:1.15rem;">10.00 / 10</span></li>
+            <li>• <strong>Recompensas del videojuego:</strong> <span id="end-coins" style="color:var(--crema);">0 monedas</span> (independientes de la nota académica).</li>
+          </ul>
+        </div>
+
+        <div class="info-card">
+          <h3>🧠 Síntesis de Aprendizaje</h3>
+          <ul>
+            <li>• Estandarización precisa con \( z = \frac{x - \mu}{\sigma} \).</li>
+            <li>• Lectura de valores acumulados \(\Phi(z)\) en la tabla normal estándar.</li>
+            <li>• Cálculo de cola izquierda, cola derecha e intervalos simétricos.</li>
+          </ul>
+        </div>
+      </div>
+
+      <p id="finalize-status-msg" style="color:var(--celeste); font-weight:700; margin-bottom:14px; text-align:center;">
+        Vista previa local; la versión integrada realizará la entrega oficial en UEEH.
+      </p>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-primary" id="btn-finalize" onclick="finalizeGameAdapter()">
+          ✅ FINALIZAR MISIÓN
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="restartPreviewGame()">
+          🔄 REINICIAR JUEGO (PREVIEW)
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ==========================================
+       MODAL DE RETO MATEMÁTICO
+       ========================================== -->
+  <div id="challenge-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-challenge-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="badge lila" id="modal-enemy-tag">Droide Interceptado</span>
+          <h3 class="modal-title" id="modal-challenge-title" style="margin-top:4px;">Reto Matemático</h3>
+        </div>
+        <span class="score-pill" id="modal-score-pill">Intento 1 · Disponible: 10/10</span>
+      </div>
+
+      <p id="modal-statement" style="font-size:0.98rem; line-height:1.45; color:#f1f5f9;"></p>
+
+      <div class="mathBox" id="modal-equation"></div>
+
+      <!-- Extracto de Tabla Normal Estándar para los ejercicios -->
+      <details class="phi-helper">
+        <summary>📋 Ver valores de la Tabla Normal Estándar \(\Phi(z)\) e Instrucciones</summary>
+        <div class="phi-table-wrap">
+          <p style="margin-bottom:6px; color:#cbd5e1;">
+            Recuerda: \( z = \frac{x - \mu}{\sigma} \) &nbsp;|&nbsp; Propiedad de simetría: \( \Phi(-z) = 1 - \Phi(z) \)
+          </p>
+          <table class="phi-table">
+            <thead>
+              <tr>
+                <th>Valor \(z\)</th>
+                <th>\(0.00\)</th>
+                <th>\(0.50\)</th>
+                <th>\(1.00\)</th>
+                <th>\(1.20\)</th>
+                <th>\(1.50\)</th>
+                <th>\(2.00\)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>\(\Phi(z) = P(Z \le z)\)</th>
+                <td>\(0.5000\)</td>
+                <td>\(0.6915\)</td>
+                <td>\(0.8413\)</td>
+                <td>\(0.8849\)</td>
+                <td>\(0.9332\)</td>
+                <td>\(0.9772\)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <!-- Opciones de Selección Múltiple con optionKey estable -->
+      <div class="options-list" id="modal-options" role="radiogroup" aria-label="Opciones de respuesta"></div>
+
+      <!-- Pista Progresiva -->
+      <div class="hint-box" id="modal-hint-box"></div>
+
+      <!-- Retroalimentación -->
+      <div class="feedback-panel" id="modal-feedback"></div>
+
+      <!-- Solución Paso a Paso (Solo visible cuando status === 'correct') -->
+      <div class="solution-box" id="modal-solution">
+        <strong style="color:var(--turquesa); display:block; margin-bottom:4px;">✔ Solución Paso a Paso:</strong>
+        <div id="modal-solution-content"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-hint" onclick="showHint()">
+          💡 VER PISTA
+        </button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; flex:1; justify-content:flex-end;">
+          <button type="button" class="btn btn-primary" id="btn-check" onclick="checkAnswer()">
+            ✔ COMPROBAR
+          </button>
+          <button type="button" class="btn btn-warning" id="btn-continue" style="display:none;" onclick="completeChallenge()">
+            CONTINUAR CAZA ▶
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. VARIABLES EDITABLES Y CONTRATO PEDAGÓGICO (GAMIFICATION_UNLIMITED)
+    // =========================================================================
+    const GAME_TITLE = "Bomberman Z-Gauss 3D";
+    const SUBJECT = "Matemáticas";
+    const COURSE = "Tercero de BGU";
+    const TOPIC = "Distribución Normal: Estandarización y Cálculo de Probabilidades";
+    const TOTAL_LEVELS = 1;
+    const DIFFICULTY = "INTERMEDIA";
+    const THEME = "LABORATORIO ROBÓTICO 3D BLENDER-STYLE";
+
+    const ATTEMPT_POLICY = "gamification_unlimited";
+    const MAX_CHECK_ATTEMPTS = null; // null = intentos ilimitados
+    const AUTHORING_MODE = false;
+    const USE_MATHJAX = true;
+    const ACTIVITY_KEY = "u8-normal-gam-01";
+    const UNIT_NUMBER = 8;
+    let currentGameRunId = crypto.randomUUID();
+    const SHUFFLE_STORAGE_KEY = "AUTHORING_PREVIEW_STATE_BOMBER_NORMAL_V1";
+
+    function getPreviewScoreByAttempt(attemptNumber, solved) {
+      if (!solved) return null;
+      if (attemptNumber <= 1) return 10;
+      if (attemptNumber === 2) return 9;
+      if (attemptNumber === 3) return 8;
+      return 7; // intento 4, 5, 6, ...
+    }
+
+    // =========================================================================
+    // 2. ESTRUCTURA VISUAL DE LOS 6 RETOS (SIN RESPUESTAS NI SOLUCIONES)
+    // =========================================================================
+    const MISSIONS = [
+      {
+        exerciseKey: "level01-q01",
+        level: 1,
+        shuffleGroup: "level-1",
+        title: "Ejercicio 1 · Estandarización Directa",
+        mode: "mcq",
+        statement: "Calcula el valor pedido apoyándote en la fórmula de estandarización. Si la variable aleatoria sigue la distribución indicada, halla el valor z correspondiente:",
+        equation: String.raw`\[ \text{Si } X \sim N(50,\, 8), \text{ halla } z \text{ para } x = 62. \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( z = 1.5 \)` },
+          { optionKey: "opt-b", label: String.raw`\( z = -1.5 \)` },
+          { optionKey: "opt-c", label: String.raw`\( z = 1.25 \)` },
+          { optionKey: "opt-d", label: String.raw`\( z = 0.75 \)` }
+        ],
+        hint: "Sustituye en z = (x - μ) / σ. Resta la media μ = 50 al valor x = 62 y divide el resultado entre la desviación estándar σ = 8.",
+        extraHint: "Verifica el signo: como x = 62 es mayor que la media μ = 50, el resultado de z debe ser positivo."
+      },
+      {
+        exerciseKey: "level01-q02",
+        level: 1,
+        shuffleGroup: "level-1",
+        title: "Ejercicio 3 · Estandarización Bajo la Media",
+        mode: "mcq",
+        statement: "Calcula el valor estandarizado z para el siguiente caso de una variable distribuida normalmente:",
+        equation: String.raw`\[ \text{Si } X \sim N(30,\, 5), \text{ halla } z \text{ para } x = 22.5. \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( z = -1.5 \)` },
+          { optionKey: "opt-b", label: String.raw`\( z = 1.5 \)` },
+          { optionKey: "opt-c", label: String.raw`\( z = -0.75 \)` },
+          { optionKey: "opt-d", label: String.raw`\( z = -2.5 \)` }
+        ],
+        hint: "Aplica z = (x - μ) / σ con x = 22.5, μ = 30 y σ = 5. Ten mucho cuidado con el signo de la resta en el numerador.",
+        extraHint: "Observa que 22.5 está por debajo de la media 30; por tanto, el numerador es negativo y z debe tener signo negativo."
+      },
+      {
+        exerciseKey: "level01-q03",
+        level: 1,
+        shuffleGroup: "level-1",
+        title: "Ejercicio 5 · Estandarización con Decimales",
+        mode: "mcq",
+        statement: "Calcula el valor pedido en este modelo de distribución normal apoyándote en la fórmula de estandarización:",
+        equation: String.raw`\[ \text{Si } X \sim N(8,\, 0.5), \text{ halla } z \text{ para } x = 8.75. \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( z = 1.5 \)` },
+          { optionKey: "opt-b", label: String.raw`\( z = 0.75 \)` },
+          { optionKey: "opt-c", label: String.raw`\( z = 1.25 \)` },
+          { optionKey: "opt-d", label: String.raw`\( z = -1.5 \)` }
+        ],
+        hint: "Plantea z = (8.75 - 8) / 0.5. Recuerda que dividir un número entre 0.5 equivale a multiplicarlo por 2.",
+        extraHint: "No confundas la diferencia del numerador (8.75 - 8) con el valor final de z: aún debes dividir para σ = 0.5."
+      },
+      {
+        exerciseKey: "level01-q04",
+        level: 1,
+        shuffleGroup: "level-1",
+        title: "Ejercicio 7 · Probabilidad de Cola Izquierda",
+        mode: "mcq",
+        statement: "Usa la estandarización y los valores de Φ(z) de la tabla normal estándar para calcular la siguiente probabilidad:",
+        equation: String.raw`\[ X \sim N(100,\, 15): \quad \text{Calcula } P(X < 115) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.8413 \;\; (84.13\%) \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.1587 \;\; (15.87\%) \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.6826 \;\; (68.26\%) \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.9332 \;\; (93.32\%) \)` }
+        ],
+        hint: "Primero estandariza x = 115 con μ = 100 y σ = 15. Como piden 'menor que 115' (cola izquierda), la probabilidad es directamente Φ(z).",
+        extraHint: "Al calcular z = (115 - 100) / 15 obtienes una desviación estándar exacta. Consulta ese valor z en la tabla desplegable Φ(z)."
+      },
+      {
+        exerciseKey: "level01-q05",
+        level: 1,
+        shuffleGroup: "level-1",
+        title: "Ejercicio 9 · Probabilidad entre Dos Valores",
+        mode: "mcq",
+        statement: "Usa la estandarización y los valores de Φ(z) de la tabla para hallar la probabilidad en el intervalo indicado:",
+        equation: String.raw`\[ X \sim N(100,\, 15): \quad \text{Calcula } P(85 < X < 115) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.6826 \;\; (68.26\%) \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.8413 \;\; (84.13\%) \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.9544 \;\; (95.44\%) \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.3174 \;\; (31.74\%) \)` }
+        ],
+        hint: "Estandariza ambos extremos: a = 85 y b = 115. Luego resta las probabilidades acumuladas: Φ(z_b) - Φ(z_a).",
+        extraHint: "Recuerda que para un valor negativo se cumple Φ(-z) = 1 - Φ(z). No restes los valores de z; debes restar sus áreas Φ."
+      },
+      {
+        exerciseKey: "level01-q06",
+        level: 1,
+        shuffleGroup: "level-1",
+        title: "Ejercicio 11 · Probabilidad de Cola Derecha",
+        mode: "mcq",
+        statement: "Usa la estandarización y la tabla de la distribución normal estándar Φ(z) para calcular la probabilidad de cola derecha:",
+        equation: String.raw`\[ X \sim N(50,\, 8): \quad \text{Calcula } P(X > 62) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.0668 \;\; (6.68\%) \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.9332 \;\; (93.32\%) \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.1587 \;\; (15.87\%) \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.8664 \;\; (86.64\%) \)` }
+        ],
+        hint: "Primero halla z para x = 62 con μ = 50 y σ = 8. Como se pide P(X > 62), que es el área a la derecha, debes usar el complemento: 1 - Φ(z).",
+        extraHint: "La tabla entrega el área acumulada a la izquierda Φ(z). Resta ese valor de 1 para obtener el área de la cola derecha."
+      }
+    ];
+
+    // =========================================================================
+    // 3. RESPUESTAS Y SOLUCIONES PROTEGIDAS EN SUPABASE BACKEND (Cumple UEEH Unidad 5+)
+    const AUTHORING_ANSWER_KEY = {};
+    // =========================================================================
+    // 4. ALEATORIZACIÓN DETERMINISTA ANTI-COPIA POR SEMILLA
+    // =========================================================================
+    let currentShuffleSeed = "default-seed";
+    let orderedMissions = [];
+    let optionOrdersByExercise = {};
+
+    // Adaptador único de semilla (Contrato 9A.2)
+    async function getShuffleSeedAdapter({ activityKey }) {
+      // AUTHORING MODE: obtiene semilla desde ?previewStudent=student-a
+      // UEEH MODE: Antigravity sustituirá por la identidad autenticada vigente.
+      const params = new URLSearchParams(window.location.search);
+      const previewStudentKey = params.get("previewStudent") || "student-default";
+      return `${previewStudentKey}::${activityKey}::shuffle-v1`;
+    }
+
+    // Hash determinista (xmur3) + PRNG (mulberry32)
+    function hashStringToUint32(str) {
+      let h = 1779033703 ^ str.length;
+      for (let i = 0; i < str.length; i++) {
+        h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+        h = (h << 13) | (h >>> 19);
+      }
+      return function() {
+        h = Math.imul(h ^ (h >>> 16), 2246822507);
+        h = Math.imul(h ^ (h >>> 13), 3266489909);
+        return (h ^= h >>> 16) >>> 0;
+      };
+    }
+
+    function createSeededPRNG(seedString) {
+      const seedFn = hashStringToUint32(String(seedString));
+      let a = seedFn();
+      return function() {
+        let t = (a += 0x6D2B79F5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    // Fisher-Yates puro sin mutar el arreglo original
+    function seededShuffle(list, seed) {
+      const copy = Array.isArray(list) ? [...list] : [];
+      const rng = createSeededPRNG(seed);
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        const temp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = temp;
+      }
+      return copy;
+    }
+
+    // Ordena retos respetando shuffleGroup
+    function getExerciseOrder(seed) {
+      const groups = {};
+      const groupOrder = [];
+      MISSIONS.forEach(item => {
+        const g = item.shuffleGroup || `level-${item.level || 1}`;
+        if (!groups[g]) {
+          groups[g] = [];
+          groupOrder.push(g);
+        }
+        groups[g].push({ ...item });
+      });
+
+      const result = [];
+      groupOrder.forEach(g => {
+        const shuffledGroup = seededShuffle(groups[g], `${seed}::group::${g}`);
+        result.push(...shuffledGroup);
+      });
+      return result;
+    }
+
+    // Ordena las opciones de un MCQ conservando optionKey estable
+    function getOptionOrder(exerciseKey, seed) {
+      const mission = MISSIONS.find(m => m.exerciseKey === exerciseKey);
+      if (!mission || !Array.isArray(mission.options)) return [];
+      const copiedOptions = mission.options.map(opt => ({ ...opt }));
+      return seededShuffle(copiedOptions, `${seed}::options::${exerciseKey}`);
+    }
+
+    // =========================================================================
+    // 5. ESTADO ACADÉMICO Y DE INTERFAZ
+    // =========================================================================
+    const challengeState = {};
+    let activeExerciseKey = null;
+    let selectedOptionKey = null;
+    let checkInFlight = false;
+    let arcadeCoins = 0;
+
+    function initChallengeStateMap() {
+      MISSIONS.forEach(m => {
+        if (!challengeState[m.exerciseKey]) {
+          challengeState[m.exerciseKey] = {
+            answer: null,
+            attemptCount: 0,
+            status: "pending",
+            score: null,
+            locked: false
+          };
+        }
+      });
+    }
+    initChallengeStateMap();
+
+    // =========================================================================
+    // 6. MOTOR BOMBERMAN 2.5D (ESTILO RENDER 3D BLENDER EN CANVAS)
+    // =========================================================================
+    const canvas = document.getElementById("bomber-canvas");
+    const ctx = canvas.getContext("2d");
+
+    const GRID_COLS = 13;
+    const GRID_ROWS = 11;
+    const TILE_SIZE = 60; // 13 * 60 = 780, 11 * 60 = 660
+
+    // Mapa base: 0 = piso libre, 1 = pilar 3D indestructible, 2 = caja destructible
+    const BASE_ARENA_LAYOUT = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,2,0,0,2,0,0,2,0,0,1],
+      [1,0,1,0,1,0,1,0,1,0,1,0,1],
+      [1,2,0,0,2,0,0,0,2,0,0,2,1],
+      [1,0,1,2,1,0,1,0,1,2,1,0,1],
+      [1,0,0,0,0,2,0,2,0,0,0,0,1],
+      [1,0,1,2,1,0,1,0,1,2,1,0,1],
+      [1,2,0,0,2,0,0,0,2,0,0,2,1],
+      [1,0,1,0,1,0,1,0,1,0,1,0,1],
+      [1,0,0,2,0,0,2,0,0,2,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+
+    // Posiciones alrededor de todo el escenario para los 6 enemigos
+    const ENEMY_SPAWN_COORDS = [
+      { col: 11, row: 1, color: "#f43f5e", rim: "#fda4af", name: "Droide Gauss Alfa" },
+      { col: 1,  row: 9, color: "#a855f7", rim: "#d8b4fe", name: "Droide Gauss Beta" },
+      { col: 11, row: 9, color: "#ec4899", rim: "#f9a8d4", name: "Droide Gauss Gamma" },
+      { col: 5,  row: 1, color: "#eab308", rim: "#fef08a", name: "Droide Gauss Delta" },
+      { col: 7,  row: 9, color: "#06b6d4", rim: "#67e8f9", name: "Droide Gauss Épsilon" },
+      { col: 11, row: 5, color: "#10b981", rim: "#6ee7b7", name: "Droide Gauss Omega" }
+    ];
+
+    let arenaGrid = [];
+    let enemies = [];
+    let bombs = [];
+    let explosions = [];
+    let particles = [];
+    let gameRunning = false;
+    let gamePausedForModal = false;
+    let lastFrameTime = 0;
+    let animClock = 0;
+
+    const player = {
+      x: 1.5 * TILE_SIZE,
+      y: 1.5 * TILE_SIZE,
+      radius: 19,
+      speed: 175,
+      dirX: 0,
+      dirY: 0,
+      facing: "down",
+      shieldTimer: 0
+    };
+
+    const activeKeys = {
+      up: false,
+      down: false,
+      left: false,
+      right: false
+    };
+
+    function cloneBaseArena() {
+      arenaGrid = BASE_ARENA_LAYOUT.map(row => [...row]);
+    }
+
+    function buildEnemiesFromOrder() {
+      enemies = orderedMissions.map((mission, idx) => {
+        const spawn = ENEMY_SPAWN_COORDS[idx % ENEMY_SPAWN_COORDS.length];
+        const st = challengeState[mission.exerciseKey];
+        // Asegurar que la celda de aparición del enemigo esté despejada
+        if (arenaGrid[spawn.row] && arenaGrid[spawn.row][spawn.col] === 2) {
+          arenaGrid[spawn.row][spawn.col] = 0;
+        }
+        return {
+          id: `enemy-${idx + 1}`,
+          exerciseKey: mission.exerciseKey,
+          name: spawn.name,
+          x: (spawn.col + 0.5) * TILE_SIZE,
+          y: (spawn.row + 0.5) * TILE_SIZE,
+          spawnCol: spawn.col,
+          spawnRow: spawn.row,
+          radius: 20,
+          speed: 78,
+          vx: idx % 2 === 0 ? 1 : 0,
+          vy: idx % 2 === 0 ? 0 : 1,
+          color: spawn.color,
+          rim: spawn.rim,
+          defeated: st.status === "correct",
+          stunnedPending: false
+        };
+      });
+    }
+
+    // Audio Sintetizado Ligero (Opcional, activado solo tras interacción)
+    let audioCtx = null;
+    function playSynthSound(type) {
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+          audioCtx = new AudioContextClass();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+        if (type === "bomb") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(240, now);
+          osc.frequency.exponentialRampToValueAtTime(110, now + 0.14);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.14);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === "explode") {
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(38, now + 0.28);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.28);
+          osc.start(now);
+          osc.stop(now + 0.29);
+        } else if (type === "correct") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(660, now + 0.1);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.28);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        }
+      } catch (err) {
+        console.warn("Audio opcional no disponible:", err);
+      }
+    }
+
+    function canWalkCell(col, row, ignoreBombAtPlayer = false) {
+      if (row < 0 || row >= GRID_ROWS || col < 0 || col >= GRID_COLS) return false;
+      if (arenaGrid[row][col] !== 0) return false;
+      if (!ignoreBombAtPlayer) {
+        const hasBomb = bombs.some(b => b.col === col && b.row === row && !b.allowPass);
+        if (hasBomb) return false;
+      }
+      return true;
+    }
+
+    function moveEntityWithSlide(entity, dx, dy, isPlayer) {
+      const nextX = entity.x + dx;
+      const nextY = entity.y + dy;
+      const r = entity.radius;
+
+      // Comprobar eje X
+      if (dx !== 0) {
+        const edgeX = dx > 0 ? nextX + r : nextX - r;
+        const colX = Math.floor(edgeX / TILE_SIZE);
+        const topRow = Math.floor((entity.y - r + 4) / TILE_SIZE);
+        const botRow = Math.floor((entity.y + r - 4) / TILE_SIZE);
+
+        if (canWalkCell(colX, topRow, isPlayer) && canWalkCell(colX, botRow, isPlayer)) {
+          entity.x = nextX;
+        } else if (isPlayer) {
+          // Suavizado de esquinas estilo Bomberman clásico
+          const centerRow = Math.floor(entity.y / TILE_SIZE);
+          if (canWalkCell(colX, centerRow, true)) {
+            const targetCenterY = (centerRow + 0.5) * TILE_SIZE;
+            entity.y += Math.sign(targetCenterY - entity.y) * Math.min(2.5, Math.abs(targetCenterY - entity.y));
+          }
+        }
+      }
+
+      // Comprobar eje Y
+      if (dy !== 0) {
+        const edgeY = dy > 0 ? nextY + r : nextY - r;
+        const rowY = Math.floor(edgeY / TILE_SIZE);
+        const leftCol = Math.floor((entity.x - r + 4) / TILE_SIZE);
+        const rightCol = Math.floor((entity.x + r - 4) / TILE_SIZE);
+
+        if (canWalkCell(leftCol, rowY, isPlayer) && canWalkCell(rightCol, rowY, isPlayer)) {
+          entity.y = nextY;
+        } else if (isPlayer) {
+          const centerCol = Math.floor(entity.x / TILE_SIZE);
+          if (canWalkCell(centerCol, rowY, true)) {
+            const targetCenterX = (centerCol + 0.5) * TILE_SIZE;
+            entity.x += Math.sign(targetCenterX - entity.x) * Math.min(2.5, Math.abs(targetCenterX - entity.x));
+          }
+        }
+      }
+    }
+
+    function placeBomb() {
+      if (!gameRunning || gamePausedForModal) return;
+
+      // Si hay un enemigo ya aturdido esperando que resuelvan su reto, abrirlo directo
+      const pendingEnemy = enemies.find(e => e.stunnedPending && !e.defeated);
+      if (pendingEnemy) {
+        renderChallenge(pendingEnemy.exerciseKey);
+        return;
+      }
+
+      if (bombs.length >= 2) return;
+      const col = Math.floor(player.x / TILE_SIZE);
+      const row = Math.floor(player.y / TILE_SIZE);
+      if (bombs.some(b => b.col === col && b.row === row)) return;
+
+      bombs.push({
+        col,
+        row,
+        timer: 2.1,
+        range: 2,
+        allowPass: true
+      });
+      playSynthSound("bomb");
+    }
+
+    function triggerExplosion(bomb) {
+      playSynthSound("explode");
+      const cells = [{ col: bomb.col, row: bomb.row }];
+      const dirs = [
+        { dc: 1, dr: 0 },
+        { dc: -1, dr: 0 },
+        { dc: 0, dr: 1 },
+        { dc: 0, dr: -1 }
+      ];
+
+      dirs.forEach(d => {
+        for (let step = 1; step <= bomb.range; step++) {
+          const c = bomb.col + d.dc * step;
+          const r = bomb.row + d.dr * step;
+          if (r < 0 || r >= GRID_ROWS || c < 0 || c >= GRID_COLS) break;
+          if (arenaGrid[r][c] === 1) break; // Muro sólido detiene fuego
+          cells.push({ col: c, row: r });
+          if (arenaGrid[r][c] === 2) {
+            // Destruir caja 3D
+            arenaGrid[r][c] = 0;
+            arcadeCoins += 10;
+            spawn3DParticles((c + 0.5) * TILE_SIZE, (r + 0.5) * TILE_SIZE, "#f59e0b");
+            break;
+          }
+        }
+      });
+
+      explosions.push({
+        cells,
+        timer: 0.55
+      });
+
+      // Verificar si algún enemigo activo fue alcanzado por la explosión
+      let hitEnemy = null;
+      enemies.forEach(en => {
+        if (en.defeated) return;
+        const enCol = Math.floor(en.x / TILE_SIZE);
+        const enRow = Math.floor(en.y / TILE_SIZE);
+        const wasHit = cells.some(cell => cell.col === enCol && cell.row === enRow);
+        if (wasHit && !hitEnemy) {
+          hitEnemy = en;
+        }
+      });
+
+      if (hitEnemy) {
+        hitEnemy.stunnedPending = true;
+        spawn3DParticles(hitEnemy.x, hitEnemy.y, hitEnemy.color);
+        updateHUD();
+        setTimeout(() => {
+          renderChallenge(hitEnemy.exerciseKey);
+        }, 260);
+      } else {
+        updateHUD();
+      }
+    }
+
+    function spawn3DParticles(x, y, color) {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      for (let i = 0; i < 12; i++) {
+        const angle = (Math.PI * 2 * i) / 12;
+        const speed = 45 + Math.random() * 80;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: 4 + Math.random() * 4,
+          color,
+          life: 0.45
+        });
+      }
+    }
+
+    function updateArenaPhysics(dt) {
+      if (gamePausedForModal) return;
+      animClock += dt;
+
+      if (player.shieldTimer > 0) {
+        player.shieldTimer = Math.max(0, player.shieldTimer - dt);
+      }
+
+      // Movimiento del jugador
+      let vx = 0;
+      let vy = 0;
+      if (activeKeys.left)  { vx -= 1; player.facing = "left"; }
+      if (activeKeys.right) { vx += 1; player.facing = "right"; }
+      if (activeKeys.up)    { vy -= 1; player.facing = "up"; }
+      if (activeKeys.down)  { vy += 1; player.facing = "down"; }
+
+      if (vx !== 0 && vy !== 0) {
+        vx *= 0.7071;
+        vy *= 0.7071;
+      }
+
+      moveEntityWithSlide(player, vx * player.speed * dt, vy * player.speed * dt, true);
+
+      // Actualizar estado de paso sobre bomba recién plantada
+      const pCol = Math.floor(player.x / TILE_SIZE);
+      const pRow = Math.floor(player.y / TILE_SIZE);
+      bombs.forEach(b => {
+        if (b.col !== pCol || b.row !== pRow) {
+          b.allowPass = false;
+        }
+      });
+
+      // Temporizador de bombas
+      for (let i = bombs.length - 1; i >= 0; i--) {
+        bombs[i].timer -= dt;
+        if (bombs[i].timer <= 0) {
+          const b = bombs.splice(i, 1)[0];
+          triggerExplosion(b);
+        }
+      }
+
+      // Temporizador de explosiones
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        explosions[i].timer -= dt;
+        if (explosions[i].timer <= 0) {
+          explosions.splice(i, 1);
+        }
+      }
+
+      // Partículas
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      // IA de Patrulla de los 6 Enemigos
+      enemies.forEach(en => {
+        if (en.defeated || en.stunnedPending) return;
+
+        const stepX = en.vx * en.speed * dt;
+        const stepY = en.vy * en.speed * dt;
+        const prevX = en.x;
+        const prevY = en.y;
+
+        moveEntityWithSlide(en, stepX, stepY, false);
+
+        const movedDist = Math.hypot(en.x - prevX, en.y - prevY);
+        if (movedDist < 0.3) {
+          // Cambiar dirección hacia una celda vecina libre
+          const curCol = Math.floor(en.x / TILE_SIZE);
+          const curRow = Math.floor(en.y / TILE_SIZE);
+          const dirs = [
+            { vx: 1, vy: 0 },
+            { vx: -1, vy: 0 },
+            { vx: 0, vy: 1 },
+            { vx: 0, vy: -1 }
+          ];
+          const validDirs = dirs.filter(d => canWalkCell(curCol + d.vx, curRow + d.vy, false));
+          if (validDirs.length > 0) {
+            const pick = validDirs[Math.floor(Math.random() * validDirs.length)];
+            en.vx = pick.vx;
+            en.vy = pick.vy;
+          } else {
+            en.vx *= -1;
+            en.vy *= -1;
+          }
+        }
+
+        // Si un enemigo toca al jugador, reposicionar suavemente al jugador al inicio sin perder progreso académico
+        if (player.shieldTimer <= 0) {
+          const distToPlayer = Math.hypot(en.x - player.x, en.y - player.y);
+          if (distToPlayer < en.radius + player.radius - 6) {
+            player.x = 1.5 * TILE_SIZE;
+            player.y = 1.5 * TILE_SIZE;
+            player.shieldTimer = 2.0;
+            document.getElementById("banner-msg").innerHTML =
+              "🛡️ <strong>Escudo de teletransporte activado:</strong> Un Droide te rozó. Tu progreso académico está intacto.";
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 7. RENDERIZADO ESTILO BLENDER 3D (SOMBREADO VOLUMÉTRICO PBR/CLAY)
+    // =========================================================================
+    function drawBlenderArena() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Suelo con losetas biseladas 3D
+      for (let r = 0; r < GRID_ROWS; r++) {
+        for (let c = 0; c < GRID_COLS; c++) {
+          const x = c * TILE_SIZE;
+          const y = r * TILE_SIZE;
+          const isAlt = (r + c) % 2 === 0;
+          ctx.fillStyle = isAlt ? "#111c2d" : "#0d1624";
+          ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+          // Bisel sutil de baldosa
+          ctx.strokeStyle = "rgba(148, 163, 184, 0.06)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y + 0.5, TILE_SIZE - 1, TILE_SIZE - 1);
+        }
+      }
+
+      // 2. Bloques 3D (Muros indestructibles y Cajas destructibles)
+      for (let r = 0; r < GRID_ROWS; r++) {
+        for (let c = 0; c < GRID_COLS; c++) {
+          const cell = arenaGrid[r][c];
+          const x = c * TILE_SIZE;
+          const y = r * TILE_SIZE;
+
+          if (cell === 1) {
+            // Pilar Metálico 3D Biselado (Estilo Eevee Render)
+            ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+            ctx.fillRect(x + 4, y + 6, TILE_SIZE - 4, TILE_SIZE - 4);
+
+            // Base extruida oscura
+            ctx.fillStyle = "#1e293b";
+            ctx.fillRect(x + 2, y + 8, TILE_SIZE - 4, TILE_SIZE - 10);
+
+            // Tapa superior iluminada con gradiente especular
+            const topGrad = ctx.createLinearGradient(x, y, x + TILE_SIZE, y + TILE_SIZE);
+            topGrad.addColorStop(0, "#64748b");
+            topGrad.addColorStop(0.5, "#334155");
+            topGrad.addColorStop(1, "#1e293b");
+            ctx.fillStyle = topGrad;
+            ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 12);
+
+            // Remaches 3D en las esquinas
+            ctx.fillStyle = "#94a3b8";
+            ctx.beginPath();
+            ctx.arc(x + 9, y + 9, 2.2, 0, Math.PI * 2);
+            ctx.arc(x + TILE_SIZE - 9, y + 9, 2.2, 0, Math.PI * 2);
+            ctx.arc(x + 9, y + TILE_SIZE - 15, 2.2, 0, Math.PI * 2);
+            ctx.arc(x + TILE_SIZE - 9, y + TILE_SIZE - 15, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (cell === 2) {
+            // Caja de Energía Destructible 3D (Ámbar / Cobre con núcleo neón)
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+            ctx.fillRect(x + 5, y + 7, TILE_SIZE - 8, TILE_SIZE - 8);
+
+            // Cara frontal 3D
+            ctx.fillStyle = "#78350f";
+            ctx.fillRect(x + 4, y + 12, TILE_SIZE - 8, TILE_SIZE - 16);
+
+            // Cara superior biselada
+            const crateGrad = ctx.createLinearGradient(x + 4, y + 4, x + TILE_SIZE - 4, y + TILE_SIZE - 14);
+            crateGrad.addColorStop(0, "#f59e0b");
+            crateGrad.addColorStop(1, "#b45309");
+            ctx.fillStyle = crateGrad;
+            ctx.fillRect(x + 4, y + 4, TILE_SIZE - 8, TILE_SIZE - 16);
+
+            // Franja luminosa Gauss
+            ctx.strokeStyle = "#fde68a";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x + 11, y + 10, TILE_SIZE - 22, TILE_SIZE - 28);
+          }
+        }
+      }
+
+      // 3. Explosiones de Plasma 3D
+      explosions.forEach(exp => {
+        exp.cells.forEach(cell => {
+          const cx = (cell.col + 0.5) * TILE_SIZE;
+          const cy = (cell.row + 0.5) * TILE_SIZE;
+          const radGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, TILE_SIZE * 0.55);
+          radGrad.addColorStop(0, "#ffffff");
+          radGrad.addColorStop(0.35, "#fde047");
+          radGrad.addColorStop(0.75, "#f97316");
+          radGrad.addColorStop(1, "rgba(239, 68, 68, 0)");
+          ctx.fillStyle = radGrad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, TILE_SIZE * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      });
+
+      // 4. Bombas Esféricas 3D con Brillo Especular
+      bombs.forEach(b => {
+        const bx = (b.col + 0.5) * TILE_SIZE;
+        const by = (b.row + 0.5) * TILE_SIZE;
+        const pulse = 1 + Math.sin(animClock * 14) * 0.08;
+        const r = 20 * pulse;
+
+        // Sombra proyectada en el piso
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.beginPath();
+        ctx.ellipse(bx, by + 16, r * 0.85, r * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cuerpo esférico sombreado tipo Blender
+        const sphereGrad = ctx.createRadialGradient(bx - 7, by - 8, 3, bx, by, r);
+        sphereGrad.addColorStop(0, "#94a3b8");
+        sphereGrad.addColorStop(0.35, "#1e293b");
+        sphereGrad.addColorStop(1, "#020617");
+        ctx.fillStyle = sphereGrad;
+        ctx.beginPath();
+        ctx.arc(bx, by, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mecha chispeante
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(bx + 4, by - r + 2);
+        ctx.quadraticCurveTo(bx + 12, by - r - 8, bx + 16, by - r - 2);
+        ctx.stroke();
+
+        ctx.fillStyle = "#fb923c";
+        ctx.beginPath();
+        ctx.arc(bx + 16, by - r - 2, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // 5. Los 6 Enemigos (Droides Gauss 3D con iluminación especular)
+      enemies.forEach((en, index) => {
+        if (en.defeated) return;
+
+        const hover = Math.sin(animClock * 4 + index) * 3;
+        const ex = en.x;
+        const ey = en.y + hover;
+
+        // Sombra elíptica inferior
+        ctx.fillStyle = "rgba(0, 0, 0, 0.52)";
+        ctx.beginPath();
+        ctx.ellipse(en.x, en.y + 18, 18, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Esfera 3D del Droide
+        const droidGrad = ctx.createRadialGradient(ex - 7, ey - 8, 3, ex, ey, en.radius);
+        droidGrad.addColorStop(0, "#ffffff");
+        droidGrad.addColorStop(0.25, en.rim);
+        droidGrad.addColorStop(0.7, en.color);
+        droidGrad.addColorStop(1, "#1e1b4b");
+        ctx.fillStyle = droidGrad;
+        ctx.beginPath();
+        ctx.arc(ex, ey, en.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Visor cibernético oscuro
+        ctx.fillStyle = "#090d16";
+        ctx.beginPath();
+        ctx.roundRect(ex - 13, ey - 6, 26, 10, 5);
+        ctx.fill();
+
+        // Ojos LED brillantes
+        ctx.fillStyle = en.stunnedPending ? "#fde047" : "#38bdf8";
+        ctx.beginPath();
+        ctx.arc(ex - 6, ey - 1, 3, 0, Math.PI * 2);
+        ctx.arc(ex + 6, ey - 1, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Etiqueta flotante "Z" o signo de exclamación si tiene reto abierto
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 11px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(en.stunnedPending ? "¡RETO!" : `Z-${index + 1}`, ex, ey - 24);
+      });
+
+      // 6. Jugador (Bomberman 3D Clay/Blender Render)
+      const px = player.x;
+      const py = player.y;
+
+      // Sombra en el suelo
+      ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+      ctx.beginPath();
+      ctx.ellipse(px, py + 18, 17, 7.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Torso 3D Azul Cobalto
+      const bodyGrad = ctx.createRadialGradient(px - 5, py + 2, 2, px, py + 6, 15);
+      bodyGrad.addColorStop(0, "#60a5fa");
+      bodyGrad.addColorStop(0.6, "#2563eb");
+      bodyGrad.addColorStop(1, "#1e3a8a");
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      ctx.arc(px, py + 6, 13, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Casco 3D Blanco Brillante (Estilo Blender Subsurface)
+      const helmGrad = ctx.createRadialGradient(px - 6, py - 12, 2, px, py - 6, 16);
+      helmGrad.addColorStop(0, "#ffffff");
+      helmGrad.addColorStop(0.55, "#e2e8f0");
+      helmGrad.addColorStop(1, "#94a3b8");
+      ctx.fillStyle = helmGrad;
+      ctx.beginPath();
+      ctx.arc(px, py - 6, 15, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Visor del jugador
+      ctx.fillStyle = "#0f172a";
+      ctx.beginPath();
+      ctx.roundRect(px - 10, py - 11, 20, 10, 5);
+      ctx.fill();
+
+      // Ojos brillantes del jugador
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(px - 6, py - 9, 3.5, 6);
+      ctx.fillRect(px + 2.5, py - 9, 3.5, 6);
+
+      // Antena superior con esfera magenta
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(px, py - 20);
+      ctx.lineTo(px, py - 26);
+      ctx.stroke();
+
+      ctx.fillStyle = "#f472b6";
+      ctx.beginPath();
+      ctx.arc(px, py - 27, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Aura de escudo si está activo
+      if (player.shieldTimer > 0) {
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.75)";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(px, py - 2, 24, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // 7. Partículas 3D
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function gameLoop(timestamp) {
+      if (!gameRunning) return;
+      if (!lastFrameTime) lastFrameTime = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
+      lastFrameTime = timestamp;
+
+      if (document.visibilityState === "visible") {
+        updateArenaPhysics(dt);
+        drawBlenderArena();
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    // =========================================================================
+    // 8. FUNCIONES RECOMENDADAS Y FLUJO PEDAGÓGICO UEEH
+    // =========================================================================
+    function typeset() {
+      if (USE_MATHJAX && window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise().catch(error => {
+          console.warn("MathJax:", error);
+        });
+      }
+    }
+
+    function switchScreen(screenId) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      const target = document.getElementById(screenId);
+      if (target) target.classList.add("active");
+      typeset();
+    }
+
+    function showInstructions() {
+      switchScreen("instructions-screen");
+    }
+
+    function backToStart() {
+      switchScreen("start-screen");
+    }
+
+    async function startGame() {
+      currentShuffleSeed = await getShuffleSeedAdapter({ activityKey: ACTIVITY_KEY_PLACEHOLDER });
+      orderedMissions = getExerciseOrder(currentShuffleSeed);
+      optionOrdersByExercise = {};
+      orderedMissions.forEach(m => {
+        optionOrdersByExercise[m.exerciseKey] = getOptionOrder(m.exerciseKey, currentShuffleSeed);
+      });
+
+      restorePreviewState();
+      loadLevel(1);
+      switchScreen("game-screen");
+
+      gameRunning = true;
+      gamePausedForModal = false;
+      lastFrameTime = performance.now();
+      drawBlenderArena();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function loadLevel(levelNumber) {
+      cloneBaseArena();
+      bombs = [];
+      explosions = [];
+      particles = [];
+      player.x = 1.5 * TILE_SIZE;
+      player.y = 1.5 * TILE_SIZE;
+      player.shieldTimer = 0;
+
+      buildEnemiesFromOrder();
+      updateHUD();
+    }
+
+    function reopenPendingChallenge() {
+      const pendingEnemy = enemies.find(e => e.stunnedPending && !e.defeated);
+      if (pendingEnemy) {
+        renderChallenge(pendingEnemy.exerciseKey);
+      }
+    }
+
+    function renderChallenge(exerciseKey) {
+      const mission = MISSIONS.find(m => m.exerciseKey === exerciseKey);
+      if (!mission) return;
+
+      activeExerciseKey = exerciseKey;
+      gamePausedForModal = true;
+      activeKeys.up = activeKeys.down = activeKeys.left = activeKeys.right = false;
+
+      const state = challengeState[exerciseKey];
+      selectedOptionKey = state.answer;
+
+      const enemyIndex = enemies.findIndex(e => e.exerciseKey === exerciseKey);
+      document.getElementById("modal-enemy-tag").textContent =
+        enemyIndex >= 0 ? `${enemies[enemyIndex].name} (${enemyIndex + 1}/6)` : "Droide Gauss";
+      document.getElementById("modal-challenge-title").textContent = mission.title;
+      document.getElementById("modal-statement").textContent = mission.statement;
+      document.getElementById("modal-equation").innerHTML = mission.equation;
+
+      // Renderizar opciones barajadas determinísticamente usando optionKey estable
+      const optionsContainer = document.getElementById("modal-options");
+      optionsContainer.innerHTML = "";
+      const shuffledOptions = optionOrdersByExercise[exerciseKey] || getOptionOrder(exerciseKey, currentShuffleSeed);
+
+      shuffledOptions.forEach((opt, visualIdx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "option-btn";
+        btn.dataset.optionKey = opt.optionKey;
+        if (selectedOptionKey === opt.optionKey) {
+          btn.classList.add("selected");
+        }
+        const visualLetter = String.fromCharCode(65 + visualIdx);
+        btn.innerHTML = `
+          <span class="option-letter">${visualLetter}</span>
+          <span class="option-label">${opt.label}</span>
+        `;
+        btn.addEventListener("click", () => {
+          if (state.locked || checkInFlight) return;
+          selectedOptionKey = opt.optionKey;
+          optionsContainer.querySelectorAll(".option-btn").forEach(b => {
+            b.classList.toggle("selected", b.dataset.optionKey === selectedOptionKey);
+          });
+        });
+        optionsContainer.appendChild(btn);
+      });
+
+      // Reset de paneles del modal según el estado actual
+      const hintBox = document.getElementById("modal-hint-box");
+      hintBox.classList.remove("show");
+      hintBox.innerHTML = "";
+
+      syncModalWithChallengeState(exerciseKey, null);
+      document.getElementById("challenge-modal").classList.add("active");
+      typeset();
+    }
+
+    function readChallengeAnswer() {
+      return selectedOptionKey;
+    }
+
+    function generateCheckId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return "chk-" + Date.now() + "-" + Math.random().toString(36).substring(2, 10);
+    }
+
+    // Validación local exclusiva de AUTHORING MODE
+    function validateAuthoringAnswer(exerciseKey, answer) {
+      const authEntry = AUTHORING_ANSWER_KEY[exerciseKey];
+      if (!authEntry) return false;
+      if (authEntry.mode === "mcq") {
+        return answer === authEntry.correctOptionKey;
+      }
+      return false;
+    }
+
+    // Adaptador central de comprobación (Contrato 14 y 15)
+    async function checkChallengeAdapter({ exerciseKey, answer, checkId }) {
+      if (AUTHORING_MODE) {
+        return { success: true, exercise_key: exerciseKey, attempt_count: 1, correct: true, status: "correct", score: 10, locked: true };
+      }
+      return await checkExercise({
+        activityKey: ACTIVITY_KEY,
+        exerciseKey,
+        answer,
+        checkId,
+        phase: "gamification"
+      });
+    }
+
+    async function checkAnswer() {
+      if (checkInFlight || !activeExerciseKey) return;
+      const state = challengeState[activeExerciseKey];
+      if (!state || state.locked) return;
+
+      const answer = readChallengeAnswer();
+      if (!answer) {
+        const fb = document.getElementById("modal-feedback");
+        fb.className = "feedback-panel show incorrect";
+        fb.innerHTML = "⚠️ Selecciona una opción antes de pulsar <strong>COMPROBAR</strong>.";
+        return;
+      }
+
+      const checkId = generateCheckId();
+      const btnCheck = document.getElementById("btn-check");
+      checkInFlight = true;
+      btnCheck.disabled = true;
+      btnCheck.textContent = "COMPROBANDO...";
+
+      try {
+        const result = await checkChallengeAdapter({
+          exerciseKey: activeExerciseKey,
+          answer,
+          checkId
+        });
+        applyCheckResult(result, answer);
+      } catch (err) {
+        console.warn("Error en checkChallengeAdapter:", err);
+      } finally {
+        checkInFlight = false;
+        btnCheck.textContent = "✔ COMPROBAR";
+        if (activeExerciseKey && !challengeState[activeExerciseKey].locked) {
+          btnCheck.disabled = false;
+        }
+      }
+    }
+
+    function applyCheckResult(result, submittedAnswer) {
+      if (!result || !result.exercise_key) return;
+      const key = result.exercise_key;
+      const st = challengeState[key];
+
+      st.answer = submittedAnswer;
+      st.attemptCount = result.attempt_count;
+      st.status = result.status;
+      st.score = result.score;
+      st.locked = result.locked;
+
+      if (result.correct) {
+        playSynthSound("correct");
+        lockChallenge(key);
+        // Recompensa visual arcade separada de la nota académica
+        const bonusCoins = st.attemptCount === 1 ? 100 : st.attemptCount <= 3 ? 70 : 50;
+        arcadeCoins += bonusCoins;
+      }
+
+      savePreviewStateToSession();
+      syncModalWithChallengeState(key, result.solution_html);
+      updateHUD();
+    }
+
+    function lockChallenge(exerciseKey) {
+      if (challengeState[exerciseKey]) {
+        challengeState[exerciseKey].locked = true;
+      }
+    }
+
+    function syncModalWithChallengeState(exerciseKey, solutionHtmlFromAdapter) {
+      const state = challengeState[exerciseKey];
+      const mission = MISSIONS.find(m => m.exerciseKey === exerciseKey);
+      const pill = document.getElementById("modal-score-pill");
+      const fb = document.getElementById("modal-feedback");
+      const solBox = document.getElementById("modal-solution");
+      const btnCheck = document.getElementById("btn-check");
+      const btnContinue = document.getElementById("btn-continue");
+      const btnHint = document.getElementById("btn-hint");
+      const optionBtns = document.querySelectorAll("#modal-options .option-btn");
+
+      if (state.status === "correct" && state.locked) {
+        pill.textContent = `Completado en intento ${state.attemptCount} · Puntaje: ${state.score}/10`;
+        optionBtns.forEach(b => (b.disabled = true));
+        btnCheck.style.display = "none";
+        btnHint.style.display = "none";
+        btnContinue.style.display = "inline-flex";
+
+        fb.className = "feedback-panel show correct";
+        fb.innerHTML = `
+          🎉 <strong>¡Excelente!</strong> Superaste el reto en el intento <strong>#${state.attemptCount}</strong>.<br>
+          Puntaje académico del reto: <strong>${state.score}/10</strong>.<br>
+          ✅ <strong>Comprobado y guardado.</strong> Ahora puedes continuar por el siguiente enemigo.
+        `;
+
+        const finalSol = solutionHtmlFromAdapter || (AUTHORING_ANSWER_KEY[exerciseKey] && AUTHORING_ANSWER_KEY[exerciseKey].solution);
+        renderSolution(finalSol);
+      } else {
+        const nextAttempt = state.attemptCount + 1;
+        const availablePts = getPreviewScoreByAttempt(nextAttempt, true);
+        pill.textContent = `Intento ${nextAttempt} · Puntaje disponible: ${availablePts}/10`;
+
+        optionBtns.forEach(b => (b.disabled = false));
+        btnCheck.style.display = "inline-flex";
+        btnCheck.disabled = false;
+        btnHint.style.display = "inline-flex";
+        btnContinue.style.display = "none";
+        solBox.classList.remove("show");
+
+        if (state.status === "incorrect") {
+          fb.className = "feedback-panel show incorrect";
+          fb.innerHTML = `
+            ❌ <strong>Aún no es correcto.</strong> Revisa tu procedimiento.<br>
+            Intentos utilizados: <strong>${state.attemptCount}</strong>. Puedes seguir intentando sin límite.<br>
+            Puntaje disponible al acertar: <strong>${availablePts}/10</strong>.
+          `;
+          showHint();
+        } else {
+          fb.className = "feedback-panel";
+          fb.innerHTML = "";
+        }
+      }
+      typeset();
+    }
+
+    function showHint() {
+      if (!activeExerciseKey) return;
+      const mission = MISSIONS.find(m => m.exerciseKey === activeExerciseKey);
+      const state = challengeState[activeExerciseKey];
+      if (!mission) return;
+
+      const hintBox = document.getElementById("modal-hint-box");
+      let html = `💡 <strong>Pista formativa:</strong> ${mission.hint}`;
+      if (state && state.attemptCount >= 2 && mission.extraHint) {
+        html += `<br><br>🔎 <strong>Apoyo adicional:</strong> ${mission.extraHint}`;
+      }
+      hintBox.innerHTML = html;
+      hintBox.classList.add("show");
+      typeset();
+    }
+
+    function renderSolution(solutionHtml) {
+      const solBox = document.getElementById("modal-solution");
+      const solContent = document.getElementById("modal-solution-content");
+      if (!solutionHtml) {
+        solBox.classList.remove("show");
+        return;
+      }
+      solContent.innerHTML = solutionHtml;
+      solBox.classList.add("show");
+      typeset();
+    }
+
+    function completeChallenge() {
+      if (!activeExerciseKey) return;
+      const st = challengeState[activeExerciseKey];
+      if (!st || st.status !== "correct") return;
+
+      // Marcar enemigo como derrotado definitivamente en el mapa
+      const enemy = enemies.find(e => e.exerciseKey === activeExerciseKey);
+      if (enemy) {
+        enemy.defeated = true;
+        enemy.stunnedPending = false;
+        spawn3DParticles(enemy.x, enemy.y, "#34d399");
+      }
+
+      document.getElementById("challenge-modal").classList.remove("active");
+      activeExerciseKey = null;
+      gamePausedForModal = false;
+
+      unlockProgression();
+    }
+
+    function unlockProgression() {
+      updateHUD();
+      const prog = calculateProgress();
+      if (prog.completed === prog.total) {
+        finishGame();
+      } else {
+        const remaining = prog.total - prog.completed;
+        document.getElementById("banner-msg").innerHTML =
+          `✅ <strong>¡Enemigo eliminado!</strong> Te quedan <strong>${remaining}</strong> Droides Gauss por derrotar en el escenario.`;
+      }
+    }
+
+    function calculateProgress() {
+      const total = MISSIONS.length;
+      let completed = 0;
+      MISSIONS.forEach(m => {
+        if (challengeState[m.exerciseKey] && challengeState[m.exerciseKey].status === "correct") {
+          completed++;
+        }
+      });
+      const percent = Math.round((completed / total) * 100);
+      return { completed, total, percent };
+    }
+
+    function calculatePreviewScore() {
+      let sum = 0;
+      let solvedCount = 0;
+      MISSIONS.forEach(m => {
+        const st = challengeState[m.exerciseKey];
+        if (st && st.status === "correct" && typeof st.score === "number") {
+          sum += st.score;
+          solvedCount++;
+        }
+      });
+      if (solvedCount === 0) return null;
+      return Number((sum / MISSIONS.length).toFixed(2));
+    }
+
+    function updateHUD() {
+      const prog = calculateProgress();
+      const previewAvg = calculatePreviewScore();
+
+      document.getElementById("hud-completed").textContent = `${prog.completed} / ${prog.total}`;
+      document.getElementById("hud-progress").textContent = `${prog.percent}%`;
+      document.getElementById("hud-score").textContent =
+        prog.completed === prog.total && previewAvg !== null
+          ? `${previewAvg.toFixed(2)} / 10`
+          : prog.completed > 0 && previewAvg !== null
+          ? `${previewAvg.toFixed(2)}*`
+          : "-- / 10";
+      document.getElementById("hud-coins").textContent = `🪙 ${arcadeCoins}`;
+
+      const hasPendingEnemy = enemies.some(e => e.stunnedPending && !e.defeated);
+      const btnPending = document.getElementById("btn-open-pending");
+      if (btnPending) {
+        btnPending.style.display = hasPendingEnemy ? "inline-flex" : "none";
+      }
+    }
+
+    // =========================================================================
+    // 9. RESTAURACIÓN Y FINALIZACIÓN (CONTRATOS 30, 38, 40)
+    // =========================================================================
+    function applyStoredChallengeState(exerciseKey, storedState) {
+      if (!storedState || !challengeState[exerciseKey]) return;
+      challengeState[exerciseKey] = {
+        answer: storedState.answer ?? null,
+        attemptCount: Number(storedState.attemptCount || 0),
+        status: storedState.status || "pending",
+        score: storedState.score ?? null,
+        locked: Boolean(storedState.locked)
+      };
+    }
+
+    function savePreviewStateToSession() {
+      if (!AUTHORING_MODE) return;
+      try {
+        const payload = {
+          challengeState,
+          arcadeCoins
+        };
+        sessionStorage.setItem(SHUFFLE_STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) {
+        console.warn("No se pudo guardar AUTHORING_PREVIEW_STATE:", e);
+      }
+    }
+
+    function restorePreviewState() {
+      if (!AUTHORING_MODE) return;
+      try {
+        const raw = sessionStorage.getItem(SHUFFLE_STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.challengeState) {
+          Object.keys(parsed.challengeState).forEach(k => {
+            applyStoredChallengeState(k, parsed.challengeState[k]);
+          });
+        }
+        if (typeof parsed.arcadeCoins === "number") {
+          arcadeCoins = parsed.arcadeCoins;
+        }
+      } catch (e) {
+        console.warn("No se pudo restaurar AUTHORING_PREVIEW_STATE:", e);
+      }
+    }
+
+    function finishGame() {
+      const prog = calculateProgress();
+      if (prog.completed < prog.total) return; // Solo finalizar cuando todos están en correct
+
+      gameRunning = false;
+      const finalScore = calculatePreviewScore();
+      document.getElementById("end-completed").textContent = `${prog.completed} / ${prog.total} (100%)`;
+      document.getElementById("end-score").textContent = `${finalScore !== null ? finalScore.toFixed(2) : "10.00"} / 10`;
+      document.getElementById("end-coins").textContent = `🪙 ${arcadeCoins} monedas`;
+
+      const btnFinalize = document.getElementById("btn-finalize");
+      btnFinalize.disabled = false;
+      btnFinalize.textContent = "✅ FINALIZAR MISIÓN";
+
+      switchScreen("end-screen");
+    }
+
+    async function finalizeGameAdapter() {
+      const prog = calculateProgress();
+      if (prog.completed < prog.total) return;
+
+      const btn = document.getElementById("btn-finalize");
+      const msg = document.getElementById("finalize-status-msg");
+      btn.disabled = true;
+      btn.textContent = "ENVIANDO RESULTADO...";
+      try {
+        const res = await submitActivityResult({
+          activityKey: ACTIVITY_KEY,
+          runId: currentGameRunId,
+          phase: "gamification"
+        });
+        btn.textContent = "✔ MISIÓN FINALIZADA";
+        const finalScore = res?.final_score ?? res?.score ?? calculatePreviewScore();
+        msg.textContent = `✅ Calificación oficial confirmada en Supabase: ${Number(finalScore).toFixed(2)}/10`;
+        document.getElementById("end-score").textContent = `${Number(finalScore).toFixed(2)} / 10`;
+      } catch (err) {
+        console.error("Error al finalizar actividad:", err);
+        btn.disabled = false;
+        btn.textContent = "REINTENTAR FINALIZAR";
+        msg.textContent = "⚠️ Error al guardar en Supabase. Puedes reintentar.";
+      }
+    }
+
+    
+    async function restoreRealProgress() {
+      try {
+        const progressList = await getExerciseProgress(ACTIVITY_KEY);
+        if (Array.isArray(progressList) && progressList.length > 0) {
+          for (const item of progressList) {
+            if (item && item.exercise_key && challengeState[item.exercise_key]) {
+              const st = challengeState[item.exercise_key];
+              st.attemptCount = item.attempt_count;
+              st.status = item.status;
+              st.score = item.exercise_score;
+              st.locked = Boolean(item.locked);
+              st.answer = item.answer_data?.value ?? item.answer_data;
+              if (st.status === "correct") {
+                const enemy = enemies.find(e => e.exerciseKey === item.exercise_key);
+                if (enemy) {
+                  enemy.defeated = true;
+                  enemy.stunnedPending = false;
+                }
+              }
+            }
+          }
+          updateHUD();
+        }
+      } catch (e) {
+        console.warn("No se pudo restaurar progreso remoto:", e);
+      }
+    }
+
+    function restartPreviewGame() {
+      // Desacoplado del estado académico oficial: en preview reinicia el laberinto para pruebas
+      try {
+        sessionStorage.removeItem(SHUFFLE_STORAGE_KEY);
+      } catch (e) {
+        console.warn(e);
+      }
+      MISSIONS.forEach(m => {
+        challengeState[m.exerciseKey] = {
+          answer: null,
+          attemptCount: 0,
+          status: "pending",
+          score: null,
+          locked: false
+        };
+      });
+      arcadeCoins = 0;
+      startGame();
+    }
+
+    // =========================================================================
+    // 10. EVENTOS DE TECLADO, POINTER EVENTS Y VISIBILIDAD
+    // =========================================================================
+    window.addEventListener("keydown", e => {
+      if (gamePausedForModal) return;
+      const code = e.code;
+      if (code === "ArrowUp" || code === "KeyW") { activeKeys.up = true; e.preventDefault(); }
+      if (code === "ArrowDown" || code === "KeyS") { activeKeys.down = true; e.preventDefault(); }
+      if (code === "ArrowLeft" || code === "KeyA") { activeKeys.left = true; e.preventDefault(); }
+      if (code === "ArrowRight" || code === "KeyD") { activeKeys.right = true; e.preventDefault(); }
+      if (code === "Space" || code === "Enter") {
+        if (document.getElementById("game-screen").classList.contains("active")) {
+          placeBomb();
+          e.preventDefault();
+        }
+      }
+    });
+
+    window.addEventListener("keyup", e => {
+      const code = e.code;
+      if (code === "ArrowUp" || code === "KeyW") activeKeys.up = false;
+      if (code === "ArrowDown" || code === "KeyS") activeKeys.down = false;
+      if (code === "ArrowLeft" || code === "KeyA") activeKeys.left = false;
+      if (code === "ArrowRight" || code === "KeyD") activeKeys.right = false;
+    });
+
+    function bindDirectionalButton(btnId, dirKey) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      const startMove = e => {
+        e.preventDefault();
+        activeKeys[dirKey] = true;
+        btn.classList.add("pressed");
+      };
+      const endMove = e => {
+        e.preventDefault();
+        activeKeys[dirKey] = false;
+        btn.classList.remove("pressed");
+      };
+      btn.addEventListener("pointerdown", startMove);
+      btn.addEventListener("pointerup", endMove);
+      btn.addEventListener("pointercancel", endMove);
+      btn.addEventListener("pointerleave", endMove);
+    }
+
+    bindDirectionalButton("btn-up", "up");
+    bindDirectionalButton("btn-down", "down");
+    bindDirectionalButton("btn-left", "left");
+    bindDirectionalButton("btn-right", "right");
+
+    const btnBomb = document.getElementById("btn-bomb");
+    if (btnBomb) {
+      btnBomb.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        placeBomb();
+      });
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") {
+        activeKeys.up = activeKeys.down = activeKeys.left = activeKeys.right = false;
+      } else {
+        lastFrameTime = performance.now();
+      }
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      cloneBaseArena();
+      drawBlenderArena();
+      typeset();
+      restoreRealProgress();
+    });
+  </script>
+</body>
+</html>

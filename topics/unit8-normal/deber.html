@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#e8f4fc" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>TRABAJO EN CLASE / DEBER INTERACTIVO - Distribución Normal | UEEH</title>
+
+  <!-- Configuración MathJax 3 -->
+  <script type="module">
+    import { supabase } from '../../core/supabase-client.js?v=1.4.7';
+    import { submitActivityResult } from '../../core/activity-service.js?v=1.4.7';
+    import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.7';
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    :root {
+      --bg1: #f4f9ff;
+      --bg2: #e8f4fc;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --navy: #0f2744;
+      --line: #d8e5f2;
+      --card: #ffffff;
+      --soft: #f8fafc;
+      --mint: #c6f7df;
+      --aqua: #9ce8f0;
+      --lilac: #dacbff;
+      --cream: #fff0b8;
+      --peach: #ffd1bd;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --shadow: 0 16px 40px rgba(15, 39, 68, 0.08);
+      --radius: 22px;
+      --safe-top: env(safe-area-inset-top, 12px);
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow-x: hidden;
+    }
+
+    button, input { font: inherit; }
+    button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 14px;
+      padding: 0.85rem 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--navy);
+      background: linear-gradient(135deg, var(--cream), var(--peach));
+      box-shadow: 0 4px 14px rgba(15, 39, 68, 0.08);
+      transition: transform 0.15s ease, filter 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      touch-action: manipulation;
+    }
+    button:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--blue);
+      outline-offset: 2px;
+    }
+    button:active:not(:disabled) { transform: scale(0.98); }
+    button:hover:not(:disabled) { filter: brightness(1.02); }
+    button:disabled { opacity: 0.52; cursor: not-allowed; transform: none; }
+
+    .btnBlue { background: linear-gradient(135deg, var(--blue), #38bdf8); color: white; }
+    .btnGhost { background: white; border: 2px solid var(--line); box-shadow: none; color: var(--navy); }
+    .btnGood { background: linear-gradient(135deg, #dcfce7, var(--mint)); color: #14532d; border: 1px solid #86efac; }
+    .btnControl { background: #e2e8f0; color: var(--navy); min-height: 44px; min-width: 44px; padding: 0.4rem 0.8rem; box-shadow: none; }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: auto;
+      padding: calc(10px + var(--safe-top)) clamp(10px, 2vw, 20px) calc(22px + var(--safe-bottom));
+      min-height: 100dvh;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+      background: rgba(255, 255, 255, 0.88);
+      padding: 12px 20px;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; color: var(--navy); }
+    .brandIcon {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: grid; place-items: center; font-size: 1.45rem;
+      background: linear-gradient(135deg, var(--aqua), var(--mint));
+      color: var(--navy);
+      flex-shrink: 0;
+    }
+    .brand small { display: block; color: var(--muted); font-weight: 600; font-size: 0.85rem; margin-top: 2px; }
+
+    .deck {
+      min-height: calc(100dvh - 130px);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .screen { display: none; padding: clamp(16px, 3vw, 34px); }
+    .screen.active { display: block; animation: fadeIn 0.28s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    h1 { font-size: clamp(1.7rem, 3.8vw, 2.65rem); line-height: 1.15; color: var(--navy); margin: 0 0 14px; font-weight: 800; }
+    h2 { font-size: clamp(1.18rem, 2.2vw, 1.5rem); color: var(--navy); margin: 0 0 12px; font-weight: 800; }
+    h3 { margin: 0 0 10px; color: var(--blue); font-size: 1.08rem; }
+    p { margin: 0 0 12px; line-height: 1.6; font-size: 1.03rem; }
+    .lead { font-size: 1.08rem; font-weight: 600; color: #334155; }
+
+    .duaRow, .tagRow, .btnRow { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 5px; border-radius: 999px;
+      padding: 0.48rem 0.85rem; font-weight: 800; font-size: 0.84rem;
+    }
+    .tag.green { background: #dcfce7; color: #15803d; }
+    .tag.purple { background: #f3e8ff; color: #7e22ce; }
+    .tag.blue { background: #e0f2fe; color: #0369a1; }
+    .tag.amber { background: #fef3c7; color: #92400e; }
+    .tag.gray { background: #f1f5f9; color: var(--navy); border: 1px solid var(--line); }
+
+    .previewNotice {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e3a8a;
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin: 10px 0 16px;
+    }
+
+    .workLayout { display: grid; grid-template-columns: 315px 1fr; gap: 22px; }
+    .sidebar {
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      background: var(--soft);
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+    }
+
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+    .stat { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 12px; text-align: center; }
+    .stat strong { display: block; font-size: 1.4rem; color: var(--navy); }
+    .stat span { font-size: 0.82rem; color: var(--muted); font-weight: 700; }
+
+    .barWrap { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+    .bar { height: 14px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .bar span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--blue), var(--mint)); transition: width 0.35s ease; }
+
+    .legendRow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .exerciseGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; margin: 12px 0; }
+    .exBtn {
+      min-height: 48px;
+      padding: 2px;
+      border-radius: 12px;
+      background: white;
+      border: 1.5px solid #cbd5e1;
+      color: #475569;
+      font-size: 0.88rem;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      line-height: 1.05;
+    }
+    .exBtn small { font-size: 0.7rem; font-weight: 800; }
+    .exBtn.active { border-color: var(--blue); background: #eff6ff; color: var(--blue); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25); }
+    .exBtn.done { background: #dcfce7; color: #166534; border-color: #86efac; }
+    .exBtn.fail { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .exBtn.incorrect { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+
+    .mainCard {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: clamp(16px, 3vw, 28px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+      min-width: 0;
+    }
+
+    .mathBox {
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      margin: 16px 0;
+      text-align: center;
+      font-size: 1.15rem;
+    }
+
+    /* Tabla de apoyo Phi(z) */
+    .phiHelper {
+      margin: 14px 0;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 10px 14px;
+    }
+    .phiHelper summary {
+      cursor: pointer;
+      font-weight: 800;
+      color: var(--navy);
+      font-size: 0.95rem;
+      padding: 4px 0;
+    }
+    .phiTableWrap {
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 10px;
+    }
+    .phiTable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: center;
+      background: white;
+    }
+    .phiTable th, .phiTable td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 8px;
+      white-space: nowrap;
+    }
+    .phiTable th {
+      background: #e0f2fe;
+      color: var(--navy);
+      font-weight: 800;
+    }
+
+    /* Input Directo */
+    .inputDirect {
+      width: 100%;
+      border: 2px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 0.95rem 1.1rem;
+      outline: none;
+      background: white;
+      color: var(--ink);
+      font-size: 1.1rem;
+      font-weight: 700;
+      transition: border-color 0.2s;
+    }
+    .inputDirect:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
+    .inputDirect:disabled { background: #f1f5f9; color: #64748b; cursor: not-allowed; }
+
+    /* Opción Múltiple */
+    .choiceGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0; }
+    .choice {
+      text-align: left;
+      background: white;
+      border: 2px solid #cbd5e1;
+      box-shadow: none;
+      border-radius: 14px;
+      min-height: 58px;
+      color: var(--ink);
+      font-weight: 650;
+      padding: 12px 14px;
+      transition: all 0.18s;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+    }
+    .choiceBadge {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: var(--navy);
+      font-weight: 800;
+      display: inline-grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .choice.selected { border-color: var(--blue); background: #eff6ff; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18); }
+    .choice.selected .choiceBadge { background: var(--blue); color: white; border-color: var(--blue); }
+    .choice:disabled { cursor: not-allowed; opacity: 0.82; }
+
+    /* Ordenar Pasos */
+    .orderList { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; }
+    .orderItem {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: white;
+      border: 2px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .orderItem.locked { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+    .orderControls { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* Espacios Vacíos (Fill) */
+    .fillGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0; }
+    .fillBox { background: var(--soft); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px; text-align: left; }
+    .fillBox.partialOk { border-color: #22c55e; background: #f0fdf4; }
+    .fillBox.partialBad { border-color: #ef4444; background: #fef2f2; }
+    .fillBox label { display: block; font-weight: 800; font-size: 0.9rem; margin-bottom: 8px; color: var(--navy); }
+    .fillInput {
+      width: 100%;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 0.75rem;
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 700;
+      background: white;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .fillInput:focus { border-color: var(--blue); }
+    .fillInput:disabled { background: #e2e8f0; cursor: not-allowed; color: #475569; }
+    .fillStatusTag { display: block; margin-top: 6px; font-size: 0.78rem; font-weight: 800; }
+
+    /* Retroalimentación */
+    .feedback {
+      display: none;
+      margin: 16px 0;
+      padding: 15px 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 0.98rem;
+      line-height: 1.5;
+      border-left: 5px solid transparent;
+    }
+    .feedback.show { display: block; animation: fadeIn 0.25s ease; }
+    .feedback.ok { background: #dcfce7; color: #166534; border-left-color: #22c55e; }
+    .feedback.bad { background: #fee2e2; color: #991b1b; border-left-color: #ef4444; }
+    .feedback.warn { background: #fef3c7; color: #92400e; border-left-color: #f59e0b; }
+
+    .hintBox, .solutionBox {
+      display: none;
+      margin-top: 16px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    .hintBox.show, .solutionBox.show { display: block; animation: fadeIn 0.25s ease; }
+    .hintBox { border-left: 5px solid var(--aqua); }
+    .solutionBox { border-left: 5px solid var(--lilac); }
+
+    /* Resumen */
+    .summaryGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 14px; margin: 20px 0; }
+    .summaryItem {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+    }
+    .summaryItem strong { display: block; font-size: 1.95rem; color: var(--navy); font-weight: 800; margin-bottom: 4px; }
+    .summaryItem span { font-size: 0.85rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    @media (max-width: 920px) {
+      .workLayout { grid-template-columns: 1fr; }
+      .sidebar { position: static; margin-bottom: 14px; }
+    }
+    @media (max-width: 600px) {
+      .choiceGrid { grid-template-columns: 1fr; }
+      .exerciseGrid { grid-template-columns: repeat(5, 1fr); }
+      .btnRow button { flex: 1 1 100%; }
+      .orderItem { flex-direction: column; align-items: stretch; text-align: left; }
+      .orderControls { justify-content: flex-end; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar" role="banner">
+      <div class="brand">
+        <div class="brandIcon" aria-hidden="true">📊</div>
+        <div>
+          UEEH – Matemáticas – 3.º BGU
+          <small>Unidad Educativa «Emiliano Hinostroza» · Paralelo A</small>
+        </div>
+      </div>
+      <div class="tagRow" style="margin: 0;">
+        <span class="tag gray" id="courseIndicator">3.º BGU «A»</span>
+        <span class="tag blue" id="phaseBadge">Fase Inicial (20 ejercicios)</span>
+      </div>
+    </header>
+
+    <main class="deck" role="main">
+
+      <!-- ==========================================
+           1. PANTALLA INICIAL
+           ========================================== -->
+      <section class="screen active" id="introScreen" aria-labelledby="introTitle">
+        <div class="duaRow">
+          <span class="tag green">DUA · Múltiples formas de representación</span>
+          <span class="tag purple">DUA · Acción y expresión</span>
+          <span class="tag blue">DUA · Compromiso y autonomía</span>
+        </div>
+
+        <h1 id="introTitle">Distribución Normal \(X \sim N(\mu, \sigma)\): Estandarización y Probabilidades</h1>
+        <p class="lead">
+          Trabajo en Clase / Deber Interactivo · Tercero de BGU (Paralelo A)<br>
+          Resuelve los ejercicios de estandarización, cálculo de probabilidades con la tabla \(\Phi(z)\), análisis de propiedades de la campana de Gauss, problemas de aplicación y retos matemáticos.
+        </p>
+
+        <div class="previewNotice" role="note">
+          ℹ️ Vista previa local: esta actividad todavía no está conectada a UEEH.
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 18px 0;">
+          <div style="background: var(--soft); border: 1px solid var(--line); padding: 18px; border-radius: 16px;">
+            <h3>🎯 Objetivo y Destreza Curricular</h3>
+            <p style="font-size: 0.96rem; margin-bottom: 8px;">
+              <strong>Objetivo de aprendizaje (propuesta pedagógica derivada del módulo):</strong> Aplicar la estandarización \(z = \frac{x-\mu}{\sigma}\) y la función acumulada \(\Phi(z)\) para determinar probabilidades, percentiles y parámetros en variables aleatorias continuas con distribución normal.
+            </p>
+            <p style="font-size: 0.94rem; margin-bottom: 0; color: var(--muted);">
+              <strong>Indicador:</strong> Estandariza valores reales, interpreta la simetría de la curva normal y resuelve problemas contextualizados de colas e intervalos.
+            </p>
+          </div>
+
+          <div style="background: var(--soft); border: 1px solid var(--line); padding: 18px; border-radius: 16px;">
+            <h3>📋 Reglas de Evaluación Formativa</h3>
+            <ul style="line-height: 1.65; color: var(--ink); font-size: 0.96rem; padding-left: 18px; margin: 0;">
+              <li>Consta de <strong>20 ejercicios iniciales</strong> (del módulo práctico y sección de retos).</li>
+              <li>Dispones de máximo <strong>4 comprobaciones</strong> por ejercicio:
+                <strong>1.º intento = 10/10</strong>, <strong>2.º = 9/10</strong>, <strong>3.º = 8/10</strong>, <strong>4.º = 7/10</strong>.</li>
+              <li>Si agotas las 4 comprobaciones sin acertar, el ejercicio registra <strong>1/10</strong> y muestra la solución explicada.</li>
+              <li>Si el promedio inicial es <strong>menor a 7.00</strong>, se habilita una <strong>fase de recuperación de 10 ejercicios</strong>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="btnRow">
+          <button type="button" class="btnBlue" onclick="startActivity()" style="font-size: 1.08rem; padding: 0.95rem 1.8rem;" aria-label="Iniciar actividad de Distribución Normal">
+            🚀 Iniciar Actividad
+          </button>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           2. PANTALLA DE TRABAJO
+           ========================================== -->
+      <section class="screen" id="workScreen" aria-label="Área de resolución de ejercicios">
+        <div class="workLayout">
+          <aside class="sidebar" aria-label="Panel de progreso y navegación">
+            <h3 id="panelTitle">Progreso de la Fase</h3>
+            <div class="stats">
+              <div class="stat">
+                <strong id="doneCount">0 de 20</strong>
+                <span>Terminados (<span id="donePercent">0%</span>)</span>
+              </div>
+              <div class="stat">
+                <strong id="avgNow">0.00</strong>
+                <span>Promedio Vista Previa</span>
+              </div>
+            </div>
+
+            <div class="barWrap">
+              <span style="font-weight: 800; font-size: 0.84rem; color: var(--navy); display: flex; justify-content: space-between;">
+                <span>Avance de ejercicios cerrados</span>
+                <span id="barPercentText">0%</span>
+              </span>
+              <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBarContainer">
+                <span id="progressBar"></span>
+              </div>
+            </div>
+
+            <div class="legendRow" aria-label="Leyenda de estados">
+              <span>○ Pendiente</span>
+              <span>◐ En proceso</span>
+              <span style="color:#166534;">✓ Correcto</span>
+              <span style="color:#991b1b;">! Refuerzo (1/10)</span>
+            </div>
+
+            <nav aria-label="Navegación numerada de ejercicios">
+              <div class="exerciseGrid" id="exerciseGrid"></div>
+            </nav>
+
+            <div class="btnRow" style="margin-top: 18px;">
+              <button type="button" class="btnBlue" onclick="finalizeActivityAdapter()" id="finishBtn" disabled style="width: 100%;">
+                📤 Enviar Actividad
+              </button>
+            </div>
+            <p style="font-size: 0.78rem; color: var(--muted); text-align: center; margin: 8px 0 0;">
+              Vista previa local: esta actividad todavía no está conectada a UEEH.
+            </p>
+          </aside>
+
+          <section class="mainCard" aria-live="polite">
+            <!-- Tabla de consulta rápida Phi(z) siempre accesible -->
+            <details class="phiHelper">
+              <summary>📐 Tabla de la Distribución Normal Estándar \(\Phi(z) = P(Z \le z)\) y Fórmulas</summary>
+              <div class="phiTableWrap">
+                <p style="font-size: 0.88rem; margin: 4px 0 8px; color: var(--navy);">
+                  <strong>Estandarización:</strong> \( z = \frac{x - \mu}{\sigma} \) &nbsp;|&nbsp;
+                  <strong>Des-estandarización:</strong> \( x = \mu + z\sigma \) &nbsp;|&nbsp;
+                  <strong>Simetría:</strong> \( \Phi(-z) = 1 - \Phi(z) \)
+                </p>
+                <table class="phiTable" aria-label="Valores frecuentes de la tabla normal estándar">
+                  <thead>
+                    <tr>
+                      <th>\(z\)</th>
+                      <th>\(0.00\)</th>
+                      <th>\(0.50\)</th>
+                      <th>\(1.00\)</th>
+                      <th>\(1.28\)</th>
+                      <th>\(1.40\)</th>
+                      <th>\(1.50\)</th>
+                      <th>\(1.60\)</th>
+                      <th>\(1.96\)</th>
+                      <th>\(2.00\)</th>
+                      <th>\(2.50\)</th>
+                      <th>\(2.58\)</th>
+                      <th>\(3.00\)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th>\(\Phi(z)\)</th>
+                      <td>\(0.5000\)</td>
+                      <td>\(0.6915\)</td>
+                      <td>\(0.8413\)</td>
+                      <td>\(0.8997 \approx 0.90\)</td>
+                      <td>\(0.9192\)</td>
+                      <td>\(0.9332\)</td>
+                      <td>\(0.9452\)</td>
+                      <td>\(0.9750\)</td>
+                      <td>\(0.9772\)</td>
+                      <td>\(0.9938\)</td>
+                      <td>\(0.9951 \approx 0.995\)</td>
+                      <td>\(0.9987\)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </details>
+
+            <div id="exercisePanel"></div>
+
+            <div class="btnRow" style="justify-content: space-between; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 16px;">
+              <button type="button" class="btnGhost" onclick="prevExercise()" aria-label="Ir al ejercicio anterior">⬅ Anterior</button>
+              <button type="button" class="btnGhost" onclick="nextExercise()" aria-label="Ir al ejercicio siguiente">Siguiente ➡</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           3. PANTALLA DE RESUMEN
+           ========================================== -->
+      <section class="screen" id="summaryScreen" aria-labelledby="summaryTitle">
+        <div class="duaRow">
+          <span class="tag blue">Vista previa pedagógica</span>
+          <span class="tag gray">Evaluación Formativa Local</span>
+        </div>
+
+        <h2 id="summaryTitle">Vista Previa Local: Resumen de Resultados</h2>
+        <p class="lead" id="summaryLead">
+          A continuación se presenta el desglose de tu desempeño en esta sesión de prueba local.
+        </p>
+
+        <div class="previewNotice" role="note">
+          ℹ️ Vista previa local: esta actividad todavía no está conectada a UEEH. Las calificaciones mostradas son orientativas de autoría.
+        </div>
+
+        <div class="summaryGrid">
+          <div class="summaryItem">
+            <strong id="sumInitial">0.00</strong>
+            <span>Nota Inicial Visual (/10)</span>
+          </div>
+          <div class="summaryItem">
+            <strong id="sumRecoveryFlag">No requerida</strong>
+            <span>¿Recuperación Activa?</span>
+          </div>
+          <div class="summaryItem">
+            <strong id="sumRecovery">N/A</strong>
+            <span>Nota Recuperación (/10)</span>
+          </div>
+          <div class="summaryItem">
+            <strong id="sumFinal">0.00</strong>
+            <span>Nota Final Visual (/10)</span>
+          </div>
+          <div class="summaryItem">
+            <strong id="sumPercent">0%</strong>
+            <span>Porcentaje de Logro</span>
+          </div>
+          <div class="summaryItem">
+            <strong id="sumLevel">Inicial</strong>
+            <span>Nivel de Desempeño</span>
+          </div>
+        </div>
+
+        <div style="background: var(--soft); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin: 18px 0;">
+          <h3>📊 Detalle de Ejercicios y Observación Pedagógica</h3>
+          <p id="sumCountsText" style="font-weight: 700; color: var(--navy); margin-bottom: 8px;"></p>
+          <p id="sumObservationText" style="margin-bottom: 0; color: #334155;"></p>
+        </div>
+
+        <div id="recoveryNotice" class="feedback show warn" style="display: none;">
+          <strong>🔄 Fase de Recuperación Habilitada:</strong> Tu nota inicial visual es menor a <strong>7.00</strong>. Tienes disponible una fase de <strong>10 ejercicios de recuperación</strong> con apoyo guiado para reforzar tus aprendizajes y promediar tu nota final visual.
+        </div>
+
+        <div class="btnRow" style="margin-top: 22px;">
+          <button type="button" class="btnBlue" id="startRecoveryBtn" onclick="activateRecovery()" style="display: none;">
+            🔄 Iniciar Fase de Recuperación (10 ejercicios)
+          </button>
+          <button type="button" class="btnGhost" onclick="showScreen('workScreen')">
+            🔍 Revisar Ejercicios Resueltos
+          </button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. VARIABLES CONFIGURABLES (CONTRATO SECCIÓN 63)
+    // =========================================================================
+    const ACTIVITY_TITLE = "Distribución Normal: Estandarización y Cálculo de Probabilidades";
+    const TOPIC = "Distribución Normal X ~ N(μ, σ), Estandarización y Tabla Φ(z)";
+    const SUBJECT = "Matemáticas";
+    const COURSE = "Tercero de BGU";
+    const PARALLEL = "A";
+
+    const TOTAL_INITIAL_EXERCISES = 20;
+    const TOTAL_RECOVERY_EXERCISES = 10;
+
+    const ATTEMPT_POLICY = "classwork_limited";
+    const MAX_CHECK_ATTEMPTS = 4;
+    const RECOVERY_THRESHOLD = 7;
+
+    const AUTHORING_MODE = false;
+    const ACTIVITY_KEY = "u8-normal-class-01";
+    const UNIT_NUMBER = 8;
+    let currentRunId = crypto.randomUUID();
+    const PREVIEW_STORAGE_KEY = "AUTHORING_PREVIEW_STATE_DEBER_NORMAL_V1";
+
+    // =========================================================================
+    // 2. RESPUESTAS Y SOLUCIONES PROTEGIDAS EN SUPABASE BACKEND (Cumple UEEH Unidad 5+)
+    const AUTHORING_ANSWER_KEY = {};
+    // =========================================================================
+    // 3. CONTENIDO VISUAL DE EJERCICIOS (SIN RESPUESTAS NI SOLUCIONES)
+    // =========================================================================
+    const exercisesVisual = [
+      {
+        exerciseKey: "initial-q01",
+        shuffleGroup: "init-all",
+        mode: "input",
+        title: "Estandariza · Ejercicio 1",
+        statement: "Calcula el valor pedido apoyándote en la fórmula de estandarización:",
+        equation: String.raw`\[ \text{Si } X \sim N(50, 8), \text{ halla } z \text{ para } x = 62. \]`,
+        textQ: "Ingresa el valor numérico de z:",
+        hint: "Sustituye en z = (x - μ) / σ restando la media μ = 50 al valor x = 62 y dividiendo el resultado entre σ = 8."
+      },
+      {
+        exerciseKey: "initial-q02",
+        shuffleGroup: "init-all",
+        mode: "input",
+        title: "Estandariza · Ejercicio 2",
+        statement: "Calcula el valor estandarizado z en el siguiente modelo normal:",
+        equation: String.raw`\[ \text{Si } X \sim N(120, 15), \text{ halla } z \text{ para } x = 90. \]`,
+        textQ: "Ingresa el valor numérico de z (incluye el signo si corresponde):",
+        hint: "Recuerda que si el valor x es menor que la media μ = 120, la resta x - μ en el numerador será negativa."
+      },
+      {
+        exerciseKey: "initial-q03",
+        shuffleGroup: "init-all",
+        mode: "input",
+        title: "Estandariza · Ejercicio 3",
+        statement: "Calcula el valor pedido usando la fórmula de estandarización:",
+        equation: String.raw`\[ \text{Si } X \sim N(30, 5), \text{ halla } z \text{ para } x = 22.5. \]`,
+        textQ: "Ingresa el valor numérico de z:",
+        hint: "Calcula primero la diferencia (22.5 - 30) y luego divide ese resultado para la desviación estándar σ = 5."
+      },
+      {
+        exerciseKey: "initial-q04",
+        shuffleGroup: "init-all",
+        mode: "input",
+        title: "Estandariza · Ejercicio 4",
+        statement: "Calcula el valor estandarizado z para la variable dada:",
+        equation: String.raw`\[ \text{Si } X \sim N(500, 100), \text{ halla } z \text{ para } x = 730. \]`,
+        textQ: "Ingresa el valor numérico de z:",
+        hint: "Resta la media μ = 500 a x = 730 y divide para σ = 100 expresando el resultado con decimal."
+      },
+      {
+        exerciseKey: "initial-q05",
+        shuffleGroup: "init-all",
+        mode: "input",
+        title: "Estandariza · Ejercicio 5",
+        statement: "Calcula el valor pedido apoyándote en la fórmula de estandarización:",
+        equation: String.raw`\[ \text{Si } X \sim N(8, 0.5), \text{ halla } z \text{ para } x = 8.75. \]`,
+        textQ: "Ingresa el valor numérico de z:",
+        hint: "Plantea z = (8.75 - 8) / 0.5. Recuerda que dividir para 0.5 equivale a multiplicar el numerador por 2."
+      },
+      {
+        exerciseKey: "initial-q06",
+        shuffleGroup: "init-all",
+        mode: "input",
+        title: "Estandariza · Ejercicio 6 (Camino Inverso)",
+        statement: "Despeja el valor de la variable original x a partir de su puntuación estandarizada:",
+        equation: String.raw`\[ \text{Si } X \sim N(200, 25), \text{ ¿qué valor de } x \text{ corresponde a } z = -1.6\text{?} \]`,
+        textQ: "Ingresa el valor numérico de x:",
+        hint: "A partir de z = (x - μ) / σ se despeja x = μ + z·σ. Ten en cuenta el signo negativo de z al multiplicar por σ."
+      },
+      {
+        exerciseKey: "initial-q07",
+        shuffleGroup: "init-all",
+        mode: "mcq",
+        title: "Calcula la probabilidad · Ejercicio 7",
+        statement: "Usa la estandarización y los valores de Φ(z) de la tabla para calcular:",
+        equation: String.raw`\[ X \sim N(100, 15): \qquad P(X < 115) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.8413 \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.1587 \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.6826 \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.9332 \)` }
+        ],
+        hint: "Estandariza x = 115 con μ = 100 y σ = 15. Como es una probabilidad de cola izquierda ('menor que'), busca directamente Φ(z) en la tabla."
+      },
+      {
+        exerciseKey: "initial-q08",
+        shuffleGroup: "init-all",
+        mode: "mcq",
+        title: "Calcula la probabilidad · Ejercicio 8",
+        statement: "Usa la estandarización y los valores de Φ(z) de la tabla para hallar la probabilidad de cola derecha:",
+        equation: String.raw`\[ X \sim N(100, 15): \qquad P(X > 130) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.9772 \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.0228 \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.0668 \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.1587 \)` }
+        ],
+        hint: "Estandariza x = 130. Como se pide P(X > 130), que es el área a la derecha, debes aplicar la regla del complemento: 1 - Φ(z)."
+      },
+      {
+        exerciseKey: "initial-q09",
+        shuffleGroup: "init-all",
+        mode: "mcq",
+        title: "Calcula la probabilidad · Ejercicio 9",
+        statement: "Usa la estandarización y los valores de Φ(z) de la tabla para hallar la probabilidad entre dos valores:",
+        equation: String.raw`\[ X \sim N(100, 15): \qquad P(85 < X < 115) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.8413 \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.9544 \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.6826 \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.3174 \)` }
+        ],
+        hint: "Estandariza ambos límites (a = 85 y b = 115) y resta sus probabilidades acumuladas: Φ(z_b) - Φ(z_a), recordando que Φ(-z) = 1 - Φ(z)."
+      },
+      {
+        exerciseKey: "initial-q10",
+        shuffleGroup: "init-all",
+        mode: "mcq",
+        title: "Calcula la probabilidad · Ejercicio 10",
+        statement: "Usa la estandarización y los valores de Φ(z) de la tabla para calcular:",
+        equation: String.raw`\[ X \sim N(50, 8): \qquad P(X < 42) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.8413 \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.3085 \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.0668 \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.1587 \)` }
+        ],
+        hint: "Al estandarizar x = 42 con μ = 50 y σ = 8 obtendrás un valor z negativo. Aplica la propiedad de simetría Φ(-z) = 1 - Φ(z)."
+      },
+      {
+        exerciseKey: "initial-q11",
+        shuffleGroup: "init-all",
+        mode: "mcq",
+        title: "Calcula la probabilidad · Ejercicio 11",
+        statement: "Usa la estandarización y los valores de Φ(z) de la tabla para calcular:",
+        equation: String.raw`\[ X \sim N(50, 8): \qquad P(X > 62) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.0668 \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.9332 \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.1151 \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.8849 \)` }
+        ],
+        hint: "Halla z para x = 62 con μ = 50 y σ = 8. Luego, por tratarse de la cola derecha ('mayor que'), resta Φ(z) de 1."
+      },
+      {
+        exerciseKey: "initial-q12",
+        shuffleGroup: "init-all",
+        mode: "fill",
+        title: "Calcula la probabilidad · Ejercicio 12",
+        statement: "Completa el procedimiento de estandarización de ambos límites y la probabilidad final del intervalo no simétrico:",
+        equation: String.raw`\[ X \sim N(50, 8): \qquad P(46 < X < 62) = \Phi(z_b) - \Phi(z_a) \]`,
+        blanks: [
+          { id: "b1", label: "Límite inferior estandarizado z_a (para x = 46)" },
+          { id: "b2", label: "Límite superior estandarizado z_b (para x = 62)" },
+          { id: "b3", label: "Probabilidad P(46 < X < 62) (4 decimales)" }
+        ],
+        hint: "Calcula z_a = (46 - 50)/8 y z_b = (62 - 50)/8. Luego busca Φ(z_b) y Φ(z_a) = 1 - Φ(|z_a|) en la tabla desplegable y réstalos."
+      },
+      {
+        exerciseKey: "initial-q13",
+        shuffleGroup: "init-all",
+        mode: "mcq",
+        title: "Verdadero o falso · Ejercicios 13 y 14",
+        statement: "Analiza las proposiciones 13 y 14 del módulo y selecciona la opción que califica y justifica correctamente ambas:",
+        equation: String.raw`\[ \mathbf{(13)}\text{ La curva normal es simétrica respecto a la recta } x = \mu. \qquad \mathbf{(14)}\text{ Si } X \sim N(\mu, \sigma),\text{ entonces } P(X = \mu) = 0.5. \]`,
+        options: [
+          { optionKey: "opt-v1", label: String.raw`13 es Verdadero (eje central \(x=\mu\)) y 14 es Falso (en una variable continua \(P(X=\mu)=0\); lo que vale \(0.5\) es \(P(X \le \mu)\)).` },
+          { optionKey: "opt-v2", label: String.raw`13 es Verdadero y 14 es Verdadero (porque la media acumula exactamente la mitad de la probabilidad en ese punto).` },
+          { optionKey: "opt-v3", label: String.raw`13 es Falso (solo es simétrica respecto a \(x=0\)) y 14 es Falso (porque \(P(X=\mu)=1\)).` },
+          { optionKey: "opt-v4", label: String.raw`13 es Falso y 14 es Verdadero.` }
+        ],
+        hint: "Recuerda la diferencia fundamental en variables aleatorias continuas entre la probabilidad de un valor aislado exacto P(X = a) y la probabilidad de un intervalo P(X ≤ a)."
+      },
+      {
+        exerciseKey: "initial-q14",
+        shuffleGroup: "init-all",
+        mode: "mcq",
+        title: "Verdadero o falso · Ejercicios 15 y 16",
+        statement: "Analiza las proposiciones 15 y 16 del módulo y selecciona la opción con la justificación correcta:",
+        equation: String.raw`\[ \mathbf{(15)}\text{ Si }\sigma\text{ aumenta (con }\mu\text{ fija), la campana se vuelve más alta y más estrecha.} \qquad \mathbf{(16)}\text{ Para todo valor }z\text{ se cumple }\Phi(-z) = 1 - \Phi(z). \]`,
+        options: [
+          { optionKey: "opt-f1", label: String.raw`15 es Verdadero y 16 es Verdadero.` },
+          { optionKey: "opt-f2", label: String.raw`15 es Falso (al aumentar \(\sigma\) hay mayor dispersión y la campana es más baja y ancha) y 16 es Verdadero (por simetría y área total igual a 1).` },
+          { optionKey: "opt-f3", label: String.raw`15 es Falso y 16 es Falso (la propiedad \(\Phi(-z)=1-\Phi(z)\) solo sirve para valores enteros).` },
+          { optionKey: "opt-f4", label: String.raw`15 es Verdadero y 16 es Falso.` }
+        ],
+        hint: "Piensa en el significado geométrico de la desviación estándar σ (dispersión de los datos) y en la simetría de la campana normal estándar."
+      },
+      {
+        exerciseKey: "initial-q15",
+        shuffleGroup: "init-all",
+        mode: "fill",
+        title: "Problema 17 · Verificación de comprensión",
+        statement: "Los puntajes de una prueba se modelan con X ~ N(70, 10), y ya se conoce que P(60 < X < 80) = 0.6826. Responde si la probabilidad entre 50 y 90 debe ser mayor o menor que 68.26% y luego compruébalo calculando P(50 < X < 90):",
+        equation: String.raw`\[ X \sim N(70, 10): \quad \text{Comparar } P(50 < X < 90) \text{ frente a } P(60 < X < 80) = 0.6826 \]`,
+        blanks: [
+          { id: "b1", label: "¿Mayor o menor que 68.26%? (escribe: mayor o menor)" },
+          { id: "b2", label: "Valor calculado de P(50 < X < 90) (4 decimales)" }
+        ],
+        hint: "Observa que el intervalo [50, 90] abarca desde μ - 2σ hasta μ + 2σ, conteniendo totalmente a [60, 80]. Usa Φ(2) en la tabla para calcular el valor exacto."
+      },
+      {
+        exerciseKey: "initial-q16",
+        shuffleGroup: "init-all",
+        mode: "fill",
+        title: "Problema 18 · Aplicación (Embotelladora)",
+        statement: "Una embotelladora llena botellas de agua cuyo contenido (en mL) sigue X ~ N(500, 4). Calcula la probabilidad de que una botella elegida al azar contenga: a) menos de 492 mL; b) más de 506 mL; c) entre 496 mL y 508 mL.",
+        equation: String.raw`\[ X \sim N(500, 4): \quad \text{a) } P(X < 492) \qquad \text{b) } P(X > 506) \qquad \text{c) } P(496 < X < 508) \]`,
+        blanks: [
+          { id: "b1", label: "Apartado a) P(X < 492) (4 decimales)" },
+          { id: "b2", label: "Apartado b) P(X > 506) (4 decimales)" },
+          { id: "b3", label: "Apartado c) P(496 < X < 508) (4 decimales)" }
+        ],
+        hint: "Estandariza cada límite restando 500 y dividiendo entre 4: para 492, 506, 496 y 508. Luego usa Φ(z) de la tabla según sea cola izquierda, derecha o intervalo."
+      },
+      {
+        exerciseKey: "initial-q17",
+        shuffleGroup: "init-all",
+        mode: "fill",
+        title: "Problema 19 · Aplicación (Maternidad)",
+        statement: "El peso al nacer (en kg) de los recién nacidos de una maternidad se modela con X ~ N(3.2, 0.5). Calcula: a) ¿Qué proporción de recién nacidos pesa menos de 2.5 kg? b) ¿Qué proporción pesa entre 2.5 kg y 4.0 kg?",
+        equation: String.raw`\[ X \sim N(3.2, 0.5): \quad \text{a) } P(X < 2.5) \qquad \text{b) } P(2.5 < X < 4.0) \]`,
+        blanks: [
+          { id: "b1", label: "Apartado a) Proporción P(X < 2.5) (4 decimales)" },
+          { id: "b2", label: "Apartado b) Proporción P(2.5 < X < 4.0) (4 decimales)" }
+        ],
+        hint: "Estandariza 2.5 kg y 4.0 kg con μ = 3.2 y σ = 0.5. Apóyate en los valores de Φ(1.40) y Φ(1.60) disponibles en la tabla superior."
+      },
+      {
+        exerciseKey: "initial-q18",
+        shuffleGroup: "init-all",
+        mode: "fill",
+        title: "Problema 20 · Aplicación (Examen de admisión)",
+        statement: "Los puntajes de un examen de admisión se modelan con X ~ N(750, 100). a) ¿Qué probabilidad hay de obtener 900 puntos o más? b) ¿Qué puntaje mínimo se necesita para quedar entre el 10% de los mejores resultados?",
+        equation: String.raw`\[ X \sim N(750, 100): \quad \text{a) } P(X \ge 900) \qquad \text{b) } x \text{ tal que } P(X > x) = 0.10 \]`,
+        blanks: [
+          { id: "b1", label: "Apartado a) Probabilidad P(X ≥ 900) (4 decimales)" },
+          { id: "b2", label: "Apartado b) Puntaje mínimo para el 10% superior" }
+        ],
+        hint: "Para el apartado a), estandariza x = 900 y usa el complemento. Para el apartado b), estar en el 10% superior equivale a acumular 0.90 a la izquierda; busca el valor z en la tabla y aplica x = μ + z·σ."
+      },
+      {
+        exerciseKey: "initial-q19",
+        shuffleGroup: "init-all",
+        mode: "fill",
+        title: "Reto 1 · Simetría e intervalos centrales",
+        statement: "Sea Z ~ N(0, 1). a) Usando Φ(-z) = 1 - Φ(z), se demuestra que P(-z < Z < z) = 2Φ(z) - 1. b) Con Φ(1.96) = 0.9750, calcula P(-1.96 < Z < 1.96). c) Halla el valor k (con dos decimales) tal que P(μ - kσ < X < μ + kσ) = 0.99.",
+        equation: String.raw`\[ P(-z < Z < z) = 2\Phi(z) - 1 \qquad \text{b) } P(-1.96 < Z < 1.96) \qquad \text{c) } 2\Phi(k) - 1 = 0.99 \]`,
+        blanks: [
+          { id: "b1", label: "Apartado b) Valor de P(-1.96 < Z < 1.96)" },
+          { id: "b2", label: "Apartado c) Valor de k (dos decimales)" }
+        ],
+        hint: "En b), sustituye Φ(1.96) = 0.9750 en la identidad 2Φ(z) - 1. En c), despeja Φ(k) de la ecuación 2Φ(k) - 1 = 0.99 y busca en la tabla a qué valor k corresponde."
+      },
+      {
+        exerciseKey: "initial-q20",
+        shuffleGroup: "init-all",
+        mode: "fill",
+        title: "Retos 2 y 3 · Parámetros desconocidos y escalas",
+        statement: "Reto 2: El diámetro (en mm) sigue X ~ N(μ, 0.2). a) Si el 2.28% (0.0228) mide menos de 9.6 mm, halla μ. b) Con ese μ, calcula P(9.7 < X < 10.3). c) Si σ baja a 0.1 mm, calcula otra vez P(9.7 < X < 10.3). Reto 3: Para X₂ ~ N(70, 20), calcula P(60 < X₂ < 80).",
+        equation: String.raw`\[ \text{Reto 2: } X \sim N(\mu, 0.2),\; P(X < 9.6) = 0.0228 \qquad \text{Reto 3: } X_2 \sim N(70, 20),\; P(60 < X_2 < 80) \]`,
+        blanks: [
+          { id: "b1", label: "Reto 2 a) Media desconocida μ (en mm)" },
+          { id: "b2", label: "Reto 2 b) P(9.7 < X < 10.3) con σ = 0.2" },
+          { id: "b3", label: "Reto 2 c) P(9.7 < X < 10.3) con σ = 0.1" },
+          { id: "b4", label: "Reto 3 c) P(60 < X₂ < 80) en N(70, 20)" }
+        ],
+        hint: "En el Reto 2a), nota que 0.0228 = 1 - 0.9772 = Φ(-2), por tanto (9.6 - μ)/0.2 = -2. Usa la identidad central 2Φ(z) - 1 para los intervalos simétricos."
+      }
+    ];
+
+    const recoveryVisual = [
+      {
+        exerciseKey: "recovery-r01",
+        shuffleGroup: "rec-all",
+        mode: "input",
+        title: "Recuperación 1 · Estandarización Guiada (z > 0)",
+        statement: "Refuerzo de estandarización: Halla cuántas desviaciones estándar por encima de la media se encuentra el valor x.",
+        equation: String.raw`\[ \text{Si } X \sim N(40, 5), \text{ halla } z \text{ para } x = 50. \]`,
+        textQ: "Ingresa el valor numérico de z:",
+        hint: "Aplica paso a paso z = (x - μ) / σ restando 40 a 50 y dividiendo para 5."
+      },
+      {
+        exerciseKey: "recovery-r02",
+        shuffleGroup: "rec-all",
+        mode: "input",
+        title: "Recuperación 2 · Estandarización Guiada (z < 0)",
+        statement: "Refuerzo de estandarización bajo la media: Calcula el valor de z cuidando su signo.",
+        equation: String.raw`\[ \text{Si } X \sim N(80, 10), \text{ halla } z \text{ para } x = 65. \]`,
+        textQ: "Ingresa el valor numérico de z:",
+        hint: "Como 65 es menor que la media 80, la resta 65 - 80 da un número negativo. Luego divide para 10."
+      },
+      {
+        exerciseKey: "recovery-r03",
+        shuffleGroup: "rec-all",
+        mode: "input",
+        title: "Recuperación 3 · Des-estandarización",
+        statement: "Encuentra el valor de la variable original x conociendo la media, la desviación estándar y el valor z:",
+        equation: String.raw`\[ \text{Si } X \sim N(100, 20), \text{ ¿qué valor de } x \text{ corresponde a } z = 1.5\text{?} \]`,
+        textQ: "Ingresa el valor numérico de x:",
+        hint: "Usa la fórmula directa x = μ + z·σ sustituyendo μ = 100, z = 1.5 y σ = 20."
+      },
+      {
+        exerciseKey: "recovery-r04",
+        shuffleGroup: "rec-all",
+        mode: "mcq",
+        title: "Recuperación 4 · Probabilidad de Cola Izquierda",
+        statement: "Estandariza el límite y selecciona la probabilidad acumulada usando la tabla Φ(z):",
+        equation: String.raw`\[ X \sim N(60, 5): \qquad P(X < 65) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.8413 \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.1587 \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.6915 \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.9772 \)` }
+        ],
+        hint: "Calcula z = (65 - 60) / 5. Luego lee directamente Φ(z) en la tabla superior."
+      },
+      {
+        exerciseKey: "recovery-r05",
+        shuffleGroup: "rec-all",
+        mode: "mcq",
+        title: "Recuperación 5 · Probabilidad de Cola Derecha",
+        statement: "Calcula la probabilidad de superar el valor indicado aplicando el complemento 1 - Φ(z):",
+        equation: String.raw`\[ X \sim N(60, 5): \qquad P(X > 70) \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0.9772 \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.0228 \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.0668 \)` },
+          { optionKey: "opt-d", label: String.raw`\( 0.1587 \)` }
+        ],
+        hint: "Primero halla z = (70 - 60) / 5. Como piden 'mayor que 70', resta de 1 el valor Φ(z) de la tabla."
+      },
+      {
+        exerciseKey: "recovery-r06",
+        shuffleGroup: "rec-all",
+        mode: "order",
+        title: "Recuperación 6 · Secuencia Algorítmica de un Intervalo",
+        statement: "Ordena los 4 pasos lógicos para calcular la probabilidad entre dos valores en una distribución normal:",
+        equation: String.raw`\[ X \sim N(50, 10): \qquad P(40 < X < 60) \]`,
+        steps: [
+          { id: "s1", text: String.raw`Estandarizar los límites inferior y superior: \( z_a = \frac{40-50}{10} = -1 \) y \( z_b = \frac{60-50}{10} = 1 \).` },
+          { id: "s2", text: String.raw`Buscar en la tabla normal estándar el valor acumulado positivo: \( \Phi(1) = 0.8413 \).` },
+          { id: "s3", text: String.raw`Aplicar la propiedad de simetría para el límite negativo: \( \Phi(-1) = 1 - \Phi(1) = 0.1587 \).` },
+          { id: "s4", text: String.raw`Restar las probabilidades acumuladas: \( \Phi(1) - \Phi(-1) = 0.8413 - 0.1587 = 0.6826 \).` }
+        ],
+        hint: "Recuerda el método de 4 pasos del módulo: 1) Estandarizar límites, 2) Buscar Φ positivo, 3) Hallar Φ negativo por simetría y 4) Restar áreas."
+      },
+      {
+        exerciseKey: "recovery-r07",
+        shuffleGroup: "rec-all",
+        mode: "mcq",
+        title: "Recuperación 7 · Propiedades de la Campana Normal",
+        statement: "En cualquier distribución normal X ~ N(μ, σ), ¿cuál es el valor exacto de la probabilidad acumulada hasta la media P(X ≤ μ)?",
+        equation: String.raw`\[ X \sim N(\mu, \sigma): \qquad P(X \le \mu) = \text{?} \]`,
+        options: [
+          { optionKey: "opt-a", label: String.raw`\( 0 \)` },
+          { optionKey: "opt-b", label: String.raw`\( 0.6826 \)` },
+          { optionKey: "opt-c", label: String.raw`\( 0.5 \)` },
+          { optionKey: "opt-d", label: String.raw`\( 1 \)` }
+        ],
+        hint: "El área total bajo la curva es 1 y la recta x = μ divide la campana en dos mitades iguales."
+      },
+      {
+        exerciseKey: "recovery-r08",
+        shuffleGroup: "rec-all",
+        mode: "fill",
+        title: "Recuperación 8 · Aplicación Guiada (Control de Peso)",
+        statement: "El peso (en gramos) de paquetes de café sigue X ~ N(250, 10). Completa el valor estandarizado y la probabilidad de que un paquete pese menos de 235 g:",
+        equation: String.raw`\[ X \sim N(250, 10): \qquad P(X < 235) = \Phi(z) \]`,
+        blanks: [
+          { id: "b1", label: "Valor estandarizado z para x = 235" },
+          { id: "b2", label: "Probabilidad P(X < 235) (4 decimales)" }
+        ],
+        hint: "Calcula z = (235 - 250) / 10. Como z es negativo, usa Φ(-z) = 1 - Φ(|z|) apoyándote en la tabla."
+      },
+      {
+        exerciseKey: "recovery-r09",
+        shuffleGroup: "rec-all",
+        mode: "fill",
+        title: "Recuperación 9 · Camino Inverso Guiado",
+        statement: "Las calificaciones de una prueba siguen X ~ N(70, 10). Halla el valor z y el puntaje mínimo necesario para ubicarse en el 10% superior (es decir, acumulando 0.90 a la izquierda):",
+        equation: String.raw`\[ P(X \le x) = 0.90 \implies \Phi(z) \approx 0.90 \implies x = \mu + z\sigma \]`,
+        blanks: [
+          { id: "b1", label: "Valor z tal que Φ(z) ≈ 0.90 (2 decimales)" },
+          { id: "b2", label: "Puntaje mínimo x = 70 + z(10)" }
+        ],
+        hint: "Revisa la tabla desplegable para encontrar qué valor de z tiene Φ(z) = 0.8997 ≈ 0.90, y luego sustitúyelo en x = 70 + 10·z."
+      },
+      {
+        exerciseKey: "recovery-r10",
+        shuffleGroup: "rec-all",
+        mode: "fill",
+        title: "Recuperación 10 · Intervalo Simétrico Central",
+        statement: "Si X ~ N(20, 5), queremos calcular P(10 < X < 30). Identifica cuántas desviaciones estándar k se alejan los extremos de la media μ = 20 y calcula la probabilidad usando 2Φ(k) - 1:",
+        equation: String.raw`\[ X \sim N(20, 5): \qquad P(10 < X < 30) = P(-k < Z < k) = 2\Phi(k) - 1 \]`,
+        blanks: [
+          { id: "b1", label: "Número de desviaciones estándar k" },
+          { id: "b2", label: "Probabilidad P(10 < X < 30) (4 decimales)" }
+        ],
+        hint: "Nota que 30 - 20 = 10, y como σ = 5, determina cuántos σ caben en 10. Luego sustituye Φ(k) en 2Φ(k) - 1."
+      }
+    ];
+
+    // =========================================================================
+    // 4. ALEATORIZACIÓN DETERMINISTA ANTI-COPIA (CONTRATO 7A)
+    // =========================================================================
+    let activeShuffleSeed = "default-seed";
+    let orderedInitialExercises = [];
+    let orderedRecoveryExercises = [];
+    const shuffledOptionsMap = {};
+
+    async function getShuffleSeedAdapter({ activityKey }) {
+      // AUTHORING MODE: deriva la semilla de ?previewStudent=student-a
+      // UEEH MODE: Antigravity conectará a la identidad autenticada vigente.
+      const params = new URLSearchParams(window.location.search);
+      const previewStudent = params.get("previewStudent") || "student-default";
+      return `${previewStudent}::${activityKey}::shuffle-v1`;
+    }
+
+    function hashStringToUint32(str) {
+      let h = 1779033703 ^ str.length;
+      for (let i = 0; i < str.length; i++) {
+        h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+        h = (h << 13) | (h >>> 19);
+      }
+      return function() {
+        h = Math.imul(h ^ (h >>> 16), 2246822507);
+        h = Math.imul(h ^ (h >>> 13), 3266489909);
+        return (h ^= h >>> 16) >>> 0;
+      };
+    }
+
+    function createDeterministicPRNG(seedStr) {
+      const seedFn = hashStringToUint32(String(seedStr));
+      let a = seedFn();
+      return function() {
+        let t = (a += 0x6D2B79F5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    // Fisher-Yates puro sobre copia sin mutar el arreglo maestro
+    function seededShuffle(list, seed) {
+      const copy = Array.isArray(list) ? list.map(item => ({ ...item })) : [];
+      const rng = createDeterministicPRNG(seed);
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        const tmp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = tmp;
+      }
+      return copy;
+    }
+
+    function getInitialExerciseOrder(seed) {
+      return seededShuffle(exercisesVisual, `${seed}::initial`);
+    }
+
+    function getRecoveryExerciseOrder(seed) {
+      return seededShuffle(recoveryVisual, `${seed}::recovery`);
+    }
+
+    function getOptionOrder(exerciseKey, seed) {
+      const allVisual = [...exercisesVisual, ...recoveryVisual];
+      const found = allVisual.find(item => item.exerciseKey === exerciseKey);
+      if (!found || !Array.isArray(found.options)) return [];
+      return seededShuffle(found.options, `${seed}::options::${exerciseKey}`);
+    }
+
+    function getOrderStepsInitialPermutation(exerciseKey, steps, seed) {
+      const ids = steps.map(s => s.id);
+      let permuted = seededShuffle(ids.map(id => ({ id })), `${seed}::order::${exerciseKey}`).map(o => o.id);
+      const naturalIds = steps.map(s => s.id);
+      if (permuted.length > 1 && JSON.stringify(permuted) === JSON.stringify(naturalIds)) {
+        const tmp = permuted[0];
+        permuted[0] = permuted[1];
+        permuted[1] = tmp;
+      }
+      return permuted;
+    }
+
+    // =========================================================================
+    // 5. ESTADO PEDAGÓGICO LOCAL SEPARADO DE LA PAUTA (CONTRATO 27)
+    // =========================================================================
+    let activePhase = "initial";
+    let currentIdx = 0;
+    let checkInFlight = false;
+    const exerciseState = {};
+
+    function initializeExerciseStateMap(seed) {
+      const allExercises = [...exercisesVisual, ...recoveryVisual];
+      allExercises.forEach(ex => {
+        if (ex.mode === "mcq") {
+          shuffledOptionsMap[ex.exerciseKey] = getOptionOrder(ex.exerciseKey, seed);
+        }
+
+        if (!exerciseState[ex.exerciseKey]) {
+          let initialAnswer = null;
+          if (ex.mode === "fill") {
+            initialAnswer = Array(ex.blanks.length).fill("");
+          } else if (ex.mode === "order") {
+            initialAnswer = getOrderStepsInitialPermutation(ex.exerciseKey, ex.steps, seed);
+          }
+
+          exerciseState[ex.exerciseKey] = {
+            answer: initialAnswer,
+            attemptCount: 0,
+            status: "pending",
+            score: null,
+            locked: false,
+            remainingAttempts: MAX_CHECK_ATTEMPTS,
+            feedbackText: null,
+            feedbackType: null,
+            partialFillStatus: null,
+            solutionHtml: null
+          };
+        }
+      });
+    }
+
+    // =========================================================================
+    // 6. ESCALA DE CALIFICACIÓN Y VALIDADOR AUTHORING (CONTRATO 12, 17, 18)
+    // =========================================================================
+    function getPreviewScoreByAttempt(attemptNumber, solved) {
+      if (!solved && attemptNumber >= 4) {
+        return 1;
+      }
+      if (attemptNumber === 1) return 10;
+      if (attemptNumber === 2) return 9;
+      if (attemptNumber === 3) return 8;
+      if (attemptNumber === 4) return 7;
+      return 1;
+    }
+
+    function normalizeMathInput(raw) {
+      return String(raw ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/,/g, ".")
+        .replace(/\s+/g, "");
+    }
+
+    function matchesSingleValue(userRaw, spec) {
+      const clean = normalizeMathInput(userRaw);
+      if (!clean) return false;
+
+      // Soportar expresiones tipo z=1.5 o x=160 o porcentaje 84.13%
+      const strippedVar = clean.replace(/^[zxkμp]=/, "");
+
+      if (Array.isArray(spec.acceptedAnswers)) {
+        const directHit = spec.acceptedAnswers.some(acc => normalizeMathInput(acc) === clean || normalizeMathInput(acc) === strippedVar);
+        if (directHit) return true;
+      }
+      if (Array.isArray(spec.accepted)) {
+        const directHit = spec.accepted.some(acc => normalizeMathInput(acc) === clean || normalizeMathInput(acc) === strippedVar);
+        if (directHit) return true;
+      }
+
+      if (typeof spec.numericTarget === "number") {
+        let numCandidate = Number(strippedVar);
+        if (strippedVar.endsWith("%")) {
+          const pctVal = Number(strippedVar.slice(0, -1));
+          if (!Number.isNaN(pctVal)) {
+            numCandidate = pctVal / 100;
+          }
+        }
+        if (!Number.isNaN(numCandidate)) {
+          const tol = typeof spec.numericTolerance === "number" ? spec.numericTolerance : 0.001;
+          if (Math.abs(numCandidate - spec.numericTarget) <= tol) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function validateAuthoringAnswer(exerciseKey, answer) {
+      const auth = AUTHORING_ANSWER_KEY[exerciseKey];
+      if (!auth) return { isCorrect: false, partialFillStatus: null };
+
+      if (auth.mode === "mcq") {
+        return {
+          isCorrect: answer === auth.correctOptionKey,
+          partialFillStatus: null
+        };
+      }
+
+      if (auth.mode === "input") {
+        return {
+          isCorrect: matchesSingleValue(answer, auth),
+          partialFillStatus: null
+        };
+      }
+
+      if (auth.mode === "order") {
+        const isCorrect = Array.isArray(answer) && JSON.stringify(answer) === JSON.stringify(auth.correctOrder);
+        return { isCorrect, partialFillStatus: null };
+      }
+
+      if (auth.mode === "fill") {
+        if (!Array.isArray(answer) || answer.length !== auth.blanks.length) {
+          return { isCorrect: false, partialFillStatus: null };
+        }
+        const partial = auth.blanks.map((bSpec, idx) => matchesSingleValue(answer[idx], bSpec));
+        const allOk = partial.every(Boolean);
+        return {
+          isCorrect: allOk,
+          partialFillStatus: partial
+        };
+      }
+
+      return { isCorrect: false, partialFillStatus: null };
+    }
+
+    // Adaptador Central de Comprobación (Contrato 12 y 13)
+    async function checkExerciseAdapter({ exerciseKey, answer, checkId }) {
+      if (AUTHORING_MODE) {
+        return { success: true, exercise_key: exerciseKey, attempt_count: 1, correct: true, status: "correct", score: 10, locked: true };
+      }
+      return await checkExercise({
+        activityKey: ACTIVITY_KEY,
+        exerciseKey,
+        answer,
+        checkId,
+        phase: activePhase
+      });
+    }
+
+    // =========================================================================
+    // 7. RESTAURACIÓN Y STORAGE PREVIEW (CONTRATO 28 y 29)
+    // =========================================================================
+    function applyStoredExerciseState(exerciseKey, storedState) {
+      if (!storedState || !exerciseState[exerciseKey]) return;
+      const target = exerciseState[exerciseKey];
+
+      if (storedState.answer !== undefined) target.answer = storedState.answer;
+      if (typeof storedState.attemptCount === "number") target.attemptCount = storedState.attemptCount;
+      if (storedState.status) target.status = storedState.status;
+      if (storedState.score !== undefined) target.score = storedState.score;
+      if (typeof storedState.locked === "boolean") target.locked = storedState.locked;
+      if (typeof storedState.remainingAttempts === "number") target.remainingAttempts = storedState.remainingAttempts;
+      if (storedState.feedbackText !== undefined) target.feedbackText = storedState.feedbackText;
+      if (storedState.feedbackType !== undefined) target.feedbackType = storedState.feedbackType;
+      if (storedState.partialFillStatus !== undefined) target.partialFillStatus = storedState.partialFillStatus;
+
+      if (target.locked && AUTHORING_ANSWER_KEY[exerciseKey]) {
+        target.solutionHtml = AUTHORING_ANSWER_KEY[exerciseKey].solution;
+      }
+    }
+
+    function savePreviewState() {
+      if (!AUTHORING_MODE) return;
+      try {
+        const snapshot = {
+          activePhase,
+          currentIdx,
+          exercises: {}
+        };
+        Object.keys(exerciseState).forEach(k => {
+          const st = exerciseState[k];
+          snapshot.exercises[k] = {
+            answer: st.answer,
+            attemptCount: st.attemptCount,
+            status: st.status,
+            score: st.score,
+            locked: st.locked,
+            remainingAttempts: st.remainingAttempts,
+            feedbackText: st.feedbackText,
+            feedbackType: st.feedbackType,
+            partialFillStatus: st.partialFillStatus
+          };
+        });
+        sessionStorage.setItem(`${PREVIEW_STORAGE_KEY}::${activeShuffleSeed}`, JSON.stringify(snapshot));
+      } catch (err) {
+        console.warn("No se pudo guardar AUTHORING_PREVIEW_STATE:", err);
+      }
+    }
+
+    function restorePreviewState() {
+      if (!AUTHORING_MODE) return;
+      try {
+        const raw = sessionStorage.getItem(`${PREVIEW_STORAGE_KEY}::${activeShuffleSeed}`);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!parsed) return;
+
+        if (parsed.activePhase === "initial" || parsed.activePhase === "recovery") {
+          activePhase = parsed.activePhase;
+        }
+        if (typeof parsed.currentIdx === "number") {
+          currentIdx = parsed.currentIdx;
+        }
+        if (parsed.exercises) {
+          Object.keys(parsed.exercises).forEach(k => {
+            applyStoredExerciseState(k, parsed.exercises[k]);
+          });
+        }
+      } catch (err) {
+        console.warn("No se pudo restaurar AUTHORING_PREVIEW_STATE:", err);
+      }
+    }
+
+    // =========================================================================
+    // 8. FUNCIONES DE FLUJO Y RENDERIZADO DE INTERFAZ
+    // =========================================================================
+    function getActiveOrderedList() {
+      return activePhase === "initial" ? orderedInitialExercises : orderedRecoveryExercises;
+    }
+
+    async function initAppWithSeed() {
+      activeShuffleSeed = await getShuffleSeedAdapter({ activityKey: ACTIVITY_KEY_PLACEHOLDER });
+      orderedInitialExercises = getInitialExerciseOrder(activeShuffleSeed);
+      orderedRecoveryExercises = getRecoveryExerciseOrder(activeShuffleSeed);
+      initializeExerciseStateMap(activeShuffleSeed);
+      restorePreviewState();
+      updatePhaseHeaderBadge();
+      typeset();
+    }
+
+    function updatePhaseHeaderBadge() {
+      const badge = document.getElementById("phaseBadge");
+      if (!badge) return;
+      if (activePhase === "initial") {
+        badge.textContent = "Fase Inicial (20 ejercicios)";
+        badge.className = "tag blue";
+      } else {
+        badge.textContent = "Fase de Recuperación (10 ejercicios)";
+        badge.className = "tag purple";
+      }
+    }
+
+    function startActivity() {
+      showScreen("workScreen");
+      renderExercise();
+    }
+
+    function calculateProgress(list) {
+      const targetList = list || getActiveOrderedList();
+      const total = targetList.length;
+      let completed = 0;
+
+      targetList.forEach(ex => {
+        const st = exerciseState[ex.exerciseKey];
+        if (st && (st.status === "correct" || st.status === "failed")) {
+          completed++;
+        }
+      });
+
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+      return { completed, total, percent };
+    }
+
+    function renderExercise() {
+      const list = getActiveOrderedList();
+      if (!list.length) return;
+      if (currentIdx < 0 || currentIdx >= list.length) currentIdx = 0;
+
+      updatePhaseHeaderBadge();
+      const prog = calculateProgress(list);
+
+      let sumClosedScores = 0;
+      list.forEach(ex => {
+        const st = exerciseState[ex.exerciseKey];
+        if (st && (st.status === "correct" || st.status === "failed")) {
+          sumClosedScores += (st.score || 0);
+        }
+      });
+
+      const runningAvg = prog.completed > 0 ? (sumClosedScores / list.length).toFixed(2) : "0.00";
+      document.getElementById("doneCount").textContent = `${prog.completed} de ${prog.total}`;
+      document.getElementById("donePercent").textContent = `${prog.percent}%`;
+      document.getElementById("barPercentText").textContent = `${prog.percent}%`;
+      document.getElementById("avgNow").textContent = runningAvg;
+      document.getElementById("progressBar").style.width = `${prog.percent}%`;
+      document.getElementById("progressBarContainer").setAttribute("aria-valuenow", String(prog.percent));
+
+      const finishBtn = document.getElementById("finishBtn");
+      finishBtn.disabled = prog.completed < prog.total;
+      finishBtn.textContent = activePhase === "initial" ? "📤 Enviar Actividad" : "🏁 Finalizar Recuperación";
+
+      renderNavGrid(list);
+      renderCurrentExerciseCard(list[currentIdx], currentIdx, list.length);
+      typeset();
+    }
+
+    function renderNavGrid(list) {
+      const grid = document.getElementById("exerciseGrid");
+      grid.innerHTML = list.map((ex, idx) => {
+        const st = exerciseState[ex.exerciseKey];
+        let cls = "exBtn";
+        let symbol = "○";
+        let statusLabel = "Pendiente";
+
+        if (idx === currentIdx) cls += " active";
+        if (st.status === "correct") {
+          cls += " done";
+          symbol = "✓";
+          statusLabel = "Correcto";
+        } else if (st.status === "failed") {
+          cls += " fail";
+          symbol = "!";
+          statusLabel = "Refuerzo";
+        } else if (st.status === "incorrect") {
+          cls += " incorrect";
+          symbol = "◐";
+          statusLabel = "En proceso";
+        }
+
+        return `<button type="button" class="${cls}" onclick="navTo(${idx})" aria-label="Ejercicio ${idx + 1}: ${statusLabel}">
+          <span>${idx + 1}</span>
+          <small aria-hidden="true">${symbol}</small>
+        </button>`;
+      }).join("");
+    }
+
+    function renderCurrentExerciseCard(exVisual, visualIndex, totalCount) {
+      const st = exerciseState[exVisual.exerciseKey];
+      const panel = document.getElementById("exercisePanel");
+
+      const usedAttempts = st.attemptCount;
+      const availableAttempts = Math.max(0, MAX_CHECK_ATTEMPTS - usedAttempts);
+      const nextAttemptNumber = Math.min(MAX_CHECK_ATTEMPTS, usedAttempts + 1);
+      const potentialScore = st.locked
+        ? `${st.score}/10`
+        : `${getPreviewScoreByAttempt(nextAttemptNumber, true)}/10`;
+
+      let statusBadgeHtml = `<span class="tag gray">○ Estado: Pendiente</span>`;
+      if (st.status === "correct") {
+        statusBadgeHtml = `<span class="tag green">✓ Estado: Correcto (${st.score}/10)</span>`;
+      } else if (st.status === "failed") {
+        statusBadgeHtml = `<span class="tag" style="background:#fee2e2; color:#991b1b;">! Estado: Refuerzo (${st.score}/10)</span>`;
+      } else if (st.status === "incorrect") {
+        statusBadgeHtml = `<span class="tag amber">◐ Estado: En proceso</span>`;
+      }
+
+      let interactionHtml = "";
+
+      if (exVisual.mode === "mcq") {
+        const optionsList = shuffledOptionsMap[exVisual.exerciseKey] || [];
+        interactionHtml = `<div class="choiceGrid" role="radiogroup" aria-label="Opciones de respuesta">
+          ${optionsList.map((opt, i) => {
+            const isSelected = st.answer === opt.optionKey;
+            const letter = String.fromCharCode(65 + i);
+            return `<button type="button" class="choice ${isSelected ? "selected" : ""}"
+                      onclick="selectMCQOption('${exVisual.exerciseKey}', '${opt.optionKey}')"
+                      aria-pressed="${isSelected}"
+                      ${st.locked ? "disabled" : ""}>
+              <span class="choiceBadge">${letter}</span>
+              <span>${opt.label}</span>
+            </button>`;
+          }).join("")}
+        </div>`;
+      } else if (exVisual.mode === "input") {
+        const inputId = `input-${exVisual.exerciseKey}`;
+        interactionHtml = `<div style="margin: 18px 0;">
+          <label for="${inputId}" style="display:block; font-weight:800; margin-bottom:8px; color:var(--navy);">
+            ${exVisual.textQ || "Ingresa tu respuesta:"}
+          </label>
+          <input type="text" id="${inputId}" class="inputDirect"
+                 value="${st.answer !== null ? escapeHtml(st.answer) : ""}"
+                 placeholder="Escribe el valor numérico aquí..."
+                 oninput="updateDirectInput('${exVisual.exerciseKey}', this.value)"
+                 onkeydown="handleInputKeydown(event)"
+                 ${st.locked ? "disabled" : ""} />
+        </div>`;
+      } else if (exVisual.mode === "fill") {
+        interactionHtml = `<div class="fillGrid">
+          ${exVisual.blanks.map((b, idx) => {
+            const fieldId = `fill-${exVisual.exerciseKey}-${idx}`;
+            const val = Array.isArray(st.answer) ? (st.answer[idx] || "") : "";
+            let boxCls = "fillBox";
+            let statusNote = "";
+            if (Array.isArray(st.partialFillStatus) && typeof st.partialFillStatus[idx] === "boolean") {
+              if (st.partialFillStatus[idx]) {
+                boxCls += " partialOk";
+                statusNote = `<span class="fillStatusTag" style="color:#15803d;">✓ Campo correcto</span>`;
+              } else {
+                boxCls += " partialBad";
+                statusNote = `<span class="fillStatusTag" style="color:#b91c1c;">✗ Revisa este valor</span>`;
+              }
+            }
+            return `<div class="${boxCls}">
+              <label for="${fieldId}">${b.label}</label>
+              <input type="text" id="${fieldId}" class="fillInput"
+                     value="${escapeHtml(val)}"
+                     placeholder="Respuesta..."
+                     oninput="updateFillBlank('${exVisual.exerciseKey}', ${idx}, this.value)"
+                     onkeydown="handleInputKeydown(event)"
+                     ${st.locked ? "disabled" : ""} />
+              ${statusNote}
+            </div>`;
+          }).join("")}
+        </div>`;
+      } else if (exVisual.mode === "order") {
+        const currentOrderIds = Array.isArray(st.answer) ? st.answer : exVisual.steps.map(s => s.id);
+        const orderedStepObjs = currentOrderIds.map(id => exVisual.steps.find(s => s.id === id)).filter(Boolean);
+        interactionHtml = `<div class="orderList" role="list" aria-label="Pasos para ordenar">
+          ${orderedStepObjs.map((stepObj, idx) => `
+            <div class="orderItem ${st.locked ? "locked" : ""}" role="listitem">
+              <span><strong>Paso ${idx + 1}:</strong> ${stepObj.text}</span>
+              <div class="orderControls">
+                <button type="button" class="btnControl" onclick="moveOrderStep('${exVisual.exerciseKey}', ${idx}, -1)"
+                        aria-label="Subir paso ${idx + 1}" ${st.locked || idx === 0 ? "disabled" : ""}>▲</button>
+                <button type="button" class="btnControl" onclick="moveOrderStep('${exVisual.exerciseKey}', ${idx}, 1)"
+                        aria-label="Bajar paso ${idx + 1}" ${st.locked || idx === orderedStepObjs.length - 1 ? "disabled" : ""}>▼</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>`;
+      }
+
+      panel.innerHTML = `
+        <div class="tagRow" style="margin-top: 0;">
+          <span class="tag gray">Ejercicio ${visualIndex + 1} de ${totalCount}</span>
+          <span class="tag blue">Intentos utilizados: ${usedAttempts}/4</span>
+          <span class="tag purple">Intentos disponibles: ${availableAttempts}</span>
+          <span class="tag amber">${st.locked ? "Puntaje obtenido" : "Puntaje disponible"}: ${potentialScore}</span>
+          ${statusBadgeHtml}
+        </div>
+
+        <h2>${exVisual.title}</h2>
+        <p>${exVisual.statement}</p>
+        ${exVisual.equation ? `<div class="mathBox">${exVisual.equation}</div>` : ""}
+
+        ${interactionHtml}
+
+        <div class="btnRow" style="margin-top: 18px;">
+          <button type="button" class="btnGood" id="btnComprobar" onclick="checkAnswer()" ${st.locked ? "disabled" : ""}>
+            ✅ Comprobar
+          </button>
+          <button type="button" class="btnGhost" onclick="showHint()">
+            💡 Pista Pedagógica
+          </button>
+        </div>
+
+        <div class="feedback ${st.feedbackText ? "show " + st.feedbackType : ""}" role="status" aria-live="polite">
+          ${st.feedbackText || ""}
+        </div>
+
+        <div class="hintBox" id="hintBox">
+          <strong>💡 Pista orientadora:</strong><br>${exVisual.hint}
+        </div>
+
+        <div class="solutionBox ${st.locked && st.solutionHtml ? "show" : ""}" id="solutionBox">
+          ${st.locked && st.solutionHtml ? renderSolutionHtmlBlock(st.solutionHtml) : ""}
+        </div>
+      `;
+    }
+
+    function renderSolutionHtmlBlock(solHtml) {
+      return `<strong>📝 Solución Paso a Paso:</strong><br><div class="mathBox" style="text-align:left; font-size:1.03rem;">${solHtml}</div>`;
+    }
+
+    // =========================================================================
+    // 9. LECTURA DE RESPUESTAS Y PROTECCIÓN DE COMPROBACIÓN (CONTRATO 14-24)
+    // =========================================================================
+    function selectMCQOption(exerciseKey, optionKey) {
+      const st = exerciseState[exerciseKey];
+      if (!st || st.locked || checkInFlight) return;
+      st.answer = optionKey;
+      savePreviewState();
+      renderExercise();
+    }
+
+    function updateDirectInput(exerciseKey, val) {
+      const st = exerciseState[exerciseKey];
+      if (!st || st.locked) return;
+      st.answer = val;
+      savePreviewState();
+    }
+
+    function updateFillBlank(exerciseKey, blankIdx, val) {
+      const st = exerciseState[exerciseKey];
+      if (!st || st.locked) return;
+      if (!Array.isArray(st.answer)) st.answer = [];
+      st.answer[blankIdx] = val;
+      savePreviewState();
+    }
+
+    function moveOrderStep(exerciseKey, idx, delta) {
+      const st = exerciseState[exerciseKey];
+      if (!st || st.locked || checkInFlight) return;
+      const arr = Array.isArray(st.answer) ? [...st.answer] : [];
+      const targetIdx = idx + delta;
+      if (targetIdx < 0 || targetIdx >= arr.length) return;
+      const tmp = arr[idx];
+      arr[idx] = arr[targetIdx];
+      arr[targetIdx] = tmp;
+      st.answer = arr;
+      savePreviewState();
+      renderExercise();
+    }
+
+    function handleInputKeydown(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        checkAnswer();
+      }
+    }
+
+    function readCurrentAnswer(exVisual) {
+      const st = exerciseState[exVisual.exerciseKey];
+      if (!st) return null;
+      return st.answer;
+    }
+
+    function generateCheckId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return "chk-" + Date.now() + "-" + Math.random().toString(36).substring(2, 10);
+    }
+
+    async function checkAnswer() {
+      if (checkInFlight) return;
+
+      const list = getActiveOrderedList();
+      const exVisual = list[currentIdx];
+      if (!exVisual) return;
+
+      const exKey = exVisual.exerciseKey;
+      const st = exerciseState[exKey];
+      if (!st || st.locked) return;
+
+      const currentAnswer = readCurrentAnswer(exVisual);
+
+      // Validar que no esté vacío antes de consumir intento
+      if (exVisual.mode === "mcq" && !currentAnswer) {
+        notifyValidationWarning(exVisual, "⚠️ Selecciona una de las opciones antes de pulsar Comprobar.");
+        return;
+      }
+      if (exVisual.mode === "input" && (!currentAnswer || String(currentAnswer).trim() === "")) {
+        notifyValidationWarning(exVisual, "⚠️ Escribe un valor en el campo de respuesta antes de pulsar Comprobar.");
+        return;
+      }
+      if (exVisual.mode === "fill") {
+        if (!Array.isArray(currentAnswer) || currentAnswer.some(v => !v || String(v).trim() === "")) {
+          notifyValidationWarning(exVisual, "⚠️ Completa todas las casillas del ejercicio antes de pulsar Comprobar.");
+          return;
+        }
+      }
+
+      checkInFlight = true;
+      const btn = document.getElementById("btnComprobar");
+      if (btn) btn.disabled = true;
+
+      try {
+        const checkId = generateCheckId();
+        const result = await checkExerciseAdapter({
+          exerciseKey: exKey,
+          answer: currentAnswer,
+          checkId: checkId
+        });
+        applyCheckResult(result);
+        savePreviewState();
+        renderExercise();
+      } finally {
+        checkInFlight = false;
+        const updatedBtn = document.getElementById("btnComprobar");
+        if (updatedBtn && !exerciseState[exKey].locked) {
+          updatedBtn.disabled = false;
+        }
+      }
+    }
+
+    function notifyValidationWarning(exVisual, msg) {
+      const st = exerciseState[exVisual.exerciseKey];
+      st.feedbackText = msg;
+      st.feedbackType = "warn";
+      renderExercise();
+    }
+
+    function applyCheckResult(result) {
+      if (!result || !result.exercise_key) return;
+      const exKey = result.exercise_key;
+      const st = exerciseState[exKey];
+      if (!st) return;
+
+      st.attemptCount = result.attempt_count;
+      st.status = result.status;
+      st.score = result.score;
+      st.locked = result.locked;
+      st.remainingAttempts = result.remaining_attempts;
+      st.partialFillStatus = result.partial_fill_status || null;
+      st.solutionHtml = result.solution_html || null;
+
+      if (result.status === "correct") {
+        lockExercise(exKey);
+        const ordinalText = ["primer", "segundo", "tercer", "cuarto"][result.attempt_count - 1] || `${result.attempt_count}.º`;
+        st.feedbackText = `¡Excelente! Resolviste el ejercicio en tu ${ordinalText} intento.<br>Puntaje: <strong>${result.score}/10</strong>.<br>✅ Comprobado y guardado (en esta vista previa local).`;
+        st.feedbackType = "ok";
+      } else if (result.status === "failed") {
+        lockExercise(exKey);
+        st.feedbackText = `Has completado tus cuatro comprobaciones.<br>Este ejercicio queda con <strong>1/10</strong>.<br>Revisa la solución paso a paso y continúa con el siguiente ejercicio.`;
+        st.feedbackType = "bad";
+      } else {
+        st.feedbackText = `Aún no es correcto. Revisa tu procedimiento.<br>Intentos utilizados: <strong>${result.attempt_count} de 4</strong>. Te quedan <strong>${result.remaining_attempts}</strong> comprobaciones.`;
+        st.feedbackType = "warn";
+      }
+    }
+
+    function lockExercise(exerciseKey) {
+      if (exerciseState[exerciseKey]) {
+        exerciseState[exerciseKey].locked = true;
+      }
+    }
+
+    function showHint() {
+      const hint = document.getElementById("hintBox");
+      if (hint) {
+        hint.classList.toggle("show");
+        typeset();
+      }
+    }
+
+    function renderSolution(exerciseKey) {
+      const st = exerciseState[exerciseKey];
+      const solBox = document.getElementById("solutionBox");
+      if (!st || !st.locked || !st.solutionHtml || !solBox) return;
+      solBox.innerHTML = renderSolutionHtmlBlock(st.solutionHtml);
+      solBox.classList.add("show");
+      typeset();
+    }
+
+    function navTo(idx) {
+      currentIdx = idx;
+      savePreviewState();
+      renderExercise();
+    }
+
+    function prevExercise() {
+      const list = getActiveOrderedList();
+      if (!list.length) return;
+      currentIdx = (currentIdx - 1 + list.length) % list.length;
+      savePreviewState();
+      renderExercise();
+    }
+
+    function nextExercise() {
+      const list = getActiveOrderedList();
+      if (!list.length) return;
+      currentIdx = (currentIdx + 1) % list.length;
+      savePreviewState();
+      renderExercise();
+    }
+
+    // =========================================================================
+    // 10. CÁLCULO DE NOTAS VISUALES, RECUPERACIÓN Y RESUMEN (CONTRATO 37-47)
+    // =========================================================================
+    function calculateInitialVisualScore() {
+      let sum = 0;
+      exercisesVisual.forEach(ex => {
+        const st = exerciseState[ex.exerciseKey];
+        sum += (st && typeof st.score === "number") ? st.score : 0;
+      });
+      return Number((sum / TOTAL_INITIAL_EXERCISES).toFixed(2));
+    }
+
+    function calculateRecoveryVisualScore() {
+      let sum = 0;
+      recoveryVisual.forEach(ex => {
+        const st = exerciseState[ex.exerciseKey];
+        sum += (st && typeof st.score === "number") ? st.score : 0;
+      });
+      return Number((sum / TOTAL_RECOVERY_EXERCISES).toFixed(2));
+    }
+
+    function calculateFinalVisualScore() {
+      const initialVisualScore = calculateInitialVisualScore();
+      const recProg = calculateProgress(orderedRecoveryExercises);
+      if (initialVisualScore < RECOVERY_THRESHOLD && recProg.completed === TOTAL_RECOVERY_EXERCISES) {
+        const recoveryVisualScore = calculateRecoveryVisualScore();
+        return Number(((initialVisualScore + recoveryVisualScore) / 2).toFixed(2));
+      }
+      return initialVisualScore;
+    }
+
+    function getPerformanceLevel(score) {
+      if (score >= 9.0) return "DESTACADO";
+      if (score >= 7.0) return "ALCANZADO";
+      if (score >= 4.0) return "EN DESARROLLO";
+      return "INICIAL";
+    }
+
+    function activateRecovery() {
+      activePhase = "recovery";
+      currentIdx = 0;
+      savePreviewState();
+      showScreen("workScreen");
+      renderExercise();
+    }
+
+    async function finalizeActivityAdapter() {
+      const recProg = calculateProgress(orderedRecoveryExercises);
+      const initProg = calculateProgress(orderedInitialExercises);
+      const isRecovery = activePhase === "recovery";
+      if (!isRecovery && initProg.completed < TOTAL_INITIAL_EXERCISES) return;
+      if (isRecovery && recProg.completed < TOTAL_RECOVERY_EXERCISES) return;
+
+      try {
+        const res = await submitActivityResult({
+          activityKey: ACTIVITY_KEY,
+          runId: currentRunId,
+          phase: activePhase
+        });
+        const serverFinalScore = res?.final_score ?? res?.score;
+        renderSummary(serverFinalScore);
+      } catch (err) {
+        console.error("Error al finalizar actividad:", err);
+        renderSummary();
+      }
+    }
+
+    function renderSummary() {
+      const initialVisualScore = calculateInitialVisualScore();
+      const recProg = calculateProgress(orderedRecoveryExercises);
+      const needsRecovery = initialVisualScore < RECOVERY_THRESHOLD;
+      const recoveryCompleted = recProg.completed === TOTAL_RECOVERY_EXERCISES;
+
+      let recoveryVisualScore = null;
+      let finalVisualScore = initialVisualScore;
+
+      if (needsRecovery && recoveryCompleted) {
+        recoveryVisualScore = calculateRecoveryVisualScore();
+        finalVisualScore = Number(((initialVisualScore + recoveryVisualScore) / 2).toFixed(2));
+      }
+
+      let correctCount = 0;
+      let failedCount = 0;
+      const evaluatedList = (needsRecovery && recoveryCompleted)
+        ? [...exercisesVisual, ...recoveryVisual]
+        : exercisesVisual;
+
+      evaluatedList.forEach(ex => {
+        const st = exerciseState[ex.exerciseKey];
+        if (st.status === "correct") correctCount++;
+        if (st.status === "failed") failedCount++;
+      });
+
+      const level = getPerformanceLevel(finalVisualScore);
+      const percent = Math.round((finalVisualScore / 10) * 100);
+
+      document.getElementById("sumInitial").textContent = initialVisualScore.toFixed(2);
+      document.getElementById("sumRecoveryFlag").textContent = needsRecovery ? "Sí (< 7.00)" : "No (≥ 7.00)";
+      document.getElementById("sumRecovery").textContent = recoveryVisualScore !== null ? recoveryVisualScore.toFixed(2) : "N/A";
+      document.getElementById("sumFinal").textContent = finalVisualScore.toFixed(2);
+      document.getElementById("sumPercent").textContent = `${percent}%`;
+      document.getElementById("sumLevel").textContent = level;
+
+      document.getElementById("sumCountsText").textContent =
+        `Ejercicios resueltos correctamente (✓): ${correctCount}  |  Ejercicios en refuerzo con 1/10 (!): ${failedCount}`;
+
+      let obs = "";
+      if (level === "DESTACADO") {
+        obs = "Dominio sobresaliente de la estandarización z, lectura de la tabla normal Φ(z), problemas contextualizados y demostraciones de simetría.";
+      } else if (level === "ALCANZADO") {
+        obs = "Buen manejo de los procedimientos de estandarización y cálculo de probabilidades normales. Revisa las soluciones de los ejercicios con varios intentos.";
+      } else if (level === "EN DESARROLLO") {
+        obs = "Comprendes las bases de la distribución normal, pero conviene reforzar el uso del complemento 1 - Φ(z) y la simetría Φ(-z) = 1 - Φ(z).";
+      } else {
+        obs = "Te recomendamos repasar paso a paso las soluciones detalladas de cada ejercicio y utilizar la fase de recuperación guiada.";
+      }
+      document.getElementById("sumObservationText").textContent = obs;
+
+      const recNotice = document.getElementById("recoveryNotice");
+      const recBtn = document.getElementById("startRecoveryBtn");
+
+      if (needsRecovery && !recoveryCompleted) {
+        recNotice.style.display = "block";
+        recBtn.style.display = "inline-flex";
+      } else {
+        recNotice.style.display = "none";
+        recBtn.style.display = "none";
+      }
+
+      showScreen("summaryScreen");
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    
+    async function restoreRealProgress() {
+      try {
+        const progressList = await getExerciseProgress(ACTIVITY_KEY);
+        if (Array.isArray(progressList) && progressList.length > 0) {
+          for (const item of progressList) {
+            if (item && item.exercise_key && exerciseState[item.exercise_key]) {
+              const st = exerciseState[item.exercise_key];
+              st.attemptCount = item.attempt_count;
+              st.status = item.status;
+              st.score = item.exercise_score;
+              st.locked = Boolean(item.locked);
+              st.answer = item.answer_data?.value ?? item.answer_data;
+              st.remainingAttempts = Math.max(0, MAX_CHECK_ATTEMPTS - item.attempt_count);
+            }
+          }
+          renderExercise();
+        }
+      } catch (e) {
+        console.warn("No se pudo restaurar progreso remoto:", e);
+      }
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      const target = document.getElementById(id);
+      if (target) target.classList.add("active");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      typeset();
+    }
+
+    function typeset() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise()
+          .catch(error => {
+            console.warn("MathJax:", error);
+          });
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initAppWithSeed();
+      restoreRealProgress();
+    });
+  </script>
+</body>
+</html>

@@ -126,8 +126,9 @@ Todas las Edge Functions están construidas en TypeScript para el runtime Deno y
 
 1. **Escala Oficial sobre 10.00**: Todas las actividades se califican sobre una escala de **1.00 a 10.00 puntos**.
 2. **Calificación Mínima Institucional**: Cualquier entrega procesada o actividad no entregada tras el vencimiento de la fecha límite recibe la calificación mínima garantizada de **1.00 / 10.00**.
-3. **Consistencia de Recuperación**: Si una actividad incluye fase de recuperación (como en Unidad 5), la calificación final se calcula como:
-   $$\text{Nota Final} = \max(\text{Nota Inicial}, \text{Nota Recuperación})$$
+3. **Consistencia de Recuperación**: Para actividades con fase de recuperación bajo la política oficial aprobada (Unidad 7+ y futuras), la calificación definitiva se calcula server-side como el promedio aritmético:
+   $\text{Nota Final Oficial} = \frac{\text{Nota Inicial} + \text{Nota Recuperación}}{2}$
+   (Las unidades históricas previas como Unidad 5 conservan su regla configurada).
 4. **Idempotencia de Entregas**: El cliente genera un `submission_id` único por intento. Reintentos de transmisión por inestabilidad de red no duplican intentos ni alteran el puntaje previamente asignado.
 
 ---

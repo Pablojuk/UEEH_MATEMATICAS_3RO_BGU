@@ -702,6 +702,14 @@ serve(async (req) => {
         throw new Error("ADMIN_OPERATION_FAILED");
       }
 
+      if (rpcRes && Array.isArray(rpcRes.results)) {
+        for (const r of rpcRes.results) {
+          if (r.final_score === undefined || r.final_score === null) {
+            r.final_score = r.best_score;
+          }
+        }
+      }
+
       return new Response(JSON.stringify({ success: true, data: rpcRes }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -905,6 +913,17 @@ serve(async (req) => {
           }
 
           if (res) {
+            let officialFinal = (res.final_score !== undefined && res.final_score !== null)
+              ? Number(res.final_score)
+              : Number(res.best_score);
+
+            if (initialScore !== null && recoveryScore !== null) {
+              const recAttempt = atts.find((att: any) => att.submission_data?.phase === "recovery");
+              if (recAttempt && recAttempt.score !== undefined && recAttempt.score !== null) {
+                officialFinal = Number(recAttempt.score);
+              }
+            }
+
             grades[act.activity_key] = {
               activity_id: act.id,
               student_id: s.id,
@@ -914,7 +933,7 @@ serve(async (req) => {
               last_completed_at: res.last_completed_at,
               initial_score: initialScore,
               recovery_score: recoveryScore,
-              final_score: Number(res.best_score)
+              final_score: officialFinal
             };
           } else {
             grades[act.activity_key] = null;
