@@ -7,10 +7,7 @@
   <title>Bomberman Z-Gauss 3D · Distribución Normal · Tercero de BGU (UEEH)</title>
 
   <!-- Configuración MathJax 3 -->
-  <script type="module">
-    import { supabase } from '../../core/supabase-client.js?v=1.4.7';
-    import { submitActivityResult } from '../../core/activity-service.js?v=1.4.7';
-    import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.7';
+  <script>
     window.MathJax = {
       tex: {
         inlineMath: [['\\(', '\\)'], ['$', '$']],
@@ -830,7 +827,7 @@
       </div>
 
       <p id="finalize-status-msg" style="color:var(--celeste); font-weight:700; margin-bottom:14px; text-align:center;">
-        Vista previa local; la versión integrada realizará la entrega oficial en UEEH.
+        Tu progreso y calificaciones formativas se registran de forma segura en el sistema académico UEEH.
       </p>
 
       <div class="btn-row">
@@ -838,7 +835,7 @@
           ✅ FINALIZAR MISIÓN
         </button>
         <button type="button" class="btn btn-secondary" onclick="restartPreviewGame()">
-          🔄 REINICIAR JUEGO (PREVIEW)
+          🔄 REINICIAR MISIÓN
         </button>
       </div>
     </section>
@@ -927,7 +924,11 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { supabase } from '../../core/supabase-client.js?v=1.4.7';
+    import { submitActivityResult } from '../../core/activity-service.js?v=1.4.7';
+    import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.7';
+
     // =========================================================================
     // 1. VARIABLES EDITABLES Y CONTRATO PEDAGÓGICO (GAMIFICATION_UNLIMITED)
     // =========================================================================
@@ -1839,8 +1840,8 @@
     // 8. FUNCIONES RECOMENDADAS Y FLUJO PEDAGÓGICO UEEH
     // =========================================================================
     function typeset() {
-      if (USE_MATHJAX && window.MathJax && MathJax.typesetPromise) {
-        MathJax.typesetPromise().catch(error => {
+      if (USE_MATHJAX && window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise().catch(error => {
           console.warn("MathJax:", error);
         });
       }
@@ -1862,7 +1863,7 @@
     }
 
     async function startGame() {
-      currentShuffleSeed = await getShuffleSeedAdapter({ activityKey: ACTIVITY_KEY_PLACEHOLDER });
+      currentShuffleSeed = await getShuffleSeedAdapter({ activityKey: ACTIVITY_KEY });
       orderedMissions = getExerciseOrder(currentShuffleSeed);
       optionOrdersByExercise = {};
       orderedMissions.forEach(m => {
@@ -2430,6 +2431,21 @@
       typeset();
       restoreRealProgress();
     });
+
+    // Exposición de funciones e integraciones a window para accesibilidad e interacciones onclick
+    window.supabase = supabase;
+    window.submitActivityResult = submitActivityResult;
+    window.checkExercise = checkExercise;
+    window.getExerciseProgress = getExerciseProgress;
+    window.startGame = startGame;
+    window.showInstructions = showInstructions;
+    window.backToStart = backToStart;
+    window.reopenPendingChallenge = reopenPendingChallenge;
+    window.finalizeGameAdapter = finalizeGameAdapter;
+    window.restartPreviewGame = restartPreviewGame;
+    window.showHint = showHint;
+    window.checkAnswer = checkAnswer;
+    window.completeChallenge = completeChallenge;
   </script>
 </body>
 </html>

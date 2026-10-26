@@ -10,10 +10,7 @@
   <title>TRABAJO EN CLASE / DEBER INTERACTIVO - Distribución Normal | UEEH</title>
 
   <!-- Configuración MathJax 3 -->
-  <script type="module">
-    import { supabase } from '../../core/supabase-client.js?v=1.4.7';
-    import { submitActivityResult } from '../../core/activity-service.js?v=1.4.7';
-    import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.7';
+  <script>
     window.MathJax = {
       tex: {
         inlineMath: [['\\(', '\\)'], ['$', '$']],
@@ -457,10 +454,6 @@
           Resuelve los ejercicios de estandarización, cálculo de probabilidades con la tabla \(\Phi(z)\), análisis de propiedades de la campana de Gauss, problemas de aplicación y retos matemáticos.
         </p>
 
-        <div class="previewNotice" role="note">
-          ℹ️ Vista previa local: esta actividad todavía no está conectada a UEEH.
-        </div>
-
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 18px 0;">
           <div style="background: var(--soft); border: 1px solid var(--line); padding: 18px; border-radius: 16px;">
             <h3>🎯 Objetivo y Destreza Curricular</h3>
@@ -505,7 +498,7 @@
               </div>
               <div class="stat">
                 <strong id="avgNow">0.00</strong>
-                <span>Promedio Vista Previa</span>
+                <span>Promedio Actual</span>
               </div>
             </div>
 
@@ -535,9 +528,6 @@
                 📤 Enviar Actividad
               </button>
             </div>
-            <p style="font-size: 0.78rem; color: var(--muted); text-align: center; margin: 8px 0 0;">
-              Vista previa local: esta actividad todavía no está conectada a UEEH.
-            </p>
           </aside>
 
           <section class="mainCard" aria-live="polite">
@@ -604,23 +594,19 @@
            ========================================== -->
       <section class="screen" id="summaryScreen" aria-labelledby="summaryTitle">
         <div class="duaRow">
-          <span class="tag blue">Vista previa pedagógica</span>
-          <span class="tag gray">Evaluación Formativa Local</span>
+          <span class="tag blue">Evaluación Formativa Oficial</span>
+          <span class="tag gray">Registro Académico UEEH</span>
         </div>
 
-        <h2 id="summaryTitle">Vista Previa Local: Resumen de Resultados</h2>
+        <h2 id="summaryTitle">Resumen Oficial de Resultados</h2>
         <p class="lead" id="summaryLead">
-          A continuación se presenta el desglose de tu desempeño en esta sesión de prueba local.
+          A continuación se presenta el desglose consolidado de tu desempeño y calificación oficial.
         </p>
-
-        <div class="previewNotice" role="note">
-          ℹ️ Vista previa local: esta actividad todavía no está conectada a UEEH. Las calificaciones mostradas son orientativas de autoría.
-        </div>
 
         <div class="summaryGrid">
           <div class="summaryItem">
             <strong id="sumInitial">0.00</strong>
-            <span>Nota Inicial Visual (/10)</span>
+            <span>Nota Inicial (/10)</span>
           </div>
           <div class="summaryItem">
             <strong id="sumRecoveryFlag">No requerida</strong>
@@ -632,7 +618,7 @@
           </div>
           <div class="summaryItem">
             <strong id="sumFinal">0.00</strong>
-            <span>Nota Final Visual (/10)</span>
+            <span>Nota Final Oficial (/10)</span>
           </div>
           <div class="summaryItem">
             <strong id="sumPercent">0%</strong>
@@ -667,7 +653,11 @@
     </main>
   </div>
 
-  <script>
+  <script type="module">
+    import { supabase } from '../../core/supabase-client.js?v=1.4.7';
+    import { submitActivityResult } from '../../core/activity-service.js?v=1.4.7';
+    import { checkExercise, getExerciseProgress } from '../../core/exercise-progress-service.js?v=1.4.7';
+
     // =========================================================================
     // 1. VARIABLES CONFIGURABLES (CONTRATO SECCIÓN 63)
     // =========================================================================
@@ -1400,7 +1390,7 @@
     }
 
     async function initAppWithSeed() {
-      activeShuffleSeed = await getShuffleSeedAdapter({ activityKey: ACTIVITY_KEY_PLACEHOLDER });
+      activeShuffleSeed = await getShuffleSeedAdapter({ activityKey: ACTIVITY_KEY });
       orderedInitialExercises = getInitialExerciseOrder(activeShuffleSeed);
       orderedRecoveryExercises = getRecoveryExerciseOrder(activeShuffleSeed);
       initializeExerciseStateMap(activeShuffleSeed);
@@ -1779,7 +1769,7 @@
       if (result.status === "correct") {
         lockExercise(exKey);
         const ordinalText = ["primer", "segundo", "tercer", "cuarto"][result.attempt_count - 1] || `${result.attempt_count}.º`;
-        st.feedbackText = `¡Excelente! Resolviste el ejercicio en tu ${ordinalText} intento.<br>Puntaje: <strong>${result.score}/10</strong>.<br>✅ Comprobado y guardado (en esta vista previa local).`;
+        st.feedbackText = `¡Excelente! Resolviste el ejercicio en tu ${ordinalText} intento.<br>Puntaje: <strong>${result.score}/10</strong>.<br>✅ Comprobado y registrado en UEEH.`;
         st.feedbackType = "ok";
       } else if (result.status === "failed") {
         lockExercise(exKey);
@@ -1903,7 +1893,7 @@
       }
     }
 
-    function renderSummary() {
+    function renderSummary(serverFinalScore = null) {
       const initialVisualScore = calculateInitialVisualScore();
       const recProg = calculateProgress(orderedRecoveryExercises);
       const needsRecovery = initialVisualScore < RECOVERY_THRESHOLD;
@@ -1915,6 +1905,11 @@
       if (needsRecovery && recoveryCompleted) {
         recoveryVisualScore = calculateRecoveryVisualScore();
         finalVisualScore = Number(((initialVisualScore + recoveryVisualScore) / 2).toFixed(2));
+      }
+
+      // Si el servidor confirma la nota oficial calculada en backend, tiene precedencia suprema
+      if (typeof serverFinalScore === "number" && !isNaN(serverFinalScore)) {
+        finalVisualScore = Number(Number(serverFinalScore).toFixed(2));
       }
 
       let correctCount = 0;
@@ -2008,8 +2003,8 @@
     }
 
     function typeset() {
-      if (window.MathJax && MathJax.typesetPromise) {
-        MathJax.typesetPromise()
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise()
           .catch(error => {
             console.warn("MathJax:", error);
           });
@@ -2020,6 +2015,26 @@
       initAppWithSeed();
       restoreRealProgress();
     });
+
+    // Exposición de funciones e integraciones a window para accesibilidad e interacciones onclick
+    window.supabase = supabase;
+    window.submitActivityResult = submitActivityResult;
+    window.checkExercise = checkExercise;
+    window.getExerciseProgress = getExerciseProgress;
+    window.startActivity = startActivity;
+    window.finalizeActivityAdapter = finalizeActivityAdapter;
+    window.prevExercise = prevExercise;
+    window.nextExercise = nextExercise;
+    window.activateRecovery = activateRecovery;
+    window.showScreen = showScreen;
+    window.navTo = navTo;
+    window.selectMCQOption = selectMCQOption;
+    window.updateDirectInput = updateDirectInput;
+    window.handleInputKeydown = handleInputKeydown;
+    window.updateFillBlank = updateFillBlank;
+    window.moveOrderStep = moveOrderStep;
+    window.checkAnswer = checkAnswer;
+    window.showHint = showHint;
   </script>
 </body>
 </html>
