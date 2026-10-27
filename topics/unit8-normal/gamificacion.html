@@ -1992,6 +1992,14 @@
       });
     }
 
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
     async function checkAnswer() {
       if (checkInFlight || !activeExerciseKey) return;
       const state = challengeState[activeExerciseKey];
@@ -2005,7 +2013,10 @@
         return;
       }
 
-      const checkId = generateCheckId();
+      if (!state.pendingCheckId) {
+        state.pendingCheckId = generateCheckId();
+      }
+      const checkId = state.pendingCheckId;
       const btnCheck = document.getElementById("btn-check");
       checkInFlight = true;
       btnCheck.disabled = true;
@@ -2017,9 +2028,20 @@
           answer,
           checkId
         });
-        applyCheckResult(result, answer);
+        if (result && result.success) {
+          state.pendingCheckId = null;
+          applyCheckResult(result, answer);
+        } else {
+          const errorMsg = result?.error || "No se pudo comprobar la respuesta. Intenta nuevamente.";
+          const fb = document.getElementById("modal-feedback");
+          fb.className = "feedback-panel show incorrect";
+          fb.innerHTML = `⚠️ <strong>Error al comprobar:</strong> ${escapeHtml(errorMsg)}`;
+        }
       } catch (err) {
         console.warn("Error en checkChallengeAdapter:", err);
+        const fb = document.getElementById("modal-feedback");
+        fb.className = "feedback-panel show incorrect";
+        fb.innerHTML = "⚠️ <strong>Error de conexión:</strong> No se pudo conectar con el servidor. Tu respuesta permanece seleccionada para reintentar.";
       } finally {
         checkInFlight = false;
         btnCheck.textContent = "✔ COMPROBAR";
@@ -2298,10 +2320,17 @@
           runId: currentGameRunId,
           phase: "gamification"
         });
-        btn.textContent = "✔ MISIÓN FINALIZADA";
-        const finalScore = res?.final_score ?? res?.score ?? calculatePreviewScore();
-        msg.textContent = `✅ Calificación oficial confirmada en Supabase: ${Number(finalScore).toFixed(2)}/10`;
-        document.getElementById("end-score").textContent = `${Number(finalScore).toFixed(2)} / 10`;
+        if (res && res.success && res.state === "confirmed") {
+          btn.textContent = "✔ MISIÓN FINALIZADA";
+          const finalScore = res?.data?.final_score ?? res?.data?.score ?? res?.final_score ?? res?.score ?? calculatePreviewScore();
+          msg.textContent = `✅ Calificación oficial confirmada en Supabase: ${Number(finalScore).toFixed(2)}/10`;
+          document.getElementById("end-score").textContent = `${Number(finalScore).toFixed(2)} / 10`;
+        } else {
+          btn.disabled = false;
+          btn.textContent = "REINTENTAR FINALIZAR";
+          const errMsg = res?.error || "Error al registrar la entrega oficial en Supabase.";
+          msg.textContent = `⚠️ ${errMsg}`;
+        }
       } catch (err) {
         console.error("Error al finalizar actividad:", err);
         btn.disabled = false;

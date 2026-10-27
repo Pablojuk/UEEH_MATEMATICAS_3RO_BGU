@@ -267,14 +267,35 @@ serve(async (req: Request) => {
 
     const userId = userData.user.id;
 
-    const { data: student, error: studentError } = await serviceClient
+    let { data: student, error: studentError } = await serviceClient
       .from("students")
       .select("id, status, student_code")
       .eq("linked_user_id", userId)
       .eq("status", "active")
       .maybeSingle();
 
-    if (studentError || !student) {
+    if (!student) {
+      const { data: profile } = await serviceClient
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (profile?.role === "admin") {
+        const { data: testStudent } = await serviceClient
+          .from("students")
+          .select("id, status, student_code")
+          .eq("student_code", "UEEH-DOC-TEST")
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (testStudent) {
+          student = testStudent;
+        }
+      }
+    }
+
+    if (!student) {
       return new Response(JSON.stringify({ error: "Estudiante no registrado o inactivo" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
     diagnostic.studentCode = student.student_code;

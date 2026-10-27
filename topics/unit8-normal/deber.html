@@ -1724,23 +1724,46 @@
 
       checkInFlight = true;
       const btn = document.getElementById("btnComprobar");
-      if (btn) btn.disabled = true;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "⏳ Comprobando...";
+      }
+
+      if (!st.pendingCheckId) {
+        st.pendingCheckId = generateCheckId();
+      }
 
       try {
-        const checkId = generateCheckId();
         const result = await checkExerciseAdapter({
           exerciseKey: exKey,
           answer: currentAnswer,
-          checkId: checkId
+          checkId: st.pendingCheckId
         });
-        applyCheckResult(result);
-        savePreviewState();
+
+        if (result && result.success) {
+          st.pendingCheckId = null;
+          applyCheckResult(result);
+          savePreviewState();
+          renderExercise();
+        } else {
+          const errorMsg = result?.error || "No se pudo comprobar la respuesta. Intenta nuevamente.";
+          st.feedbackText = `⚠️ <strong>Error al comprobar:</strong> ${escapeHtml(errorMsg)}`;
+          st.feedbackType = "warn";
+          renderExercise();
+        }
+      } catch (err) {
+        console.warn("Fallo en checkExerciseAdapter:", err);
+        st.feedbackText = "⚠️ <strong>Error de conexión:</strong> No se pudo conectar con el servidor. Tu respuesta permanece guardada para reintentar.";
+        st.feedbackType = "warn";
         renderExercise();
       } finally {
         checkInFlight = false;
         const updatedBtn = document.getElementById("btnComprobar");
-        if (updatedBtn && !exerciseState[exKey].locked) {
-          updatedBtn.disabled = false;
+        if (updatedBtn) {
+          updatedBtn.textContent = "✔ Comprobar";
+          if (!exerciseState[exKey].locked) {
+            updatedBtn.disabled = false;
+          }
         }
       }
     }
@@ -1879,17 +1902,36 @@
       if (!isRecovery && initProg.completed < TOTAL_INITIAL_EXERCISES) return;
       if (isRecovery && recProg.completed < TOTAL_RECOVERY_EXERCISES) return;
 
+      const finishBtn = document.getElementById("finishBtn");
+      if (finishBtn) {
+        finishBtn.disabled = true;
+        finishBtn.textContent = "⏳ Enviando Entrega Oficial...";
+      }
+
       try {
         const res = await submitActivityResult({
           activityKey: ACTIVITY_KEY,
           runId: currentRunId,
           phase: activePhase
         });
-        const serverFinalScore = res?.final_score ?? res?.score;
-        renderSummary(serverFinalScore);
+        if (res && res.success && res.state === "confirmed") {
+          const serverFinalScore = res?.data?.final_score ?? res?.data?.score ?? res?.final_score ?? res?.score;
+          renderSummary(serverFinalScore);
+        } else {
+          if (finishBtn) {
+            finishBtn.disabled = false;
+            finishBtn.textContent = "📤 Reintentar Envío";
+          }
+          const errorMsg = res?.error || "No se pudo confirmar la entrega oficial en Supabase.";
+          alert(`⚠️ Error al enviar entrega oficial: ${errorMsg}\n\nPuedes presionar 'Reintentar Envío' sin perder tu progreso.`);
+        }
       } catch (err) {
         console.error("Error al finalizar actividad:", err);
-        renderSummary();
+        if (finishBtn) {
+          finishBtn.disabled = false;
+          finishBtn.textContent = "📤 Reintentar Envío";
+        }
+        alert("⚠️ Error de conexión al enviar la actividad. Tu progreso está guardado y puedes reintentar.");
       }
     }
 

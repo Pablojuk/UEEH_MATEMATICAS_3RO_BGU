@@ -40,7 +40,12 @@ export async function checkExercise({ activityKey, exerciseKey, answer, checkId,
       })
     });
 
-    const body = await res.json();
+    let body = {};
+    try {
+      body = await res.json();
+    } catch {
+      body = { error: `Error del servidor (${res.status})` };
+    }
 
     if (res.ok && body.success) {
       return {
@@ -51,8 +56,8 @@ export async function checkExercise({ activityKey, exerciseKey, answer, checkId,
     } else {
       return {
         success: false,
-        error: body.error || "No se pudo comprobar la respuesta.",
-        code: body.code
+        error: body.error || `Error del servidor (${res.status})`,
+        code: body.code || res.status
       };
     }
   } catch (netErr) {
